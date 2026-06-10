@@ -13,6 +13,9 @@
 //   { file, op: "out-of-scope", reason }            — sweep candidate ruled non-instructional
 // Plus:
 //   jsonMerges: [ { file, base } ]                  — key-level merge against kit template
+//   installs:   [ { file, template } | { file, literal } ]
+//     — static file instantiation (greenfield wiring: shim, settings, marker,
+//       ai-kit-check). Template slot markers are stripped. Output-side only.
 //
 // Future maintainers: dispositions only. NEVER add input-classification ops.
 
@@ -25,7 +28,7 @@ export const FILE_OPS = new Set(['keep-file', 'out-of-scope']);
 
 // Targets the materializer may write (scope-constrained; check enforces).
 export const ALLOWED_TARGET_PATTERNS = [
-  /^AGENTS\.md$/, /^CLAUDE\.md$/,
+  /^AGENTS\.md$/, /^CLAUDE\.md$/, /^\.gitignore$/,
   /(^|\/)AGENTS\.md$/, /(^|\/)CLAUDE\.md$/,         // nested compat
   /^\.claude\//,
   /^\.vscode\/settings\.json$/,
@@ -111,6 +114,12 @@ export function validateShape(manifest) {
   for (const [i, jm] of (manifest.jsonMerges ?? []).entries()) {
     if (!jm.file) errors.push(`jsonMerges[${i}]: requires "file"`);
     if (!jm.base) errors.push(`jsonMerges[${i}]: requires "base" (kit template path)`);
+  }
+
+  for (const [i, ins] of (manifest.installs ?? []).entries()) {
+    if (!ins.file) errors.push(`installs[${i}]: requires "file"`);
+    if (!ins.template && !ins.literal) errors.push(`installs[${i}]: requires "template" or "literal"`);
+    if (ins.template && ins.literal) errors.push(`installs[${i}]: "template" and "literal" are mutually exclusive`);
   }
 
   return errors;

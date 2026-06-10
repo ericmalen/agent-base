@@ -25,7 +25,10 @@ function git(root, args) {
   return r.stdout;
 }
 
-export function runInventory({ root, outDir, allowDirty = false }) {
+// `include`: repo-relative paths forced into the surface set (sweep candidates
+// the AI ruled IN scope during the plan phase — re-extract with --include).
+export function runInventory({ root, outDir, allowDirty = false, include = [] }) {
+  const includeSet = new Set(include);
   root = resolve(root);
 
   // Preconditions (hard, plan §5 — no degraded fallback)
@@ -39,10 +42,17 @@ export function runInventory({ root, outDir, allowDirty = false }) {
   }
 
   // Universe: tracked + untracked-but-not-ignored. Never a raw fs walk.
+  // Adoption-time tooling is not repo content — never inventory it.
+  const TOOLING = [
+    /^\.adoption\//,
+    /^\.claude\/ai-kit-adoption\//,
+    /^\.claude\/skills\/adopt-(inventory|plan|materialize|verify)\//,
+    /^\.claude\/agents\/adoption-verifier\.md$/,
+  ];
   const universe = git(root, ['ls-files', '--cached', '--others', '--exclude-standard', '-z'])
     .split('\0')
     .filter(Boolean)
-    .filter((p) => !p.startsWith('.adoption/'))
+    .filter((p) => !TOOLING.some((re) => re.test(p)))
     .sort();
 
   const files = [];
@@ -68,10 +78,11 @@ export function runInventory({ root, outDir, allowDirty = false }) {
       continue;
     }
     const text = buf.toString('utf8');
-    const surface = classifySurface(path);
+    const surface = classifySurface(path) ?? (includeSet.has(path) ? 'forced-include' : null);
 
     if (surface) {
       const { fileMeta, blocks } = extractFile(path, text);
+      if (includeSet.has(path)) fileMeta.surface = 'forced-include';
       const ids = [];
       for (const b of blocks) {
         const id = `n${String(++nodeSeq).padStart(4, '0')}`;
@@ -126,17 +137,18 @@ const isMain = process.argv[1] && resolve(process.argv[1]) === new URL(import.me
 
 if (isMain) {
   const args = process.argv.slice(2);
-  const opt = { root: process.cwd(), out: '.adoption', allowDirty: false, json: false };
+  const opt = { root: process.cwd(), out: '.adoption', allowDirty: false, json: false, include: [] };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--root') opt.root = args[++i];
     else if (args[i] === '--out') opt.out = args[++i];
     else if (args[i] === '--allow-dirty') opt.allowDirty = true;
     else if (args[i] === '--json') opt.json = true;
+    else if (args[i] === '--include') opt.include.push(...(args[++i] ?? '').split(',').filter(Boolean));
     else fail(`unknown flag: ${args[i]}`);
   }
 
   try {
-    const inv = runInventory({ root: opt.root, outDir: opt.out, allowDirty: opt.allowDirty });
+    const inv = runInventory({ root: opt.root, outDir: opt.out, allowDirty: opt.allowDirty, include: opt.include });
     if (opt.json) {
       console.log(JSON.stringify(inv, null, 2));
     } else {

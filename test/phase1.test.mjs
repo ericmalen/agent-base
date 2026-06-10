@@ -181,6 +181,44 @@ test('split: ranges route to different targets; explicit drop-range allowed', ()
   }
 });
 
+// ── greenfield: installs produce an audit-clean repo ────────────────────────
+
+test('greenfield end-to-end: installs + jsonMerges ⇒ gates pass AND audit clean', async () => {
+  const { audit } = await import('../scripts/audit.mjs');
+  const { repo } = setup('greenfield-empty');
+  try {
+    mkdirSync(join(repo, '.adoption', 'literals'), { recursive: true });
+    writeFileSync(join(repo, '.adoption', 'literals', 'marker.json'),
+      '{ "kit": "2.0.0-dev", "adoptedAt": "2026-06-10", "githubCodeReview": false }\n');
+    writeManifest(repo, {
+      entries: [],
+      installs: [
+        { file: 'AGENTS.md', template: 'AGENTS.md' },
+        { file: 'CLAUDE.md', template: 'CLAUDE.md' },
+        { file: '.gitignore', template: 'gitignore' },
+        { file: '.claude/settings.json', template: 'claude-settings.json' },
+        { file: '.claude/skills/README.md', template: 'skills-README.md' },
+        { file: '.claude/skills/ai-kit-check/SKILL.md', template: 'ai-kit-check/SKILL.md' },
+        { file: '.claude/skills/ai-kit-check/references/rubric.md', template: 'ai-kit-check/references/rubric.md' },
+        { file: '.claude/ai-kit.json', literal: 'literals/marker.json' },
+      ],
+      jsonMerges: [{ file: '.vscode/settings.json', base: 'vscode-settings.json' }],
+    });
+    materialize({ root: repo, templatesDir: KIT_TEMPLATES });
+
+    const agents = readFileSync(join(repo, 'AGENTS.md'), 'utf8');
+    assert.ok(!agents.includes('ai-kit:slot'), 'install strips slot markers');
+    assert.ok(agents.includes('## Do Not'));
+
+    assert.deepEqual(check({ root: repo, templatesDir: KIT_TEMPLATES }).violations, []);
+
+    const report = audit({ root: repo });
+    assert.deepEqual(report.findings, [], JSON.stringify(report.findings, null, 2));
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
 // ── report generator ────────────────────────────────────────────────────────
 
 test('report: risk-ordered, drops carry full text, merge side-by-side, merged-bytes %', () => {

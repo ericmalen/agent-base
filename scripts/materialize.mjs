@@ -152,6 +152,25 @@ export function materialize({ root, templatesDir, outRoot = null }) {
     generated[target] = sha(output);
   }
 
+  // ── 2b. Static installs (greenfield wiring) ───────────────────────────────
+  for (const ins of manifest.installs ?? []) {
+    let text;
+    if (ins.template) {
+      const p = join(templatesDir, ins.template);
+      if (!existsSync(p)) throw new Error(`install template missing: ${ins.template}`);
+      text = readFileSync(p, 'utf8').replace(SLOT_RE, ''); // empty-slot instantiation
+    } else {
+      const p = join(adoptionDir, ins.literal);
+      if (!existsSync(p)) throw new Error(`install literal missing: ${ins.literal}`);
+      text = readFileSync(p, 'utf8');
+    }
+    if (generated[ins.file]) throw new Error(`install collides with assembled target: ${ins.file}`);
+    const abs = join(writeRoot, ins.file);
+    mkdirSync(dirname(abs), { recursive: true });
+    writeFileSync(abs, text, 'utf8');
+    generated[ins.file] = sha(text);
+  }
+
   // ── 3. JSON key-level merges ───────────────────────────────────────────────
   for (const jm of manifest.jsonMerges ?? []) {
     const basePath = join(templatesDir, jm.base);

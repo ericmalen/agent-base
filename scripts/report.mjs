@@ -66,6 +66,7 @@ export function generateReport({ root }) {
   L.push(`| **dropped** | ${groups.drop.length} (${pct(droppedBytes)}% of source bytes) |`);
   L.push(`| **merged/superseded (replaced text — REVIEW)** | ${groups.merge.length + groups.supersede.length} (${pct(mergedBytes)}% of source bytes) |`);
   L.push(`| out-of-scope rulings | ${groups.oos.length} |`);
+  L.push(`| installed (kit templates/literals) | ${(manifest.installs ?? []).length} |`);
   L.push('');
   L.push(`> Merged-bytes fraction is the creeping-merge tripwire. Extraction-first`);
   L.push(`> policy: this number should be small; every point of it is judgment-`);

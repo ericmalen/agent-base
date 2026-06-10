@@ -110,6 +110,15 @@ export function check({ root, templatesDir, skipRepro = false }) {
     }
   }
   for (const jm of manifest.jsonMerges ?? []) checkTarget(jm.file, 'jsonMerges');
+  for (const ins of manifest.installs ?? []) {
+    checkTarget(ins.file, 'installs');
+    if (ins.literal && !existsSync(join(adoptionDir, ins.literal))) {
+      v('scope', `install literal "${ins.literal}" does not exist under .adoption/`);
+    }
+    if (ins.template && templatesDir && !existsSync(join(templatesDir, ins.template))) {
+      v('scope', `install template "${ins.template}" does not exist in templates dir`);
+    }
+  }
 
   // ── 4. Reproducibility ─────────────────────────────────────────────────────
   if (!skipRepro && violations.length === 0) {
