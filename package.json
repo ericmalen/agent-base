@@ -1,15 +1,12 @@
 {
   "name": "ai-kit",
-  "version": "1.0.0",
+  "version": "2.0.0-dev",
   "private": true,
   "type": "module",
-  "bin": {
-    "ai-kit": "bin/ai-kit.mjs"
-  },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
-    "test": "node --test test/fsutil.test.mjs test/diff.test.mjs test/brownfield.test.mjs test/manifest.test.mjs test/registry.test.mjs test/prompt.test.mjs test/table.test.mjs test/frontmatter.test.mjs test/json-config.test.mjs test/audit.test.mjs test/migrate.test.mjs test/install.test.mjs test/rewrite-refs.test.mjs"
+    "test": "node --test 'test/**/*.test.mjs'"
   }
 }

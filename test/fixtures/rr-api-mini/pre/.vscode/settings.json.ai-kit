@@ -1,8 +1,0 @@
-{
-  // AI-kit managed keys
-  "chat.tools.autoApprove": false,
-  "chat.agent.enabled": true,
-  "github.copilot.enable": {
-    "*": true
-  }
-}
