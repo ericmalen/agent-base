@@ -24,9 +24,14 @@ in FRESH contexts.
    Gate 1 (after plan) and Gate 2 (after verify) and wait for the user's
    explicit approval before continuing. The verifier invocations inside
    adopt-verify must also be fresh subagents — never reuse a phase context.
-   **Copilot / no-subagent fallback:** execute adopt-inventory inline, then
-   hand the user the per-phase instructions (new chat per phase) exactly as
-   the skill files say.
+   **Copilot:** ATTEMPT the same subagent orchestration first (the kit's
+   .vscode settings enable subagent invocation, including the depth-2
+   verifier chain). Confirm each phase actually ran as a separate subagent
+   (visible as subagent runs in the UI); if dispatch fails or phases run
+   inline in this context, STOP orchestrating and fall back: execute
+   adopt-inventory inline, then hand the user the per-phase instructions
+   (new chat per phase) exactly as the skill files say. Never let phases
+   silently share one context — that breaks verifier independence.
 6. After Gate 2 approval: remind the user to merge and delete the branch
    themselves; never merge for them.
 
