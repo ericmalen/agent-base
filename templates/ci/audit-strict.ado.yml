@@ -1,6 +1,7 @@
 # audit-strict — adopted repos must stay conformant to the ai-kit target state.
 # Installed by adoption for repos with Azure DevOps CI (alongside docs-impact).
-# Add as a PR build validation policy on the target branch.
+# Place under `.azuredevops/`. Add as a PR build validation policy on the
+# target branch.
 #
 # The audit engine is NOT vendored into adopted repos (adopt-verify removes the
 # adoption tooling before merge), so CI shallow-clones the kit. The clone URL is

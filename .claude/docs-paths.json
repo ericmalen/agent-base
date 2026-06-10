@@ -1,0 +1,5 @@
+{
+  "tier": "T3",
+  "codePaths": ["scripts/", "test/", "templates/"],
+  "docsPaths": ["README.md", "AGENTS.md", "CLAUDE.md", "docs/", "spec/"]
+}

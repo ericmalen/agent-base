@@ -82,7 +82,8 @@ Infer the proportionality tier, then CONFIRM with the human:
      Stop → `node .claude/skills/docs/scripts/docs-nudge.mjs stop`
    - If the repo has CI, offer the docs-impact gate: copy the matching
      template (kit `templates/ci/docs-impact.github.yml` →
-     `.github/workflows/`, or `docs-impact.ado.yml` for Azure DevOps).
+     `.github/workflows/`, or `docs-impact.ado.yml` → `.azuredevops/` for
+     Azure DevOps).
 5. The heavy path — auditing/migrating existing docs — is NOT this skill:
    tell the user to invoke the docs-auditor agent.
 
