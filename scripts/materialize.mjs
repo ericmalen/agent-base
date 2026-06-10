@@ -18,7 +18,7 @@
 //                                     [--dry-run <outDir>]
 // Writes .adoption/generated.json: { generated: {path: sha256}, deleted: [...] }
 
-import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, rmSync, rmdirSync, existsSync, readdirSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { loadManifest, loadInventory, validateShape, keepFiles } from './lib/manifest.mjs';
@@ -202,7 +202,22 @@ export function materialize({ root, templatesDir, outRoot = null }) {
     if (generated[f.path]) continue;
     deleted.push(f.path);
     const abs = join(writeRoot, f.path);
-    if (outRoot == null && existsSync(abs)) rmSync(abs);
+    if (outRoot == null) {
+      if (existsSync(abs)) rmSync(abs);
+      // prune now-empty parent dirs (e.g. .github/chatmodes after its last
+      // file is dispositioned away) — empty dirs would trip the audit.
+      // Unconditional (not only when this run deleted the file) so
+      // re-materialization is idempotent.
+      let parent = dirname(abs);
+      const stopAt = resolve(writeRoot);
+      while (parent !== stopAt && existsSync(parent)) {
+        try {
+          if (readdirSync(parent).length > 0) break;
+          rmdirSync(parent);
+        } catch { break; }
+        parent = dirname(parent);
+      }
+    }
   }
 
   const result = { schemaVersion: 1, generatedAt: new Date().toISOString(), generated, deleted };

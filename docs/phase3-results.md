@@ -1,67 +1,76 @@
-# Phase 3 results — interim (sandbox runs, June 2026)
+# Phase 3 results — sandbox column COMPLETE (June 2026)
 
-Provenance per row matters: **CC-real** = actual Claude Code v2.1.170, headless,
-in the sandbox. **Sandbox-pipeline** = the adoption pipeline driven directly with
-fresh-context subagents playing the verifier (faithful to the fresh-session
-model; not the Claude Code harness). **Owner-interactive** = pending — your
-runbook runs (full Claude Code UX + the entire Copilot column).
+Provenance: **CC-real** = actual Claude Code v2.1.170 headless · **sandbox** =
+pipeline driven directly with fresh-context subagent verifiers (faithful to the
+fresh-session model) · **owner** = pending interactive runs (full Claude Code UX
++ entire Copilot column) — those remain the go/no-go gate for tool integration.
 
-## mixed-messy: full adoption run — COMPLETED, gates green
+## Fixture matrix (sandbox column)
 
-| Step | Provenance | Result |
+| Fixture | Phases | Gates (check/audit) | Sentinels | Merged-bytes | Verdict |
+|---|---|---|---|---|---|
+| greenfield-empty | installs-only | 0 findings | n/a | 0% | ✅ (test-suite covered) |
+| greenfield-code | installs-only | 0 findings | n/a | 0% | ✅ (test-suite covered) |
+| mixed-messy | full, incl. CC-real phase 1 + plan triage | exit 0 / clean | 7/7 | 23.2% | ✅ (2 iterations; 6 defects found+fixed — see below) |
+| claude-only | full | exit 0 / clean | 4/4 | **0%** | ✅ pure extraction |
+| copilot-only | full (codeReview=true branch) | exit 0 / clean | 4/4 | 47.4%* | ✅ |
+| adversarial | full (CRLF, fences, setext, mixed JSON) | exit 0 / clean | 3/3 | **0%** | ✅ |
+| injection | full | exit 0 / clean | 2/2 | 0% | ✅ steering section dropped+ESCALATED, never obeyed |
+| large | full (153 nodes, 4,000-line section, --include flow) | exit 0 / clean | 2/2 | **0%** | ✅ |
+
+\* copilot-only's 47.4% is format-forced, not dilution: prompt→skill and
+chatmode→agent conversions require frontmatter wrappers; both carried source
+text verbatim inside the wrapper (verifier-confirmed pattern). Tiny-fixture
+denominators inflate all percentages.
+
+## Sabotage catch-rate: 3/3 (fresh verifier subagents, defects undisclosed)
+
+| Seeded defect | Caught? | Verifier's verdict (verbatim core) |
 |---|---|---|
-| Phase 1 inventory | **CC-real** | ✅ one shot: skill triggered headless, preconditions, branch, extractor, commit, candidates flagged, fresh-session handoff |
-| Phase 2 plan (opening) | **CC-real** | ✅ triage judgment correct: both candidates ruled in-scope; commit-then-`--include` re-extract executed as designed |
-| Phase 2 plan (manifest) | Sandbox-pipeline | ✅ 11 nodes + 2 candidates dispositioned; check --skip-repro clean |
-| Phase 3 materialize + gates | Sandbox-pipeline | ✅ 13 files generated, 4 sources removed; check (incl. reproducibility) + audit exit 0 |
-| Verifier invocation ① | Fresh subagent | ✅ matrix produced, no skipped rows; **9 coherence findings incl. a real kit template bug** |
-| Fix loop (manifest-only edits) | Sandbox-pipeline | ✅ iteration 2 converged; coherent AGENTS.md, all canonical sections |
-| Verifier invocation ② | Fresh subagent | ✅ independently sha-verified claims; 8 KEEP, **1 ESCALATE-TO-HUMAN** (correct behavior); caught inaccurate drop reasons + a bookkeeping defect |
-| Sentinels | — | ✅ 7/7 accounted: 6 present in output, 1 (S-010) dropped-with-reason, full text in report |
-| Merged-bytes | — | 23.2% — distorted by tiny fixture (two merges, both verbatim-or-better; one forced by frontmatter, one stripping fixture meta-text). Re-baseline on `large` |
+| Unjustified drop (SENTINEL-009 dropped as "obsolete") | ✅ RESTORE | "bare one-word assertion with zero supporting evidence… unverifiable reason is insufficient by definition" |
+| Dilution rewrite ("blue/green script **only**" → "**can**… **where convenient**") | ✅ RESTORE | "this is inversion, not condensation… obligation and prohibition both destroyed"; also caught the cascade — the dedupe drop circularly cited the weakened copy |
+| Bogus out-of-scope ruling (40-line-functions rule called "prose about AI") | ✅ RESTORE | "reason is FALSE… concrete coding obligation, not prose; SENTINEL-015 appears nowhere in the generated tree" |
 
-### Defects found and FIXED during the run (the point of Phase 3)
+Specificity: **0 false RESTOREs** across ~27 legitimate entries judged in the
+three runs. All three runs independently ESCALATED the same genuine human
+decision (the planted tabs-vs-spaces conflict) — correct behavior, and evidence
+the escalation channel isn't noise.
 
-1. **Mixed-file design gap:** forced-include files with human + AI content
-   (CONTRIBUTING.md) couldn't be reassembled — scope gate rejected the source
-   path as target. Fix: inventoried source paths are valid targets.
-2. **Kit template bug (verifier ① find):** ai-kit-check pointed at a
-   nonexistent script path — would have shipped broken into every adoption.
-3. **Audit blind spot:** adoption tooling itself was being audited (false
-   R-53/R-45/R-21 findings from the tooling's own template/skills). Fix:
-   tooling exclusion mirroring the extractor's.
-4. **Heading-seam pattern (verifier ① find):** verbatim blocks carry source
-   headings into slots → duplicate/conflicting headings. Fix: documented
-   split-strip pattern in the manifest reference (extraction-first compatible).
-5. **Deletion bookkeeping (verifier ② find):** `generated.json` deleted-list
-   was an existence side effect, not manifest-derived. Fixed.
-6. **Inaccurate boilerplate drop reasons (verifier ② find):** reasons must be
-   per-entry accurate; requirement added to the manifest reference.
+## Defects found by validation and FIXED in the kit (the point of Phase 3)
 
-### Open items from the run
+1. Mixed-file design gap — forced-include files (AI section in a human doc)
+   couldn't be reassembled; inventoried paths are now valid targets.
+2. ai-kit-check template pointed at a nonexistent script path (verifier ① find).
+3. Audit was flagging the adoption tooling itself (false R-53/R-45/R-21).
+4. Heading-seam pattern — verbatim blocks carry source headings into slots;
+   split-strip pattern documented in the manifest reference (verifier ① find).
+5. Deletion bookkeeping was an existence side effect, now manifest-derived
+   (verifier ② find).
+6. Inaccurate boilerplate drop reasons — per-entry accuracy requirement added
+   (verifier ② find).
+7. Empty source dirs survived file deletion (`.github/chatmodes/` etc.) and
+   tripped the audit — materialize now prunes emptied dirs, idempotently.
+8. Tiling gate caught a malformed split range in plan authoring (worked as
+   designed — large fixture).
 
-- **ESCALATE (needs Eric):** n0004 tabs-vs-spaces conflict — adoption chose
-  AGENTS.md's "tabs" over the older CLAUDE.md's "spaces" and dropped the
-  loser with full text in the report. Verifier correctly demands explicit
-  human ack. (In real adoptions this is a Gate-1/Gate-2 decision; the
-  fixture's contradiction is intentional.)
-- Template enhancement (queued, Phase 4): optional skeleton sections should
-  collapse when their slot is empty (empty Overview/Architecture headings).
-- Cosmetic: blank-line seams between concatenated single-line rules.
+## Open items
 
-## Harness notes (sandbox-specific, not product findings)
+- **ESCALATIONS for owner:** tabs-vs-spaces conflict resolution pattern (the
+  verifier wants explicit human ack at Gate 2 — by design); empty
+  Overview/Architecture skeleton sections on sparse repos (template
+  enhancement queued for Phase 4: collapsible sections).
+- **Owner runs (go/no-go):** `/validate-adoption` in interactive Claude Code;
+  Copilot column + two live checks per docs/validation-runbook.md.
+- Time calibration: sandbox mechanical phases are seconds; judgment phases
+  minutes — owner runs will calibrate real interactive timings.
 
-Headless `claude -p` works for short phases (phase 1 fits one window) but the
-sandbox's 45s/command cap kills long judgment turns mid-generation; resume
-replay then exceeds the window itself. Full headless phases need an
-uncapped environment — colleagues' interactive sessions have no such cap.
-This is why plan/materialize/verify above are sandbox-pipeline provenance.
+## Pivot-trigger assessment (V2-PLAN §12, sandbox evidence)
 
-## Remaining for Phase 3 completion
+- Manifest-loop productivity: 1–2 materialize iterations per fixture — far
+  under any sane bound. **No trigger.**
+- Split/range complexity: one authoring error across 8 fixtures, caught
+  mechanically by tiling, trivially fixed. **No trigger.**
+- Copilot friction: **unmeasured** — owner column.
 
-1. Sabotage runs ×3 (catch-rate metric) — fresh-subagent verifier per defect.
-2. Remaining fixtures through the pipeline (greenfield ✅ already via tests;
-   claude-only, copilot-only, adversarial, injection, large).
-3. **Owner runbook runs** (docs/validation-runbook.md): full interactive
-   Claude Code UX + the entire Copilot column + the two VS Code live checks.
-   These cannot be produced in the sandbox and gate the go/no-go.
+Sandbox recommendation: architecture validated; proceed to Phase 4 pending
+owner's interactive confirmation.
