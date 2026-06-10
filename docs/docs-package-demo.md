@@ -51,6 +51,35 @@ Minor finding from the dry run: when the catalog install creates
 (R-48 info fired). Noted in adopt-plan's manifest reference as standard
 practice; not a defect in the package.
 
+## 4. Enforcement layers (ADR-0002 build, demonstrated)
+
+**Layer 2 — session nudge** (`scripts/docs-nudge.mjs`, wired at T2+): fire
+case (code-only session → one reminder), once-guard (second Stop silent),
+suppress case (docs touched too → silent), T1 skip (silent by design) — all
+verified. Found and fixed during testing: `git status --porcelain` output
+must never be trimmed (the leading space of the first line's status code
+was being eaten, beheading the path — single-file sessions silently broke).
+The demo environment also exposed a sandbox-only exec-cache quirk
+(re-executed local copies served stale pages); final verification ran the
+kit-source script directly.
+
+**Layer 3 — CI docs-impact gate** (`scripts/docs-impact.mjs` + GH/ADO
+templates): T1 repo → skipped by design with notice; code+docs → pass;
+pure refactor + legitimate commit-trailer declaration → pass with the
+declaration echoed visibly in the log; behavior change with no docs and no
+declaration → **FAIL** with both platforms' remediation instructions;
+GitHub PR-description declaration path → pass (parsed from the event
+payload; workflow re-runs on description edits).
+
+**Layer 4 — declaration sampling**: added to docs-auditor procedures
+(sample `Docs: not-needed` history, flag implausible claims with diff
+evidence, report sampled-vs-flagged ratio).
+
+**Verification record (adjustment 1):** VS Code hooks documentation fetched
+2026-06-10 confirms `.claude/settings.json` in default
+`chat.hookFilesLocations`, `SessionStart`/`Stop` events, and "same hook
+format as Claude Code" — recorded with source in ADR-0002.
+
 ## Net assessment
 
 All five approved adjustments demonstrated working: narrow trigger (incl.

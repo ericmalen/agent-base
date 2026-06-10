@@ -1,0 +1,22 @@
+# docs-impact — code changes must update docs or declare why not (visibly).
+# Installed by `docs setup` for tier T2+ repos with GitHub CI.
+# Declaration surface: a line in the PR description:
+#   Docs: not-needed — <reason>
+name: docs-impact
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited] # `edited` re-runs when the description (declaration) changes
+permissions:
+  contents: read
+jobs:
+  docs-impact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: docs-impact check
+        run: node .claude/skills/docs/scripts/docs-impact.mjs --base "origin/${{ github.base_ref }}"

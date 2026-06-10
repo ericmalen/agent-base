@@ -48,7 +48,11 @@ workflows, install instructions in README, signs of external consumers.
 Infer the proportionality tier, then CONFIRM with the human:
 "This looks like a <tier> (<evidence>). Agree?" Only then:
 
-1. Add the docs section to AGENTS.md (tool-neutral — any agent must be able
+1. Write `.claude/docs-paths.json` — `{ "tier": "<T1..T4>", "codePaths":
+   [...], "docsPaths": [...] }` with the path lists inferred from the repo
+   (confirm them alongside the tier). This file drives the enforcement
+   layers ([ADR-0002](references/adr-0002-enforcement-layers.md)).
+2. Add the docs section to AGENTS.md (tool-neutral — any agent must be able
    to follow it as a plain reference, no skill knowledge assumed):
 
    ```
@@ -62,11 +66,27 @@ Infer the proportionality tier, then CONFIRM with the human:
 
    Scale it down for low tiers (a README-only utility gets two lines, no
    docs map, no changelog clause).
-2. Create ONLY what the tier warrants and only with real content (e.g.
+3. Create ONLY what the tier warrants and only with real content (e.g.
    improve the README now; create docs/ subdirs lazily when first content
    exists). State every omission with reasoning.
-3. The heavy path — auditing/migrating existing docs — is NOT this skill:
+4. Tier T2+ only — wire enforcement (skip both at T1 by design):
+   - Merge into `.claude/settings.json` hooks (read by both tools):
+     SessionStart → `node .claude/skills/docs/scripts/docs-nudge.mjs session-start`
+     Stop → `node .claude/skills/docs/scripts/docs-nudge.mjs stop`
+   - If the repo has CI, offer the docs-impact gate: copy the matching
+     template (kit `templates/ci/docs-impact.github.yml` →
+     `.github/workflows/`, or `docs-impact.ado.yml` for Azure DevOps).
+5. The heavy path — auditing/migrating existing docs — is NOT this skill:
    tell the user to invoke the docs-auditor agent.
+
+## docs catch-up (human changed code without AI)
+
+When asked to catch docs up to existing commits ("update docs for my last
+N commits / since <ref>"): read the diff, identify behavior changes,
+update the affected docs and changelog per the rules above, and list any
+changes you judged non-behavioral so the human can veto. This is the
+standard repair path for the CI docs-impact gate (see
+[ADR-0002](references/adr-0002-enforcement-layers.md)).
 
 Adopting this package: [adopting](references/adopting.md).
 Packaging rationale: [ADR-0001](references/adr-0001-packaging.md).

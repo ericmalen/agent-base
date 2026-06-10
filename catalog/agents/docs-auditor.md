@@ -23,6 +23,12 @@ everything, changes nothing.
 5. Gap analysis BOTH directions, proportionally: what the tier warrants
    but is missing, and what exists but the tier doesn't warrant
    (recommend retiring — never delete unilaterally).
+5b. Declaration sampling (polices the CI escape hatch): collect recent
+   `Docs: not-needed` declarations (`git log --grep "not-needed" -i`;
+   PR descriptions where available). For a sample, diff the declaring
+   change and judge plausibility — a "no behavior change" claim alongside
+   API/CLI/config/schema edits is implausible and gets flagged with the
+   evidence. Report the sampled-vs-flagged ratio.
 6. Produce the plan: per-document disposition (keep / split by type /
    relocate / fix-stale / retire / create), each with one-line reasoning;
    omissions relative to the full standard stated with reasoning;
