@@ -6,7 +6,8 @@ ai-kit sets up repositories for AI-assisted coding, wired for **both GitHub
 Copilot and Claude Code** from one set of files. It ships a rule catalog
 ([`spec/rules.md`](./spec/rules.md)), a four-phase adoption pipeline
 (inventory → plan → materialize → verify) that brings any repo — greenfield or
-brownfield — to the target state, and a catalog of installable skills/agents.
+brownfield — to the target state, and a set of baseline skills/agents
+installed into every adopted repo.
 
 No stack-specific or domain-specific content — you add those on top.
 
