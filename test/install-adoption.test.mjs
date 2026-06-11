@@ -41,3 +41,28 @@ test('install-adoption ships ai-kit-check verbatim from .claude/skills', () => {
     rmSync(target, { recursive: true, force: true });
   }
 });
+
+test('install-adoption ships only the five adoption scripts + lib, no kit-dev tooling', () => {
+  const target = makeGitRepo();
+  try {
+    const r = spawnSync(process.execPath,
+      [join(KIT, 'scripts/install-adoption.mjs'), target], { encoding: 'utf8' });
+    assert.equal(r.status, 0, `install-adoption failed: ${r.stderr}`);
+
+    const base = '.claude/ai-kit-adoption/scripts';
+    for (const f of ['inventory-extract.mjs', 'materialize.mjs', 'check.mjs', 'report.mjs', 'audit.mjs',
+      'lib/extract.mjs', 'lib/manifest.mjs', 'lib/audit/checks.mjs', 'lib/audit/util.mjs', 'lib/template.mjs']) {
+      assert.ok(existsSync(join(target, base, f)), `${f} must ship`);
+    }
+    // Kit-dev tooling depends on kit-side test/ and spec/ and must NOT ship.
+    for (const f of ['build-starter.mjs', 'build-fixture.mjs', 'validate-assert.mjs',
+      'rule-check-map.mjs', 'docs-consistency.mjs', 'install-adoption.mjs']) {
+      assert.ok(!existsSync(join(target, base, f)), `${f} must NOT ship`);
+    }
+    // The two kit-side-only skills stay home.
+    assert.ok(!existsSync(join(target, '.claude/skills/ai-kit-adopt')), 'ai-kit-adopt must NOT ship');
+    assert.ok(!existsSync(join(target, '.claude/skills/validate-adoption')), 'validate-adoption must NOT ship');
+  } finally {
+    rmSync(target, { recursive: true, force: true });
+  }
+});

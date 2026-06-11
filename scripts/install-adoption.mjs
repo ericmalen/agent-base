@@ -17,13 +17,15 @@
 //   .claude/skills/agent-creator/          (baseline agent authoring)
 //   .claude/agents/docs-auditor.md         (baseline docs auditor)
 //
-// Deliberately NOT installed: .claude/skills/ai-kit-adopt (kit-side entry point).
+// Deliberately NOT installed (kit-side only): .claude/skills/ai-kit-adopt
+// (entry point) and .claude/skills/validate-adoption (fixture validation harness).
 
 import { cpSync, existsSync, mkdirSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-const kitRoot = resolve(dirname(new URL(import.meta.url).pathname), '..');
+const kitRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const target = process.argv[2] ? resolve(process.argv[2]) : null;
 
 if (!target) {
@@ -45,8 +47,16 @@ if (major < 20) {
   process.exit(1);
 }
 
+// Only the five adoption scripts + their lib ship — kit-dev tooling
+// (build-starter, build-fixture, validate-assert, rule-check-map,
+// docs-consistency) depends on kit-side test/ and spec/ and stays home.
 const copies = [
-  ['scripts', '.claude/ai-kit-adoption/scripts'],
+  ['scripts/inventory-extract.mjs', '.claude/ai-kit-adoption/scripts/inventory-extract.mjs'],
+  ['scripts/materialize.mjs', '.claude/ai-kit-adoption/scripts/materialize.mjs'],
+  ['scripts/check.mjs', '.claude/ai-kit-adoption/scripts/check.mjs'],
+  ['scripts/report.mjs', '.claude/ai-kit-adoption/scripts/report.mjs'],
+  ['scripts/audit.mjs', '.claude/ai-kit-adoption/scripts/audit.mjs'],
+  ['scripts/lib', '.claude/ai-kit-adoption/scripts/lib'],
   ['templates', '.claude/ai-kit-adoption/templates'],
   ['.claude/skills/adopt-inventory', '.claude/skills/adopt-inventory'],
   ['.claude/skills/adopt-plan', '.claude/skills/adopt-plan'],
@@ -76,7 +86,7 @@ for (const [src, dst] of copies) {
 console.log(`
 Done. Next, in the target repo:
   1. Commit the tooling:  git add -A && git commit -m "chore: ai-kit adoption tooling"
-  2. Open your AI tool (Claude Code, or VS Code Copilot in AGENT MODE) and
+  2. Open your AI tool (Claude Code, or GitHub Copilot in VS Code AGENT MODE) and
      invoke the adopt-inventory skill.
 Adoption is fully reversible until you merge the ai-kit-adoption branch
 (the tooling itself is removed again before merge by adopt-verify).`);
