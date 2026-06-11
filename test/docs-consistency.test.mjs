@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 import { run } from "../scripts/docs-consistency.mjs";
 
-const KIT_ROOT = new URL("..", import.meta.url).pathname;
+const KIT_ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 test("kit docs are consistent (no banned terms, no broken links)", () => {
   const findings = run(KIT_ROOT);
@@ -28,15 +29,41 @@ test("gate catches a seeded banned term and a seeded broken link", () => {
   }
 });
 
-test("vendored (UPSTREAM) and docs/dev content is exempt", () => {
+test("vendored (UPSTREAM) content is exempt", () => {
   const root = mkdtempSync(join(tmpdir(), "dc-exempt-"));
   try {
     mkdirSync(join(root, ".claude", "skills", "vendored"), { recursive: true });
     writeFileSync(join(root, ".claude", "skills", "vendored", "UPSTREAM"), "pinned");
     writeFileSync(join(root, ".claude", "skills", "vendored", "SKILL.md"), "uses sub-agent wording\n");
-    mkdirSync(join(root, "docs", "dev"), { recursive: true });
-    writeFileSync(join(root, "docs", "dev", "history.md"), "we dropped bin/ai-kit.mjs\n");
     assert.deepEqual(run(root), []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("consumer-shipped templates beyond md/json are scanned (ci yml + gitignore)", () => {
+  const root = mkdtempSync(join(tmpdir(), "dc-tpl-"));
+  try {
+    mkdirSync(join(root, "templates", "ci"), { recursive: true });
+    writeFileSync(join(root, "templates", "ci", "gate.yml"), "# wire up bin/ai-kit.mjs here\n");
+    writeFileSync(join(root, "templates", "gitignore"), ".ai-kit-migration-routing\n");
+    const findings = run(root);
+    const terms = findings.map((f) => f.term).sort();
+    assert.deepEqual(terms, [".ai-kit-migration-routing", "bin/ai-kit.mjs"]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("near-variant v1 vocabulary is banned (the CLI / new-agent / catalog/)", () => {
+  const root = mkdtempSync(join(tmpdir(), "dc-var-"));
+  try {
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs", "x.md"),
+      "Ask the CLI to do it.\nUse new-agent to scaffold.\nLives in catalog/ now.\n");
+    const findings = run(root);
+    const terms = findings.map((f) => f.term).sort();
+    assert.deepEqual(terms, ["catalog/", "new-agent", "the CLI"]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

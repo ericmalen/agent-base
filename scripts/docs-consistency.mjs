@@ -4,7 +4,7 @@
 // Two checks, zero dependencies:
 //   1. Banned terms: v1 CLI / dropped-surface vocabulary must not reappear in
 //      consumer-facing prose (spec/ is exempt — it DEFINES the dropped
-//      surfaces; docs/dev/ is exempt — process history discusses them).
+//      surfaces).
 //   2. Relative Markdown links resolve to existing files (the kit's own docs
 //      are not covered by the R-07 audit, which checks adopted-repo surfaces).
 //
@@ -13,6 +13,7 @@
 
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join, dirname, resolve, relative, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export const BANNED_TERMS = [
   "bin/ai-kit.mjs",
@@ -28,6 +29,9 @@ export const BANNED_TERMS = [
   ".github/prompts",
   ".prompt.md",
   "sub-agent",
+  "the CLI", // v1 had a CLI; v2 distribution is install-adoption.mjs
+  "new-agent",
+  "catalog/", // retired v1 zone (assets live under .claude/ now)
 ];
 
 // (file, term) pairs that are deliberately allowed.
@@ -52,9 +56,13 @@ function* walk(dir, root) {
     const p = join(dir, e.name);
     const rel = relative(root, p).split(sep).join("/");
     if (e.isDirectory()) {
-      if (rel === "docs/dev" || e.name === "node_modules" || e.name === ".git") continue;
+      if (e.name === "node_modules" || e.name === ".git") continue;
       yield* walk(p, root);
-    } else if (e.name.endsWith(".md") || e.name.endsWith(".json")) {
+    } else if (
+      e.name.endsWith(".md") || e.name.endsWith(".json")
+      // consumer-shipped payload beyond md/json: CI templates + gitignore
+      || (rel.startsWith("templates/") && (e.name.endsWith(".yml") || rel === "templates/gitignore"))
+    ) {
       if (e.name === "settings.local.json") continue; // personal, gitignored
       yield rel;
     }
@@ -121,7 +129,7 @@ export function run(root) {
   ];
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname)) {
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
   const root = args.includes("--root") ? resolve(args[args.indexOf("--root") + 1]) : process.cwd();
   const findings = run(root);
