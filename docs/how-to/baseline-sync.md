@@ -91,6 +91,10 @@ at `pin` fails — a bad pin never silently falls back to an unpinned clone.
 For private repos, inject credentials (`secrets.KIT_TOKEN` on GitHub, a
 secret pipeline variable on ADO — see comments in each template).
 
+Note: workflow copies in your repo are **not** owned by `sync-baseline` (it
+syncs only baseline skills/agents). When the templates change in Agent Base,
+re-copy them from the clone yourself — `--report` will never list them.
+
 ## Bot PR (optional)
 
 `templates/ci/baseline-upgrade-bot.github.yml` is a scheduled workflow that
@@ -120,17 +124,28 @@ manager, but it cannot copy skill trees — pair it with the bot workflow (or a
 CI step running `sync-baseline --upgrade`) if your teams already use
 Renovate. Otherwise the bot workflow alone is the simpler path.
 
-## Legacy markers (set up before the first tag)
+## Migrating projects set up before v1.0.0
 
-Projects set up before `v1.0.0` may have a marker without `pin`:
+Pick your case from the marker (`.claude/agent-base.json`):
 
-- `standard` is semver, `pin` missing → nothing to do; sync derives the pin
-  as `v<standard>`, and the first `--upgrade` writes the full marker shape
-  (`pin`, `lastSyncedAt`).
-- `standard` is not semver (e.g. a sha) → the marker fails validation.
-  Edit `.claude/agent-base.json` once by hand: set `standard` to the release
-  you are effectively on (e.g. `1.0.0`) and add `"pin": "v1.0.0"`, then run
-  `--upgrade` normally.
+- **`standard` is semver, `pin` missing** → nothing to fix; sync derives the
+  pin as `v<standard>`, and the first `--upgrade` writes the full marker
+  shape (`pin`, `lastSyncedAt`).
+- **`standard` is not semver (e.g. a sha)** → the marker fails validation.
+  Edit the marker once by hand: set `standard` to the release you are
+  effectively on (e.g. `1.0.0`), add `"pin": "v1.0.0"`, and check that
+  `toolRepo` points at the current Agent Base clone URL (pre-rename projects
+  may still point at the repo's retired v1 name). Then run `--upgrade`
+  normally.
+- **Pre-rename marker or layout** (marker file or paths from before the
+  Agent Base rename) → run the full setup flow again
+  ([setup guide](./setup-guide.md)); your current state is existing-project
+  input, protected by the normal gates. Don't hand-migrate.
+
+After any of these, also re-copy any CI templates your repo had installed
+(`audit-strict`, `baseline-pin-check`) — older copies silently fell back to
+an unpinned clone when the pin clone failed; current ones fail loudly. See
+the note under [CI templates](#ci-templates).
 
 ## Related
 

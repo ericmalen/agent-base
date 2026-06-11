@@ -10,6 +10,11 @@ Claude Code and GitHub Copilot (VS Code), using the setup tooling.
 - Claude Code, or Copilot in **agent mode** (skills do not load in
   non-agent modes such as Ask)
 
+Any OS where git and Node run — macOS, Linux, Windows. The tooling is
+zero-dependency Node invoked as `node <script>.mjs` (shell-agnostic, no
+bash required); the only external command it spawns is `git`. The CI
+templates run on hosted Ubuntu runners, not your machine.
+
 You never type a terminal command. The AI clones the kit, installs the
 tooling, and runs every script itself.
 
