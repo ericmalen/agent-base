@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 2,
+  "tddPolicy": "test-first",
+  "reviewGates": "every-task",
+  "securityRequirements": "review-all-changes",
+  "qaDepth": "full-pyramid",
+  "definitionOfDone": "tests-review-docs"
+}

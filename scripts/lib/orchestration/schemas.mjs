@@ -5,9 +5,9 @@
 //
 // Validators (one per artifact, all exported from this module — §9.1):
 //   validateRepoProfile        — docs/orchestration/repo-profile.json (A1)
+//   validateDecisionsDoc       — docs/orchestration/decisions.json (A2)
 //   validateBlueprint          — docs/orchestration/blueprint.json (A3)
-// Remaining three (decisions-doc, task-backlog, handoff-log) land with
-// A2/A4/A5.
+// Remaining two (task-backlog, handoff-log) land with A4/A5.
 
 const REPO_TYPES = new Set(['monorepo', 'single-package']);
 const PIPELINE_WHEN = new Set(['scheduled', 'multi_day']);   // §9.3 / DD-4
@@ -80,6 +80,35 @@ export function validateRepoProfile(profile) {
   }
 
   checkStringArray(profile.gaps, 'gaps', e);
+
+  return errors;
+}
+
+// ── decisions-doc (A2) ──────────────────────────────────────────────────────
+
+// Every decision field is a finite enum — the interview (B5/B6) maps answers
+// onto these values; no free-text policy fields. Arrays (not Sets) so field
+// and value order is stable for the renderer and error messages.
+export const DECISION_ENUMS = {
+  tddPolicy: ['test-first', 'test-with-change', 'optional'],
+  reviewGates: ['every-task', 'every-merge', 'risk-based'],
+  securityRequirements: ['review-all-changes', 'review-sensitive-paths', 'none'],
+  qaDepth: ['unit-only', 'unit-and-integration', 'full-pyramid'],
+  definitionOfDone: ['tests-pass', 'tests-and-review', 'tests-review-docs'],
+  humanGatePlacement: ['pre-merge', 'pre-dispatch-and-pre-merge'],
+};
+
+export function validateDecisionsDoc(doc) {
+  if (!isPlainObject(doc)) return ['decisions must be an object'];
+  const errors = [];
+  const e = (m) => errors.push(m);
+
+  if (doc.schemaVersion !== 1) e(`schemaVersion must be 1 (got ${doc.schemaVersion})`);
+  for (const [field, values] of Object.entries(DECISION_ENUMS)) {
+    if (!values.includes(doc[field])) {
+      e(`${field} must be one of ${values.join(' | ')} (got ${doc[field]})`);
+    }
+  }
 
   return errors;
 }

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "tddPolicy": "optional",
+  "reviewGates": "risk-based",
+  "securityRequirements": "none",
+  "qaDepth": "unit-only",
+  "definitionOfDone": "tests-pass",
+  "humanGatePlacement": "pre-merge"
+}

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "tddPolicy": true,
+  "reviewGates": ["every-merge"],
+  "securityRequirements": "review-sensitive-paths",
+  "qaDepth": 3,
+  "definitionOfDone": "tests-and-review",
+  "humanGatePlacement": null
+}

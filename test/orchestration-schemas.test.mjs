@@ -3,7 +3,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { validateRepoProfile, validateBlueprint } from '../scripts/lib/orchestration/schemas.mjs';
+import {
+  validateRepoProfile,
+  validateDecisionsDoc,
+  validateBlueprint,
+  DECISION_ENUMS,
+} from '../scripts/lib/orchestration/schemas.mjs';
 
 const FIXTURES = join(import.meta.dirname, 'fixtures', 'orchestration');
 const loadFixture = (name) => JSON.parse(readFileSync(join(FIXTURES, name), 'utf8'));
@@ -70,6 +75,61 @@ test('validateRepoProfile: missing top-level fields all report', () => {
     'conventions must be an object',
     'gaps must be an array',
   ]);
+});
+
+// ── validateDecisionsDoc (A2) ───────────────────────────────────────────────
+
+test('validateDecisionsDoc: maxi-repo decisions fixture validates clean', () => {
+  assert.deepEqual(validateDecisionsDoc(loadFixture('maxi-repo.decisions.json')), []);
+});
+
+test('validateDecisionsDoc: mini-repo decisions fixture validates clean', () => {
+  assert.deepEqual(validateDecisionsDoc(loadFixture('mini-repo.decisions.json')), []);
+});
+
+test('validateDecisionsDoc: non-object inputs are rejected outright', () => {
+  for (const input of [null, undefined, [], 'decisions', 42]) {
+    assert.deepEqual(validateDecisionsDoc(input), ['decisions must be an object']);
+  }
+});
+
+test('validateDecisionsDoc: every enum value of every field validates', () => {
+  for (const [field, values] of Object.entries(DECISION_ENUMS)) {
+    for (const value of values) {
+      const doc = { ...loadFixture('maxi-repo.decisions.json'), [field]: value };
+      assert.deepEqual(validateDecisionsDoc(doc), []);
+    }
+  }
+});
+
+test('validateDecisionsDoc: malformed fixture — wrong schemaVersion, missing field', () => {
+  assert.deepEqual(validateDecisionsDoc(loadFixture('decisions-malformed-bad-version.json')), [
+    'schemaVersion must be 1 (got 2)',
+    'humanGatePlacement must be one of pre-merge | pre-dispatch-and-pre-merge (got undefined)',
+  ]);
+});
+
+test('validateDecisionsDoc: malformed fixture — out-of-enum values', () => {
+  assert.deepEqual(validateDecisionsDoc(loadFixture('decisions-malformed-bad-enums.json')), [
+    'tddPolicy must be one of test-first | test-with-change | optional (got tdd)',
+    'reviewGates must be one of every-task | every-merge | risk-based (got always)',
+    'qaDepth must be one of unit-only | unit-and-integration | full-pyramid (got e2e)',
+  ]);
+});
+
+test('validateDecisionsDoc: malformed fixture — wrong types', () => {
+  assert.deepEqual(validateDecisionsDoc(loadFixture('decisions-malformed-bad-types.json')), [
+    'tddPolicy must be one of test-first | test-with-change | optional (got true)',
+    'reviewGates must be one of every-task | every-merge | risk-based (got every-merge)',
+    'qaDepth must be one of unit-only | unit-and-integration | full-pyramid (got 3)',
+    'humanGatePlacement must be one of pre-merge | pre-dispatch-and-pre-merge (got null)',
+  ]);
+});
+
+test('validateDecisionsDoc: missing top-level fields all report', () => {
+  const errors = validateDecisionsDoc({});
+  assert.equal(errors.length, 1 + Object.keys(DECISION_ENUMS).length);
+  assert.equal(errors[0], 'schemaVersion must be 1 (got undefined)');
 });
 
 // ── validateBlueprint (A3) ──────────────────────────────────────────────────
