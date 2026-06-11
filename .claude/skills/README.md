@@ -8,7 +8,7 @@ description matches the current task, or when the user types `/skill-name`.
 
 Skills live in `.claude/skills/`. **Both Claude Code and Copilot read this
 folder natively** — it is in each tool's default skill search path, so one copy
-serves both. See [cross-tool setup](../../docs/cross-tool-setup.md).
+serves both. See [cross-tool setup](../../docs/how-to/cross-tool-setup.md).
 
 ## Progressive loading
 

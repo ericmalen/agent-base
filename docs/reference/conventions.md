@@ -2,11 +2,11 @@
 
 The do-and-don't sheet for ai-kit. One page, reference only — the practices
 for working *with* these conventions live in
-[`workflow-tips.md`](./workflow-tips.md); the rationale behind them in
-[`why-this-way.md`](./why-this-way.md).
+[`workflow-tips.md`](../how-to/workflow-tips.md); the rationale behind them in
+[`why-this-way.md`](../explanation/why-this-way.md).
 
 This repo is wired for both GitHub Copilot (VS Code) and Claude Code — see
-[`cross-tool-setup.md`](./cross-tool-setup.md) for how one set of files serves
+[`cross-tool-setup.md`](../how-to/cross-tool-setup.md) for how one set of files serves
 both. For the underlying Copilot features these conventions sit on top of, see
 [`copilot-customization-reference.md`](./copilot-customization-reference.md).
 
@@ -19,11 +19,11 @@ both. For the underlying Copilot features these conventions sit on top of, see
   detail loads only when referenced.
 - The two styles are deliberately different: the link form signals which
   loading model is at play, and aids visual scanning. Rationale:
-  [`why-this-way.md`](./why-this-way.md#why-lazy-load-by-default).
+  [`why-this-way.md`](../explanation/why-this-way.md#why-lazy-load-by-default).
 
 ## Single source of truth
 
-`docs/copilot-customization-reference.md` is authoritative for Copilot features,
+`docs/reference/copilot-customization-reference.md` is authoritative for Copilot features,
 frontmatter fields, settings, and behavior. READMEs and meta-skills **link** to
 its sections rather than restating them.
 
@@ -55,7 +55,7 @@ names (Copilot maps them):
   Copilot maps it to `agent/runSubagent`)
 
 The copy shipped into targets lives in
-[`agent-creator/references/tool-tiers.md`](../.claude/skills/agent-creator/references/tool-tiers.md)
+[`agent-creator/references/tool-tiers.md`](../../.claude/skills/agent-creator/references/tool-tiers.md)
 (kit docs are not installed); the two tables are kept in sync.
 
 ## File-naming conventions
@@ -67,8 +67,8 @@ The copy shipped into targets lives in
 | Rules      | `{scope}.md` in `.claude/rules/` | `tests.md`              |
 
 New skills and agents for ai-kit follow the conventions in
-[`.claude/skills/README.md`](../.claude/skills/README.md) and the "Adding
-agents" section of [`.claude/agents/README.md`](../.claude/agents/README.md).
+[`.claude/skills/README.md`](../../.claude/skills/README.md) and the "Adding
+agents" section of [`.claude/agents/README.md`](../../.claude/agents/README.md).
 What ships into adopted repos is decided by the installer allowlist in
 `scripts/install-adoption.mjs` — there is no separate distribution step.
 
@@ -77,7 +77,7 @@ Directory- or layer-scoped conventions go in a path-scoped rules file at
 mechanism. Repos that opted into the nested-AGENTS.md compat variant use a
 nested `AGENTS.md` (plus a sibling `CLAUDE.md` shim) instead — one mechanism
 per repo, never both (R-53). See
-[`cross-tool-setup.md#path-scoped-instructions`](./cross-tool-setup.md#path-scoped-instructions).
+[`cross-tool-setup.md#path-scoped-instructions`](../how-to/cross-tool-setup.md#path-scoped-instructions).
 
 ## One README per asset folder, not per asset
 
@@ -89,7 +89,7 @@ files stay lean.
 
 Conformance to these conventions is audited by the `ai-kit-check` skill: it
 runs `node <kit>/scripts/audit.mjs --root .` and fixes findings by rule ID
-(usage tips: [`workflow-tips.md`](./workflow-tips.md#keeping-the-config-conformant)).
+(usage tips: [`workflow-tips.md`](../how-to/workflow-tips.md#keeping-the-config-conformant)).
 Despite the similar names, `scripts/check.mjs` is unrelated — it enforces the
 manifest gates during adoption phase 3, while the `ai-kit-check` skill is the
 recurring post-adoption audit.

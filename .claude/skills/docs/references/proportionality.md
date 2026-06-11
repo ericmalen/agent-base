@@ -38,5 +38,9 @@ still governs whether enabling it is even appropriate.
 
 - No empty scaffolding, no placeholder pages, no "TODO: write this" files.
   Directories are created when their first real document is written.
+- Tier governs *which* quadrants exist, not flat vs nested. A warranted
+  quadrant's docs live in `docs/<quadrant>/` even when it holds a single
+  file — the lone-file case is still nested, never flattened to `docs/`
+  root. Only `README` (and opt-in `CHANGELOG.md`) sit at the root.
 - Every omission relative to the full standard is surfaced with one line
   of reasoning at setup/audit time.

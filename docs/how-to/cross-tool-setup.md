@@ -7,8 +7,8 @@ it works. Adoption produces this wiring automatically
 or repairing the setup by hand.
 
 Which tool reads which surface: see the
-[cross-tool surface map](./copilot-customization-reference.md#cross-tool-surface-map).
-Why the layout is shaped this way: [`why-this-way.md`](./why-this-way.md).
+[cross-tool surface map](../reference/copilot-customization-reference.md#cross-tool-surface-map).
+Why the layout is shaped this way: [`why-this-way.md`](../explanation/why-this-way.md).
 
 ## Lay out the shared files
 

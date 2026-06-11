@@ -59,7 +59,7 @@ notes.
   what ships to targets; `ai-kit-adopt` stays kit-only.
 - Do not move `.claude/skills/ai-kit-adopt/` or rename `scripts/`,
   `templates/` — paths are load-bearing (one-prompt flow in
-  `docs/adoption-guide.md`, `materialize.mjs`, `install-adoption.mjs`).
+  `docs/how-to/adoption-guide.md`, `materialize.mjs`, `install-adoption.mjs`).
   Within `templates/`: `instructions/` is resolved by target path during
   slot assembly (`materialize.mjs`), and `gitignore` is dotless so it is
   never live — neither here nor when copied into targets.
@@ -74,4 +74,4 @@ For specialized roles see `.claude/agents/`.
 
 > **Cross-tool note:** `AGENTS.md` is canonical; `CLAUDE.md` imports it
 > (`@AGENTS.md`). Shared agents/skills in `.claude/` load in both Claude Code
-> and Copilot. See [`docs/cross-tool-setup.md`](./docs/cross-tool-setup.md).
+> and Copilot. See [`docs/how-to/cross-tool-setup.md`](./docs/how-to/cross-tool-setup.md).

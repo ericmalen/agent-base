@@ -6,7 +6,7 @@ procedure and an explicit tool boundary.
 This folder uses the **Claude subagent format** (`.claude/agents/{name}.md`).
 Claude Code reads it natively; GitHub Copilot (VS Code) also detects `.md` files here and
 maps Claude tool names to its own. One folder, both tools — see
-[`docs/cross-tool-setup.md`](../../docs/cross-tool-setup.md).
+[`docs/how-to/cross-tool-setup.md`](../../docs/how-to/cross-tool-setup.md).
 
 Vocabulary: an **agent** is the definition file/persona in this folder; a
 **subagent** is that agent invoked as a delegated, fresh-context worker. In
@@ -70,7 +70,7 @@ ai-kit prefers flat orchestration: orchestrators call every specialist
 directly. Nesting (a subagent invoking subagents) is possible in both tools
 but compounds token cost and is harder to debug — reach for it only when a
 specialist genuinely needs its own helpers. See
-[`docs/why-this-way.md`](../../docs/why-this-way.md) for the rationale.
+[`docs/explanation/why-this-way.md`](../../docs/explanation/why-this-way.md) for the rationale.
 
 ## Good example
 

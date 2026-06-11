@@ -27,13 +27,20 @@ tier.** Produce them only when their path is listed in `docsPaths`
 (`.claude/docs-paths.json`). Otherwise decisions live in commits/PRs and
 consumer-facing changes in release notes.
 
-## Proportionality (overrides everything above)
+## Proportionality (governs WHICH quadrants exist — not flat vs nested)
 
 Output scales to the repo — a small utility gets only a good README; full
 structure is reserved for repos that warrant it. NEVER create empty
 scaffolding or placeholder pages. When you omit something the standard
 describes, say so and why. Tier ladder and repo-inspection signals:
 [proportionality](references/proportionality.md).
+
+Proportionality decides *which* types/quadrants a repo warrants — it does
+NOT make documents sit loose at `docs/` root. Whenever a quadrant holds a
+real doc, that doc lives in its subfolder per the table above, even a lone
+file (`docs/reference/config.md`, not `docs/config.md`). Subfolders are
+created lazily — when their first real doc exists, never as empty
+scaffolding. Only `README` (and opt-in `CHANGELOG.md`) live at the root.
 
 ## Rules (non-negotiable)
 
@@ -84,8 +91,30 @@ Infer the proportionality tier, then CONFIRM with the human:
      template (kit `templates/ci/docs-impact.github.yml` →
      `.github/workflows/`, or `docs-impact.ado.yml` → `.azuredevops/` for
      Azure DevOps).
-5. The heavy path — auditing/migrating existing docs — is NOT this skill:
-   tell the user to invoke the docs-auditor agent.
+5. Surveying an unfamiliar or large doc corpus — classifying what exists,
+   finding gaps/stale content, proposing a plan — is the docs-auditor agent,
+   not this skill. This skill EXECUTES restructures (including an approved
+   auditor plan); see "docs restructure" below.
+
+## docs restructure (sort existing docs into quadrants)
+
+When asked to refactor/reorganize existing docs to the standard:
+
+1. Classify each existing file by Diátaxis type (table above). One document,
+   one quadrant — if a file mixes types, split it before moving.
+2. Move each into `docs/<quadrant>/` (lazily-created subfolders; no empty
+   ones). Files that are process artifacts — engineering plans, phase notes,
+   sandbox/validation results, meeting notes — are NOT reader docs: relocate
+   them OUT of `docs/` (a `notes/`/`.dev/` folder or git history), don't file
+   them in a quadrant.
+3. Rewrite every link that the moves break: inbound links from `README`,
+   `AGENTS.md`/`CLAUDE.md`, `.claude/**`, and `spec/`; and intra-`docs/`
+   links (same-quadrant stay `./sibling.md`, cross-quadrant become
+   `../<otherquad>/sibling.md`). Anchors (`#section`) are unaffected.
+4. Update the docs index (the README listing, or `docs/README.md` if one
+   exists) to the new paths.
+5. Verify links resolve — run the repo's link check or adoption audit (or
+   grep for broken relative links); fix any break before finishing.
 
 ## docs catch-up (human changed code without AI)
 

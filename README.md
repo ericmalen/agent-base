@@ -34,7 +34,7 @@ git clone <this-repo-url> ~/tools/ai-kit
 Then open the kit clone in Claude Code (or Copilot agent mode) and run
 `/ai-kit-adopt /path/to/repo-to-set-up`. It asks two questions (GitHub code review? path-scoping
 mechanism?), runs the four phases in fresh contexts, and stops at two human
-approval gates. Details: [`docs/adoption-guide.md`](./docs/adoption-guide.md).
+approval gates. Details: [`docs/how-to/adoption-guide.md`](./docs/how-to/adoption-guide.md).
 
 ### Greenfield starter
 
@@ -72,20 +72,20 @@ reports/         generated outputs (gitignored)
 ```
 
 Why `templates/` is *not* under `.claude/`: anything in `.claude/` auto-loads
-while working on the kit itself. Payload is cargo, not config. Rationale: [`docs/why-this-way.md`](./docs/why-this-way.md).
+while working on the kit itself. Payload is cargo, not config. Rationale: [`docs/explanation/why-this-way.md`](./docs/explanation/why-this-way.md).
 
 ## Next steps
 
-- [`docs/adoption-guide.md`](./docs/adoption-guide.md) — adopting a repo.
-- [`docs/cross-tool-setup.md`](./docs/cross-tool-setup.md) — how one set of
+- [`docs/how-to/adoption-guide.md`](./docs/how-to/adoption-guide.md) — adopting a repo.
+- [`docs/how-to/cross-tool-setup.md`](./docs/how-to/cross-tool-setup.md) — how one set of
   files serves both tools.
-- [`docs/conventions.md`](./docs/conventions.md) — the do's and don'ts.
-- [`docs/copilot-customization-reference.md`](./docs/copilot-customization-reference.md)
+- [`docs/reference/conventions.md`](./docs/reference/conventions.md) — the do's and don'ts.
+- [`docs/reference/copilot-customization-reference.md`](./docs/reference/copilot-customization-reference.md)
   — authoritative reference for Copilot concepts.
-- [`docs/built-in-reference.md`](./docs/built-in-reference.md) — what ships out
+- [`docs/reference/built-in-reference.md`](./docs/reference/built-in-reference.md) — what ships out
   of the box with VS Code + Copilot.
-- [`docs/workflow-tips.md`](./docs/workflow-tips.md) — practical tips.
-- [`docs/why-this-way.md`](./docs/why-this-way.md) — design rationale.
+- [`docs/how-to/workflow-tips.md`](./docs/how-to/workflow-tips.md) — practical tips.
+- [`docs/explanation/why-this-way.md`](./docs/explanation/why-this-way.md) — design rationale.
 
 ## License
 

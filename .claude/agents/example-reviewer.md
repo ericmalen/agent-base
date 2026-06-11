@@ -28,7 +28,7 @@ Never modifies files.
 <!-- Project convention: plain-text paths. The agent reads them on demand via
      the Read tool, not up-front. Keeps the agent's always-on context small
      and visually distinguishes agent Documents sections from skill bodies
-     (which use Markdown links). See docs/conventions.md for rationale. -->
+     (which use Markdown links). See docs/reference/conventions.md for rationale. -->
 
 AGENTS.md
-docs/conventions.md
+docs/reference/conventions.md

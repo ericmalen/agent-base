@@ -9,14 +9,14 @@ Start at Level 1 and progress as needs grow. Every level delivers value on its o
 > Copilot reads those natively, alongside its own `.github/` paths. This doc is
 > the deep reference for Copilot's customization system; the surface map below
 > shows what each tool reads, and the setup steps live in
-> [`cross-tool-setup.md`](./cross-tool-setup.md).
+> [`cross-tool-setup.md`](../how-to/cross-tool-setup.md).
 
 ---
 
 ## Cross-tool surface map
 
 What each tool reads, per surface. Wiring steps:
-[`cross-tool-setup.md`](./cross-tool-setup.md).
+[`cross-tool-setup.md`](../how-to/cross-tool-setup.md).
 
 | Surface        | Lives in                | Claude Code     | Copilot                                     |
 | -------------- | ----------------------- | --------------- | ------------------------------------------- |
@@ -83,7 +83,7 @@ ai-kit uses `AGENTS.md` at the repo root as the canonical repo-wide instructions
 
 **Trade-offs to know:**
 
-- **Claude Code reads `CLAUDE.md`, not `AGENTS.md`.** This repo ships a `CLAUDE.md` that imports `AGENTS.md` via `@AGENTS.md`, so both tools share one source of truth. Edit `AGENTS.md`; leave `CLAUDE.md` alone. See [`cross-tool-setup.md`](./cross-tool-setup.md).
+- **Claude Code reads `CLAUDE.md`, not `AGENTS.md`.** This repo ships a `CLAUDE.md` that imports `AGENTS.md` via `@AGENTS.md`, so both tools share one source of truth. Edit `AGENTS.md`; leave `CLAUDE.md` alone. See [`cross-tool-setup.md`](../how-to/cross-tool-setup.md).
 - **`/init`** still generates `.github/copilot-instructions.md`, not `AGENTS.md`. ai-kit's pattern: run `/init`, move the generated content into `AGENTS.md`, delete the generated file.
 - **GitHub.com surfaces** — Copilot code review and the cloud coding agent reliably read `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md` (the latter supports `applyTo` globs and `excludeAgent`). Their support for `AGENTS.md` — especially _nested_ `AGENTS.md` — is newer and less uniform. If your team depends on those server-side surfaces, keep a root `.github/copilot-instructions.md` alongside `AGENTS.md`.
 
@@ -231,7 +231,7 @@ to its own tools automatically.
 
 A read-only agent uses `Read, Grep, Glob`. An implementation agent adds `Edit,
 Write, Bash`. Omitting `tools` grants all tools. See
-[`.claude/agents/README.md`](../.claude/agents/README.md) for the full convention.
+[`.claude/agents/README.md`](../../.claude/agents/README.md) for the full convention.
 
 ### Agent-scoped hooks (preview)
 

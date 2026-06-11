@@ -1,7 +1,7 @@
 # Why This Way
 
 Optional reading. Design rationale for readers curious about the choices baked
-into ai-kit. Skip this and go to [`conventions.md`](./conventions.md) if
+into ai-kit. Skip this and go to [`conventions.md`](../reference/conventions.md) if
 you just want the rules.
 
 ## Why ai-kit, not a fork
@@ -27,7 +27,7 @@ both tools, but `permissions` is Claude-Code-only — Copilot's equivalents live
 in `.vscode/settings.json`.) `.github/` *AI-instruction surfaces* exist only
 when GitHub-side code review is in use (R-09/R-49) — CI workflows live under
 `.github/` regardless. See
-[`cross-tool-setup.md`](./cross-tool-setup.md).
+[`cross-tool-setup.md`](../how-to/cross-tool-setup.md).
 
 ## Why AGENTS.md plus a CLAUDE.md shim
 

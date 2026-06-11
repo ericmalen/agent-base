@@ -93,4 +93,4 @@ agents, loaded only when invoked. Enforced: settings + hooks from
 
 The cost gradient drives every size cap: always-on content is the most expensive
 (R-02), per-path next (R-13/R-52), on-demand cheapest (R-20 generous by
-comparison). Detailed rationale: `docs/why-this-way.md`.
+comparison). Detailed rationale: `docs/explanation/why-this-way.md`.

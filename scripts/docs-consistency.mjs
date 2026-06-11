@@ -37,7 +37,7 @@ export const BANNED_TERMS = [
 // (file, term) pairs that are deliberately allowed.
 export const ALLOW = new Set([
   // documents the VS Code BUILT-IN /create-prompt, annotated as out-of-surface (R-54)
-  "docs/built-in-reference.md .prompt.md",
+  "docs/reference/built-in-reference.md .prompt.md",
 ]);
 
 const SCAN_DIRS = ["docs", "templates", ".claude"];

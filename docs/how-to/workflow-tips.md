@@ -1,7 +1,7 @@
 # Workflow Tips
 
 Practices for getting the most out of a customized Copilot system. This is the
-opinionated companion to [`built-in-reference.md`](./built-in-reference.md):
+opinionated companion to [`built-in-reference.md`](../reference/built-in-reference.md):
 that doc describes what exists, this one recommends how to use it. Not a
 general prompt engineering guide — scoped to working with ai-kit's
 conventions.
@@ -109,7 +109,7 @@ conventions.
 - **Use the built-in Plan agent for planning**, not your custom ones. Reserve
   custom agents for task-specific personas.
 - **Keep the tool list minimal.** Every tool granted is a way the agent can
-  go off-script. See the tool tiers in [`conventions.md`](./conventions.md#minimal-tool-lists).
+  go off-script. See the tool tiers in [`conventions.md`](../reference/conventions.md#minimal-tool-lists).
 - **Handoffs outperform megathinking agents.** A Plan → Implement → Review
   chain outperforms a single "do everything" agent.
 
@@ -132,7 +132,7 @@ conventions.
 ## Keeping the config conformant
 
 - **Run the `ai-kit-check` skill at any time** to audit the repo's AI
-  configuration against the conventions ([`conventions.md`](./conventions.md))
+  configuration against the conventions ([`conventions.md`](../reference/conventions.md))
   and fix findings by rule ID.
 - **If a file is doing two jobs, split it.** One role per agent, one workflow
   per skill, one scope per rules file — apply it as maintenance, not just at
@@ -144,6 +144,6 @@ conventions.
 
 - [VS Code Best Practices](https://code.visualstudio.com/docs/copilot/best-practices)
 - [VS Code Agent Planning](https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode#_plan-and-iterate)
-- [`built-in-reference.md`](./built-in-reference.md) — what ships for free
-- [`copilot-customization-reference.md`](./copilot-customization-reference.md) — how to customize
-- [`conventions.md`](./conventions.md) — ai-kit's do-and-don't sheet
+- [`built-in-reference.md`](../reference/built-in-reference.md) — what ships for free
+- [`copilot-customization-reference.md`](../reference/copilot-customization-reference.md) — how to customize
+- [`conventions.md`](../reference/conventions.md) — ai-kit's do-and-don't sheet
