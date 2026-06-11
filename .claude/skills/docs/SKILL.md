@@ -42,6 +42,12 @@ file (`docs/reference/config.md`, not `docs/config.md`). Subfolders are
 created lazily — when their first real doc exists, never as empty
 scaffolding. Only `README` (and opt-in `CHANGELOG.md`) live at the root.
 
+A doc the user explicitly asks for (or one that already exists) is real,
+warranted content — it lives in `docs/<quadrant>/`, not folded into the
+README, even in an otherwise README-only repo. "Small repo → just a README"
+bounds what you *proactively invent*; it never flattens a genuine, requested
+doc into the README.
+
 ## Rules (non-negotiable)
 
 - Verify claims against the actual code before writing or preserving them.

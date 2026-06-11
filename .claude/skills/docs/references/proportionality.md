@@ -42,5 +42,11 @@ still governs whether enabling it is even appropriate.
   quadrant's docs live in `docs/<quadrant>/` even when it holds a single
   file — the lone-file case is still nested, never flattened to `docs/`
   root. Only `README` (and opt-in `CHANGELOG.md`) sit at the root.
+- A T1 repo's "good README, no docs/ tree" is the *proactive* output — it
+  bounds what you invent, not what the user requests. An explicitly
+  requested (or pre-existing) reference/how-to/explanation doc is real
+  warranted content: write it as `docs/<quadrant>/file.md`, nested as above,
+  not buried in the README. Under-documentation is correctable; flattening a
+  genuine doc into the README is the same drift the nesting rule prevents.
 - Every omission relative to the full standard is surfaced with one line
   of reasoning at setup/audit time.
