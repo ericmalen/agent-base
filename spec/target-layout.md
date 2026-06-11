@@ -12,7 +12,8 @@ setup; every entry names the rules that govern it. Conditional entries are marke
 ├── .claude/
 │   ├── agent-base.json            Agent Base marker: standard (semver),
 │   │                              toolRepo, pin, lastSyncedAt, setupAt,
-│   │                              githubCodeReview                  R-50
+│   │                              githubCodeReview; optional lastSweep
+│   │                              (commit of last deep sweep)       R-50
 │   ├── settings.json              permissions (.env deny) + hooks    R-43, R-44, R-46
 │   ├── settings.local.json        personal, never committed          R-43, R-47
 │   │
