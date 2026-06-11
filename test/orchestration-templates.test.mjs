@@ -58,6 +58,9 @@ for (const [skillId, meta] of Object.entries(registry.skills)) {
     const specialist = bp.specialists.find((s) => s.templateId === meta.pairsWith);
     assert.ok(specialist, `no maxi specialist uses template ${meta.pairsWith}`);
     const tpl = readFileSync(join(SKILL_TEMPLATES, `${skillId}.template.md`), 'utf8');
+    // C2 invariant stated directly, not via the fixture: exactly these 4 slots
+    const markers = new Set([...tpl.matchAll(/<!--\s*ai-kit:slot:([a-z0-9-]+)\s*-->/g)].map((m) => m[1]));
+    assert.deepEqual([...markers].sort(), ['conventions', 'layer-path', 'stack', 'test-cmd']);
     const { content, errors } = instantiateTemplate(tpl, specialist.slots);
     assert.deepEqual(errors, []);
     assert.ok(!content.includes('ai-kit:slot'));
@@ -73,6 +76,10 @@ test('C2 lint: registry and shipped templates cover each other exactly', () => {
   for (const [skillId, meta] of Object.entries(registry.skills)) {
     assert.ok(registry.agents[meta.pairsWith], `${skillId} pairsWith unknown template ${meta.pairsWith}`);
   }
+  const docFiles = readdirSync(join(import.meta.dirname, '..', 'templates', 'orchestration', 'docs'))
+    .filter((f) => f.endsWith('.md'))
+    .map((f) => f.replace('.md', ''));
+  assert.deepEqual(docFiles.sort(), Object.keys(registry.docs).sort());
 });
 
 test('C1 lint: every shipped template is referenced by at least one fixture blueprint', () => {

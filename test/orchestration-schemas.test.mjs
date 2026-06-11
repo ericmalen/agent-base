@@ -304,3 +304,13 @@ test('validateHandoffLog: optional capture fields validated only when present', 
     'turn_limit must be a positive integer when present',
   ]);
 });
+
+test('validateBlueprint: reserved slot names rejected (quartet shadowing guard)', () => {
+  const blueprint = loadFixture('maxi-repo.blueprint.json');
+  blueprint.specialists[0].slots.name = 'shadow';
+  blueprint.orchestrator.slots['turn-limit'] = '99';
+  assert.deepEqual(validateBlueprint(blueprint), [
+    'specialists[0].slots: "name" is reserved (injected from blueprint fields at instantiation)',
+    'orchestrator.slots: "turn-limit" is reserved (injected from blueprint fields at instantiation)',
+  ]);
+});

@@ -17,6 +17,8 @@ const SLOT_NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;             // kebab-case (DD-5
 // Logical tiers, not concrete model ids — ids churn with releases; the
 // scaffolder (C4) owns the tier → concrete-model map.
 const MODEL_TIERS = new Set(['haiku', 'sonnet', 'opus']);
+// Slot names the instantiators inject from blueprint fields (the quartet).
+const RESERVED_SLOTS = new Set(['name', 'tools', 'model-tier', 'turn-limit']);
 
 const isNonEmptyString = (v) => typeof v === 'string' && v.trim() !== '';
 const isStringOrNull = (v) => v === null || typeof v === 'string';
@@ -137,6 +139,9 @@ function checkAgentConfig(agent, where, e) {
   } else {
     for (const [key, value] of Object.entries(agent.slots)) {
       if (!SLOT_NAME_RE.test(key)) e(`${where}.slots: slot name "${key}" must be kebab-case (DD-5)`);
+      // Instantiation injects these from blueprint fields; a declared slot
+      // with the same name would be silently shadowed.
+      if (RESERVED_SLOTS.has(key)) e(`${where}.slots: "${key}" is reserved (injected from blueprint fields at instantiation)`);
       if (!isNonEmptyString(value)) e(`${where}.slots["${key}"] must be a non-empty string`);
     }
   }
@@ -279,16 +284,23 @@ export function validateTaskBacklog(doc) {
 const SEMVER_RE = /^\d+\.\d+\.\d+$/;
 const SHA256_RE = /^[a-f0-9]{64}$/;
 
+const MANIFEST_KEYS = new Set(['schemaVersion', 'generated']);
+const MANIFEST_ENTRY_KEYS = new Set(['path', 'templateId', 'templateVersion', 'sha256']);
+
 // Scaffolder-owned record of every generated file (DD-13): path → template
 // id, pinned template version, content SHA. Deliberately NO timestamps —
 // re-scaffolding the same blueprint must be byte-identical, manifest
-// included.
+// included — so unknown keys are REJECTED here (unique among the kit's
+// validators): any extra field is a determinism leak waiting to happen.
 export function validateGenerationManifest(manifest) {
   if (!isPlainObject(manifest)) return ['generation manifest must be an object'];
   const errors = [];
   const e = (m) => errors.push(m);
 
   if (manifest.schemaVersion !== 1) e(`schemaVersion must be 1 (got ${manifest.schemaVersion})`);
+  for (const key of Object.keys(manifest)) {
+    if (!MANIFEST_KEYS.has(key)) e(`unknown key "${key}" — the manifest is deterministic state, no extra fields`);
+  }
 
   if (!Array.isArray(manifest.generated) || manifest.generated.length === 0) {
     e('generated must be a non-empty array');
@@ -300,6 +312,9 @@ export function validateGenerationManifest(manifest) {
     if (!isPlainObject(entry)) {
       e(`${where} must be an object`);
       return;
+    }
+    for (const key of Object.keys(entry)) {
+      if (!MANIFEST_ENTRY_KEYS.has(key)) e(`${where}: unknown key "${key}"`);
     }
     if (!isNonEmptyString(entry.path)) {
       e(`${where}.path must be a non-empty string`);

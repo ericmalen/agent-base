@@ -9,8 +9,9 @@ Pure substitution, zero authoring: a blueprint agent entry plus a target path
 in, one generated agent file out. The engine is
 [instantiate.mjs](../../../scripts/lib/orchestration/instantiate.mjs) (strict
 inline slot substitution — unfilled, unused, or malformed markers are all
-errors). Template/version pairing is governed by
-[template-registry.json](../../../templates/orchestration/template-registry.json).
+errors). Version pins and sha256 template pins live in
+[template-registry.json](../../../templates/orchestration/template-registry.json) —
+consumed by the scaffolder's manifest, not by this single-asset step.
 
 ## Inputs
 

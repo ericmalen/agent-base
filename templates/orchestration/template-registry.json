@@ -1,18 +1,68 @@
 {
   "schemaVersion": 1,
   "agents": {
-    "orchestrator": { "version": "1.0.0" },
-    "ui-engineer": { "version": "1.0.0" },
-    "api-engineer": { "version": "1.0.0" },
-    "db-engineer": { "version": "1.0.0" },
-    "generic-specialist": { "version": "1.0.0" },
-    "code-reviewer": { "version": "1.0.0" },
-    "qa-agent": { "version": "1.0.0" },
-    "security-reviewer": { "version": "1.0.0" }
+    "orchestrator": {
+      "version": "1.0.0",
+      "sha256": "97f696f609b8a160b11884818693a652594bb84cb2d3115ccd352dfbb78a592a"
+    },
+    "ui-engineer": {
+      "version": "1.0.0",
+      "sha256": "4ed23be7c354c5b2898f9651e6ce5f1c1925a4192fa2c36e51a2e2bf26656b68"
+    },
+    "api-engineer": {
+      "version": "1.0.0",
+      "sha256": "e3f3dd6d11650ad8027176b231f8ba61abaf9d1ed60a5f3460c29dd82a6b6e8b"
+    },
+    "db-engineer": {
+      "version": "1.0.0",
+      "sha256": "a681f2625d63bdba42ff94eb90e82c62102e0b9544e07ea23649419b90108073"
+    },
+    "generic-specialist": {
+      "version": "1.0.0",
+      "sha256": "52c04f06506139e20f787a3335e0b66b9ca0119ae21106c8ffa3692478ca3fc9"
+    },
+    "code-reviewer": {
+      "version": "1.0.0",
+      "sha256": "30035bfe5a79d4f9da126125886445dbd501e34e7460790ea9d217e4d834f182"
+    },
+    "qa-agent": {
+      "version": "1.0.0",
+      "sha256": "14abc9fcc78e0f51461b921fc0577a1a3425dd10303aba002fa6c775512c053d"
+    },
+    "security-reviewer": {
+      "version": "1.0.0",
+      "sha256": "7680f4e9de7dd854f9279276711e11b693a86026467b4614b0cb245c617a496c"
+    }
   },
   "skills": {
-    "api-testing": { "version": "1.0.0", "pairsWith": "api-engineer" },
-    "ui-component-pattern": { "version": "1.0.0", "pairsWith": "ui-engineer" },
-    "db-migration": { "version": "1.0.0", "pairsWith": "db-engineer" }
+    "api-testing": {
+      "version": "1.0.0",
+      "pairsWith": "api-engineer",
+      "sha256": "e3747ca037dcb9bd09b185199731863dd1e7f405ccc38cf292fba62dc48a212e"
+    },
+    "ui-component-pattern": {
+      "version": "1.0.0",
+      "pairsWith": "ui-engineer",
+      "sha256": "7720667984591ca5fb39d5648dc7875b2e161181a1a9979a726291100a864837"
+    },
+    "db-migration": {
+      "version": "1.0.0",
+      "pairsWith": "db-engineer",
+      "sha256": "7e2df3e6066941afb917611e015ed754ec2e37036b0ed37588ac376eb5838f42"
+    }
+  },
+  "docs": {
+    "dispatch-rules": {
+      "version": "1.0.0",
+      "sha256": "b4666b9ff7f3a501d0a4335f7c7f7bb550fe75f42a1390123cbb573785c6b73f"
+    },
+    "tasks-format": {
+      "version": "1.0.0",
+      "sha256": "f8c638384d206e459f3e7b9c4cb31f1a35f55fc1202b2e15cbdd5f575734e1af"
+    },
+    "handoff-logging": {
+      "version": "1.0.0",
+      "sha256": "d8d897948a89eff43b2fa791464fd843948642d2f1ebd70218274682bccb26d5"
+    }
   }
 }

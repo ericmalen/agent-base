@@ -1,0 +1,140 @@
+// scaffold.mjs — pure generation planner for the scaffolder agent (C4, DD-1).
+//
+// planGeneration(blueprint, registry, readTemplate) computes every
+// manifest-tracked file the scaffolder writes: agents, paired skills, and
+// payload docs — content, target path, template id, pinned version. Pure
+// given its inputs and deterministic in output order (blueprint order for
+// agents; skill ids sorted per specialist; blueprint.docs order), so the
+// same blueprint + kit state always yields byte-identical files AND a
+// byte-identical manifest (no timestamps, DD-13).
+//
+// Living state (tasks.md, handoff-log.jsonl, checklists/) is deliberately
+// NOT planned here and never manifest-tracked: those files are owned by the
+// running system after creation; tracking them would turn every legitimate
+// append into a drift conflict.
+
+import { createHash } from 'node:crypto';
+import { instantiateTemplate } from './instantiate.mjs';
+
+const sha256 = (text) => createHash('sha256').update(text, 'utf8').digest('hex');
+
+const agentSlotMap = (agent) => ({
+  ...agent.slots,
+  name: agent.name,
+  tools: agent.tools.join(', '),
+  'model-tier': agent.modelTier,
+  'turn-limit': String(agent.turnLimit),
+});
+
+// readTemplate(kind, id) -> template/doc source text, or null when the kit
+// has no such file ('agent' | 'skill' | 'doc').
+// Returns { files: [{ path, templateId, templateVersion, content }], errors }.
+// files is [] whenever errors is non-empty — all-or-nothing, no partial plans.
+export function planGeneration(blueprint, registry, readTemplate) {
+  const errors = [];
+  const e = (m) => errors.push(m);
+  const files = [];
+  const plannedPaths = new Set();
+
+  // A registry sha256 pin that disagrees with the actual template source
+  // means someone edited a template without updating the registry — refuse
+  // to generate from an unpinned state (C5 version-bump discipline).
+  const checkPin = (reg, source, what) => {
+    if (reg.sha256 && sha256(source) !== reg.sha256) {
+      e(`${what}: source drifted from registry pin — bump version and update sha256`);
+      return false;
+    }
+    return true;
+  };
+  const push = (file) => {
+    if (plannedPaths.has(file.path)) {
+      e(`duplicate generated path "${file.path}" — two blueprint entries collide`);
+      return;
+    }
+    plannedPaths.add(file.path);
+    files.push(file);
+  };
+
+  for (const agent of [...blueprint.specialists, blueprint.orchestrator]) {
+    const reg = registry.agents[agent.templateId];
+    if (!reg) {
+      e(`agent ${agent.name}: templateId "${agent.templateId}" not in registry`);
+      continue;
+    }
+    const source = readTemplate('agent', agent.templateId);
+    if (source === null) {
+      e(`agent ${agent.name}: template ${agent.templateId}.template.md missing from kit`);
+      continue;
+    }
+    if (!checkPin(reg, source, `agent template ${agent.templateId}`)) continue;
+    const { content, errors: instErrors } = instantiateTemplate(source, agentSlotMap(agent));
+    if (instErrors.length) {
+      instErrors.forEach((m) => e(`agent ${agent.name}: ${m}`));
+      continue;
+    }
+    push({
+      path: `.claude/agents/${agent.name}.md`,
+      templateId: agent.templateId,
+      templateVersion: reg.version,
+      content,
+    });
+  }
+
+  for (const specialist of blueprint.specialists) {
+    const paired = Object.entries(registry.skills)
+      .filter(([, meta]) => meta.pairsWith === specialist.templateId)
+      .sort(([a], [b]) => a.localeCompare(b));
+    for (const [skillId, meta] of paired) {
+      const source = readTemplate('skill', skillId);
+      if (source === null) {
+        e(`skill ${skillId}: template missing from kit`);
+        continue;
+      }
+      if (!checkPin(meta, source, `skill template ${skillId}`)) continue;
+      const { content, errors: instErrors } = instantiateTemplate(source, specialist.slots);
+      if (instErrors.length) {
+        instErrors.forEach((m) => e(`skill ${skillId} (for ${specialist.name}): ${m}`));
+        continue;
+      }
+      push({
+        path: `.claude/skills/${skillId}/SKILL.md`,
+        templateId: skillId,
+        templateVersion: meta.version,
+        content,
+      });
+    }
+  }
+
+  for (const docPath of blueprint.docs) {
+    const id = docPath.split('/').pop().replace(/\.md$/, '');
+    const reg = registry.docs[id];
+    if (!reg) {
+      e(`doc ${docPath}: "${id}" not in registry`);
+      continue;
+    }
+    const source = readTemplate('doc', id);
+    if (source === null) {
+      e(`doc ${docPath}: ${id}.md missing from kit payload`);
+      continue;
+    }
+    if (!checkPin(reg, source, `doc ${id}`)) continue;
+    push({ path: docPath, templateId: id, templateVersion: reg.version, content: source });
+  }
+
+  return errors.length ? { files: [], errors } : { files, errors: [] };
+}
+
+// Manifest for a plan — same entry order as files; validates against
+// validateGenerationManifest. The manifest itself is written alongside the
+// files but never lists itself.
+export function manifestFor(files) {
+  return {
+    schemaVersion: 1,
+    generated: files.map(({ path, templateId, templateVersion, content }) => ({
+      path,
+      templateId,
+      templateVersion,
+      sha256: sha256(content),
+    })),
+  };
+}
