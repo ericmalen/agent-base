@@ -6,8 +6,8 @@ adoption runs *from a target repo* against a shared clone of this kit.
 
 ## Overview
 
-ai-kit installs a conformant AI-coding setup (Claude Code + VS Code Copilot,
-one set of files) into consumer repos via a four-phase adoption pipeline
+ai-kit installs a conformant AI-coding setup — Claude Code + GitHub Copilot
+(VS Code), one set of files — into consumer repos via a four-phase adoption pipeline
 (inventory → plan → materialize → verify). Zero-dependency Node ≥ 20 (.mjs),
 unit-tested, shell-agnostic.
 
@@ -23,7 +23,7 @@ unit-tested, shell-agnostic.
 | Zone | Role |
 |---|---|
 | `templates/` | Payload materialized into every adopted repo: `instructions/` (AGENTS.md/CLAUDE.md skeletons + slot bases), `settings/`, `readmes/`, `ci/`, `gitignore`. |
-| `scripts/` + `test/` | The engine. Dual-role: dev tooling here AND copied into targets as `.claude/ai-kit-adoption/scripts/`. |
+| `scripts/` + `test/` | The engine. Dev tooling here; adoption copies ONLY the five adoption scripts (inventory-extract, materialize, check, report, audit) + `scripts/lib/` + `templates/` into targets as `.claude/ai-kit-adoption/` — `test/` never ships. |
 | `.claude/` | This repo's live config AND the baseline shipped to every target. The `adopt-*` skills, `adoption-verifier` agent, and the baseline `ai-kit-check`, `docs`, `git-conventions`, `skill-creator`, `agent-creator` skills + `docs-auditor` agent are dual-role: loaded here AND installed path-for-path into targets (see `scripts/install-adoption.mjs`, the allowlist that decides what ships). `ai-kit-adopt` is the adoption entry point — run from this clone against a target path; deliberately NOT installed into targets. |
 | `docs/` | Consumer-facing guides. |
 | `reports/` | Generated outputs (validation/audit reports). Gitignored. |
@@ -31,10 +31,13 @@ unit-tested, shell-agnostic.
 ## Conventions
 
 - Rule-ID indirection (R-51): docs and templates cite rules by R-ID only.
-- All scripts zero-dependency Node ≥ 20, `node --test` for tests.
+- All scripts zero-dependency Node ≥ 20; the kit's own test suite (`npm test`) needs Node ≥ 22.
 - Self-audit: `node scripts/audit.mjs` (this repo is itself adopted — marker in
   `.claude/ai-kit.json`).
 - Generated reports go to `reports/`, never committed.
+- v1/v2 are internal kit generations; released artifacts version from 1.0.
+- Kit CI gates beyond tests: `docs-consistency` (banned v1 vocabulary + doc
+  link resolution) and `rule-check-map` (spec-rule ⇄ audit-check coverage).
 
 ## Documentation
 

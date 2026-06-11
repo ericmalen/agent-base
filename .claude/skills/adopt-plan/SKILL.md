@@ -15,8 +15,9 @@ for schema and worked examples before authoring.
 
 ## Procedure
 
-1. **Ask the user the two adoption questions** (answers go in the marker
-   literal):
+1. **Obtain the two adoption answers** (they go in the marker literal). If
+   the orchestrator already supplied them in this phase's prompt, record
+   them and skip asking; otherwise ask the user:
    - Does the team use GitHub.com Copilot code review? (drives
      copilot-instructions.md handling, rule R-09)
    - Path-scoping: `.claude/rules/` (default) or nested AGENTS.md compat
@@ -46,5 +47,5 @@ for schema and worked examples before authoring.
 7. **USER GATE 1:** present the report headline + risk sections (drops,
    out-of-scope, merges) and a short prose plan. Do not proceed without
    explicit approval; fold feedback in via manifest edits, re-run 5-6.
-8. Commit: `git add .adoption && git commit -m "adoption: plan approved"`.
+8. Commit: `git add .adoption && git commit -m "chore(adoption): plan approved"`.
    Tell the user: fresh session → `adopt-materialize`.

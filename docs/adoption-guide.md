@@ -1,22 +1,29 @@
 # Adopting ai-kit in a repository
 
 How to set up a repo (new or existing) for AI-assisted coding with both
-Claude Code and VS Code Copilot, using the adoption tooling.
+Claude Code and GitHub Copilot (VS Code), using the adoption tooling.
 
 ## What you need
 
 - The repo in **git**, with a **clean working tree**
 - **Node ≥ 20** present on your machine (the AI runs it — you never will)
-- Claude Code, or VS Code Copilot in **agent mode** (skills do not load in
+- Claude Code, or Copilot in **agent mode** (skills do not load in
   non-agent modes such as Ask)
 
 You never type a terminal command. The AI clones the kit, installs the
 tooling, and runs every script itself.
 
-## Starting a NEW project (zero setup)
+## Starting a NEW project (greenfield starter)
 
-Clone/import the **ai-kit starter repo** (published from this kit) — it IS
-the target state. Fill in AGENTS.md and you're done. No AI session required.
+Emit the clean target state directly from a kit clone:
+
+```sh
+node ~/tools/ai-kit/scripts/build-starter.mjs /path/to/new-repo --git
+```
+
+Fill in AGENTS.md and you're done. No AI session required. (The kit's CI
+publishes the same output as a build artifact named `starter`, if you'd
+rather download than run the script.)
 
 ## Setting up an EXISTING repo (or a new one, equivalently)
 
@@ -26,8 +33,10 @@ Open Claude Code or Copilot (agent mode) in your repo and paste ONE prompt:
 > and follow its .claude/skills/ai-kit-adopt/SKILL.md to set up this repository.
 
 That's the whole setup. The AI installs the tooling, commits it, and starts
-the four-phase flow below. Everything except the permanent `ai-kit-check`
-skill is removed again before merge.
+the four-phase flow below. The adoption-time tooling is removed again before
+merge; what stays is the permanent baseline — the `ai-kit-check`, `docs`,
+`git-conventions`, `skill-creator`, and `agent-creator` skills plus the
+`docs-auditor` agent.
 
 **Repeat users:** keep a kit clone (`git clone <url> ~/tools/ai-kit`), open
 it in your tool, and say `/ai-kit-adopt /path/to/repo`. The skill freshens
@@ -67,6 +76,9 @@ your repo is untouched until YOU merge.
 ## After adoption
 
 - `ai-kit-check` (installed skill) is your drift checker — run it any time.
+  It stays after merge alongside the rest of the permanent baseline: the
+  `docs`, `git-conventions`, `skill-creator`, and `agent-creator` skills and
+  the `docs-auditor` agent.
 - Updating to a newer kit: re-run the adoption flow; your current state is
   just new brownfield input, protected by the same machinery.
 - Review the diff with move-detection on:

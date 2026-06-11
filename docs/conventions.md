@@ -1,24 +1,25 @@
 # Conventions
 
-The do-and-don't sheet for ai-kit. One page. Read once, then refer back.
+The do-and-don't sheet for ai-kit. One page, reference only — the practices
+for working *with* these conventions live in
+[`workflow-tips.md`](./workflow-tips.md); the rationale behind them in
+[`why-this-way.md`](./why-this-way.md).
 
-This repo is wired for both GitHub Copilot and Claude Code — see
+This repo is wired for both GitHub Copilot (VS Code) and Claude Code — see
 [`cross-tool-setup.md`](./cross-tool-setup.md) for how one set of files serves
 both. For the underlying Copilot features these conventions sit on top of, see
 [`copilot-customization-reference.md`](./copilot-customization-reference.md).
 
-## Lazy-load over eager-load
+## Link styles signal the loading model
 
-Context relevance beats context volume.
-
-- **Agent `## Documents` sections use plain-text paths** — not Markdown links.
-  The agent reads them on demand via the Read tool, never up-front. This
-  keeps the agent's always-on context small.
-- **Skill `SKILL.md` bodies link sibling files with Markdown links** — that is
-  the intended path for progressive disclosure. The router (SKILL.md) stays
-  lean; detail loads only when referenced.
-- The two styles are deliberately different so the link form signals which
-  loading model is at play, and aids visual scanning.
+- **Agent `## Documents` sections use plain-text paths** — not Markdown links
+  (R-30). Agents read them on demand via the Read tool, never up-front.
+- **Skill `SKILL.md` bodies link sibling files with Markdown links** (R-23) —
+  the progressive-disclosure loading path. The router (SKILL.md) stays lean;
+  detail loads only when referenced.
+- The two styles are deliberately different: the link form signals which
+  loading model is at play, and aids visual scanning. Rationale:
+  [`why-this-way.md`](./why-this-way.md#why-lazy-load-by-default).
 
 ## Single source of truth
 
@@ -28,32 +29,34 @@ its sections rather than restating them.
 
 ## One responsibility per file
 
-- Agents have one role.
+- Agents have one role (R-36).
 - Skills have one workflow.
 - Rules files have one scope — one `.claude/rules/<scope>.md` per concern (R-52).
 - Nested `AGENTS.md` files (compat variant) have one scope — the subtree they
-  sit in.
+  sit in (R-16).
 
-No "do everything" assets. If a file is doing two jobs, split it.
+No "do everything" assets.
 
-## Minimal always-on content
+## Always-on size caps
 
-Keep `AGENTS.md` under two pages. It loads on every interaction — inflation
-degrades quality for every task, not just the ones that need the content.
+`AGENTS.md` stays under two pages (R-02). It loads on every interaction —
+inflation degrades quality for every task, not just the ones that need the
+content.
 
 ## Minimal tool lists
 
-Agents only get the tools they need. Use Claude tool names (Copilot maps them):
+Agents get only the tools their role needs (R-29). Tool lists use Claude tool
+names (Copilot maps them):
 
 - Read-only: `Read, Grep, Glob`
 - Editor: add `Edit, Write`
 - Executor: add `Bash`
-- Orchestrator: also allow delegating to subagents (`Task` in Claude Code;
+- Orchestrator: also allowed to delegate to subagents (`Task` in Claude Code;
   Copilot maps it to `agent/runSubagent`)
 
 The copy shipped into targets lives in
 [`agent-creator/references/tool-tiers.md`](../.claude/skills/agent-creator/references/tool-tiers.md)
-(kit docs are not installed) — keep the two in sync.
+(kit docs are not installed); the two tables are kept in sync.
 
 ## File-naming conventions
 
@@ -63,10 +66,11 @@ The copy shipped into targets lives in
 | Skills     | `{kebab-case-name}/SKILL.md`     | `tdd-workflow/SKILL.md` |
 | Rules      | `{scope}.md` in `.claude/rules/` | `tests.md`              |
 
-To add a new skill or agent to ai-kit and have the CLI distribute it,
-see the "Adding skills" and "Adding agents" sections in
-[`.claude/skills/README.md`](../.claude/skills/README.md) and
-[`.claude/agents/README.md`](../.claude/agents/README.md).
+New skills and agents for ai-kit follow the conventions in
+[`.claude/skills/README.md`](../.claude/skills/README.md) and the "Adding
+agents" section of [`.claude/agents/README.md`](../.claude/agents/README.md).
+What ships into adopted repos is decided by the installer allowlist in
+`scripts/install-adoption.mjs` — there is no separate distribution step.
 
 Directory- or layer-scoped conventions go in a path-scoped rules file at
 `.claude/rules/<scope>.md` with `paths:` glob frontmatter (R-52) — the default
@@ -81,8 +85,11 @@ per repo, never both (R-53). See
 have a single `README.md` that explains the pattern (R-48). Individual asset
 files stay lean.
 
-## Checking conformance
+## Conformance tooling (and a name disambiguation)
 
-Run the `ai-kit-check` skill at any time to audit the repo's AI configuration
-against these conventions (it runs `node <kit>/scripts/audit.mjs --root .` and
-fixes findings by rule ID).
+Conformance to these conventions is audited by the `ai-kit-check` skill: it
+runs `node <kit>/scripts/audit.mjs --root .` and fixes findings by rule ID
+(usage tips: [`workflow-tips.md`](./workflow-tips.md#keeping-the-config-conformant)).
+Despite the similar names, `scripts/check.mjs` is unrelated — it enforces the
+manifest gates during adoption phase 3, while the `ai-kit-check` skill is the
+recurring post-adoption audit.

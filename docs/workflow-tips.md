@@ -32,9 +32,10 @@ conventions.
 - **Plan-first prevents solving the wrong problem.** Most bad agent output
   isn't bad implementation — it's implementation of the wrong thing. Catching
   that at the plan stage is cheap.
-- **Hand off with context intact.** Plan in a local session, then hand off to
-  Copilot CLI (`/delegate`) for background execution or to a cloud agent for
-  PR-based review.
+- **Hand off with context intact.** Plan in a local session, then hand off —
+  run the task in Copilot CLI in the background, or use `/delegate` (from
+  Copilot CLI) to send it to a cloud agent that runs in the background and
+  ends in a PR for async review.
 - **Don't expect the plan to persist.** Session memory clears when the
   conversation ends. Save important plans to disk before closing the session.
 
@@ -125,6 +126,17 @@ conventions.
 - **Extract from conversations.** After a productive chat session,
   `/skill-creator` can extract a reusable skill from what you just did. Often
   better than starting from scratch.
+
+---
+
+## Keeping the config conformant
+
+- **Run the `ai-kit-check` skill at any time** to audit the repo's AI
+  configuration against the conventions ([`conventions.md`](./conventions.md))
+  and fix findings by rule ID.
+- **If a file is doing two jobs, split it.** One role per agent, one workflow
+  per skill, one scope per rules file — apply it as maintenance, not just at
+  creation time.
 
 ---
 

@@ -1,6 +1,6 @@
 # Manifest reference (.adoption/manifest.json)
 
-Schema v1. Top level: `{ schemaVersion: 1, kitVersion, entries: [], jsonMerges: [], installs: [] }`
+Schema v1. Top level: `{ schemaVersion: 1, entries: [], jsonMerges: [], installs: [] }`
 
 ## Ops (dispositions — every node gets exactly one)
 
@@ -13,6 +13,17 @@ Schema v1. Top level: `{ schemaVersion: 1, kitVersion, entries: [], jsonMerges: 
 | merge | `{ node, op:"merge", literal, target, slot?, note? }` | rewrite — node replaced by `.adoption/literals/<literal>`; several nodes may share one literal (emitted once); verifier judges side-by-side |
 | supersede | `{ node, op:"supersede", catalogSkill, note? }` | bespoke content replaced by a catalog skill |
 | out-of-scope | `{ file, op:"out-of-scope", reason }` | sweep candidate that is NOT AI instructions |
+
+## Allowed targets (scope gate)
+
+All `move`/`split`/`merge` targets, `jsonMerges.file`, and `installs.file` must
+stay on AI-config surfaces: root `AGENTS.md` / `CLAUDE.md` / `.gitignore`,
+nested `AGENTS.md`/`CLAUDE.md` (compat), anything under `.claude/`,
+`.vscode/settings.json`, `.github/copilot-instructions.md`,
+`.github/instructions/`, or `docs/ai/` (extracted AI reference docs).
+Recognized AI surfaces and inventoried source files (in-place reassembly of
+forced-include mixed files) are also valid. `check.mjs` enforces this as the
+scope gate.
 
 ## jsonMerges
 
@@ -55,6 +66,8 @@ gate — copy the matching kit template, do not route it through the manifest:
 
 Marker literal content:
 `{ "kit": "<version>", "kitRepo": "<ado clone url>", "adoptedAt": "<date>", "githubCodeReview": <bool> }`
+The `kit` field pins the adoption-moment kit sha/version; it is NOT expected
+to track kit HEAD afterward.
 
 ## AGENTS.md slots
 

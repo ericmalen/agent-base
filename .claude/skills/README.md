@@ -36,29 +36,33 @@ If your `SKILL.md` body runs past ~200 lines, it probably needs decomposition.
 
 Two groups, both loaded here because both are wanted while developing the kit:
 
-**Kit tooling** — the adoption engine and self-checks, also installed into
-every target by `scripts/install-adoption.mjs`:
+**Kit tooling** — the adoption engine and self-checks. The four `adopt-*`
+skills and `ai-kit-check` are installed into every target by
+`scripts/install-adoption.mjs`; TWO skills are deliberately kit-side only and
+never installed (installer allowlist): `ai-kit-adopt` and `validate-adoption`.
 
 - [`ai-kit-adopt`](./ai-kit-adopt/SKILL.md) — the adoption entry point and
-  orchestrator. Run from this kit clone against a target repo path. The ONE
-  skill here deliberately never installed into targets (installer allowlist).
+  orchestrator. Run from this kit clone against a target repo path. Kit-side
+  only.
 - `adopt-inventory`, `adopt-plan`, `adopt-materialize`, `adopt-verify` — the
-  four-phase adoption pipeline.
-- `validate-adoption` — runs the full adoption validation end-to-end.
+  four-phase adoption pipeline. Installed for the adoption window; removed
+  again before merge.
+- `validate-adoption` — runs the full adoption validation end-to-end. Kit-side
+  only.
 - `ai-kit-check` — audits a repo's AI configuration against ai-kit conventions
-  (the mandatory check; its source skeleton is in `templates/`).
+  (the mandatory check; source of truth is this folder — shipped verbatim by
+  install-adoption).
 
 **Baseline assets** — shipped path-for-path into every target alongside the
 tooling, and held to the kit's own conventions because they load here too:
 
 - [`docs`](./docs/SKILL.md) — the documentation standard (Diátaxis content
-  model, ADR + changelog workflows, proportional setup). Pairs with the
+  model, decision-record + changelog workflows, proportional setup). Pairs with the
   [`docs-auditor`](../agents/docs-auditor.md) agent for heavy audit/migration.
 - [`git-conventions`](./git-conventions/SKILL.md) — Conventional Commits plus
   team-derived PR and branch conventions.
 - [`agent-creator`](./agent-creator/SKILL.md) — meta-skill: scaffold a new
-  custom agent to kit conventions (formerly `new-agent` in the retired
-  `catalog/` zone).
+  custom agent to kit conventions.
 - [`skill-creator`](./skill-creator/SKILL.md) — Anthropic's official
   skill-authoring meta-skill, vendored **verbatim** from
   [anthropics/skills](https://github.com/anthropics/skills) (Apache 2.0; pinned

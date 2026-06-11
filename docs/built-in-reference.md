@@ -175,7 +175,7 @@ Short list of non-customization settings. The customization-related settings
 
 ## Resources
 
-- [VS Code Copilot Overview](https://code.visualstudio.com/docs/copilot/overview)
+- [GitHub Copilot (VS Code) overview](https://code.visualstudio.com/docs/copilot/overview)
 - [Chat](https://code.visualstudio.com/docs/copilot/chat/copilot-chat)
 - [Agent Mode](https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode)
 - [Slash Commands](https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features)

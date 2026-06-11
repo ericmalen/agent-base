@@ -15,8 +15,9 @@ every entry names the rules that govern it. Conditional entries are marked.
 │   ├── settings.json              permissions (.env deny) + hooks    R-43, R-44, R-46
 │   ├── settings.local.json        personal, never committed          R-43, R-47
 │   │
-│   ├── rules/                     path-scoped instructions (DEFAULT
-│   │   │                          mechanism, D-1)                    R-52, R-53
+│   ├── rules/                     CONDITIONAL — created with the
+│   │   │                          first scope (DEFAULT mechanism,
+│   │   │                          D-1; the starter creates none)     R-52, R-53
 │   │   ├── README.md                                                 R-48
 │   │   └── <scope>.md             paths: globs, ≤50 non-blank lines  R-52
 │   │
@@ -25,15 +26,17 @@ every entry names the rules that govern it. Conditional entries are marked.
 │   │   ├── ai-kit-check/          permanent maintenance skill
 │   │   │   │                      (audit + rubric + fix loop)        R-50
 │   │   │   ├── SKILL.md
-│   │   │   ├── scripts/audit.mjs
-│   │   │   └── references/rubric.md
+│   │   │   ├── scripts/audit-nudge.mjs
+│   │   │   └── references/        rubric.md, audit-hook.md
 │   │   └── <skill-id>/            flat, one level                    R-17..R-26, R-54
 │   │       ├── SKILL.md           ≤200 lines, Markdown sibling links
 │   │       ├── references/        loaded on demand
 │   │       ├── examples/
 │   │       └── scripts/
 │   │
-│   └── agents/
+│   └── agents/                    CONDITIONAL — created with the
+│       │                          first agent (adoption installs
+│       │                          docs-auditor; the starter none)
 │       ├── README.md                                                 R-48
 │       └── <agent-name>.md        kebab-case, tools: declared,
 │                                  Never + Procedures + Documents     R-27..R-37
@@ -41,11 +44,18 @@ every entry names the rules that govern it. Conditional entries are marked.
 ├── .vscode/
 │   └── settings.json              pinned key set                     R-45
 │
-└── .github/                       ONLY when githubCodeReview: true   R-09, R-49
+└── .github/                       AI-instruction surfaces ONLY when
+    │                              githubCodeReview: true — CI
+    │                              workflows are exempt (R-49 governs
+    │                              AI configuration)                  R-09, R-49
     ├── copilot-instructions.md    ≤4,000 chars, points to AGENTS.md  R-09
     └── instructions/              path-specific *.instructions.md
-                                   (applyTo globs, excludeAgent)      R-09
+                                   (applyTo globs, excludeAgent)      R-49
 ```
+
+Note: the `ai-kit-check` skill deliberately does NOT bundle the audit engine —
+during adoption it runs `.claude/ai-kit-adoption/scripts/audit.mjs`; after
+teardown it uses a kit checkout (clone URL in the `.claude/ai-kit.json` marker).
 
 ## Compat variant (nested AGENTS.md instead of rules/)
 

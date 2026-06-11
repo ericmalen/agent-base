@@ -2,9 +2,6 @@
 
 ## Claude Code notes
 
-<!-- TODO: Add Claude-Code-specific guidance here, if any. Most teams won't
-     need anything — keep this section minimal or delete it. -->
-
 The `@AGENTS.md` line above imports the canonical repo instructions, so Claude
 Code and Copilot share one source of truth. Claude Code reads this file;
 Copilot and other AGENTS.md-aware tools read `AGENTS.md` directly.

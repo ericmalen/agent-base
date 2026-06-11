@@ -25,7 +25,7 @@ installer from their kit clone first.
 2. Run the extractor:
    `node .claude/ai-kit-adoption/scripts/inventory-extract.mjs --root .`
 3. Commit the artifacts:
-   `git add .adoption && git commit -m "adoption: inventory"`
+   `git add .adoption && git commit -m "chore(adoption): inventory"`
 4. Report to the user: universe size, surfaces extracted → node count, sweep
    candidates needing triage, anything in `skipped[]` (skips must be surfaced,
    never glossed over).

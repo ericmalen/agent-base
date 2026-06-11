@@ -20,7 +20,7 @@ that predates baseline status, copy from the kit clone:
 ## Path B — standalone (repo not using ai-kit)
 
 Same two copies as above — the package has no dependency on the rest of
-the kit. Both Claude Code and VS Code Copilot (agent mode) read those
+the kit. Both Claude Code and GitHub Copilot (VS Code, agent mode) read those
 locations natively; other agents can follow the conventions as plain
 files via the AGENTS.md pointer that setup writes.
 

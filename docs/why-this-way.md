@@ -16,22 +16,36 @@ your own content. No deleting before building.
 
 ## Why a shared `.claude/` home
 
-This repo targets both GitHub Copilot and Claude Code. One directory is read
-natively by both for agents and skills: `.claude/`. Copilot's default search
-paths include `.claude/skills/` and `.claude/agents/`; Claude Code reads nothing
-under `.github/`. So agents and skills live in `.claude/` — one copy, both
-tools, no symlinks, no drift. (One nuance: in `.claude/settings.json`, the
-`hooks` block is read by both tools, but `permissions` is Claude-Code-only —
-Copilot's equivalents live in `.vscode/settings.json`.) `.github/` exists only
-when GitHub-side code review is in use (R-09/R-49). See
+This repo targets both GitHub Copilot (VS Code) and Claude Code. One directory
+is read natively by both for agents and skills: `.claude/`. Copilot's default
+search paths include `.claude/skills/` and `.claude/agents/`; Claude Code reads
+nothing under `.github/`. Copilot would also accept `.github/skills/` or the
+tool-agnostic `.agents/skills/`, but `.claude/` is the one location Claude Code
+reads too — so agents and skills live there: one copy, both tools, no symlinks,
+no drift. (One nuance: in `.claude/settings.json`, the `hooks` block is read by
+both tools, but `permissions` is Claude-Code-only — Copilot's equivalents live
+in `.vscode/settings.json`.) `.github/` *AI-instruction surfaces* exist only
+when GitHub-side code review is in use (R-09/R-49) — CI workflows live under
+`.github/` regardless. See
 [`cross-tool-setup.md`](./cross-tool-setup.md).
+
+## Why AGENTS.md plus a CLAUDE.md shim
+
+`AGENTS.md` is the open standard read by Copilot, Cursor, Codex, Aider,
+Gemini CLI, and others — the natural home for canonical instructions. But
+Claude Code reads only `CLAUDE.md`. Shipping a `CLAUDE.md` whose first line is
+`@AGENTS.md` (Claude's import syntax) gives both tools one source of truth
+without duplication: you edit `AGENTS.md`; Claude Code pulls it in through the
+shim. The same reasoning sets `chat.useClaudeMdFile` to off in VS Code —
+Copilot already reads `AGENTS.md` directly, so also reading `CLAUDE.md` (which
+just imports it) would double-load the content.
 
 ## Why meta-skills
 
 The headline feature of ai-kit is **skills-as-tooling**. Two meta-skills
 — `skill-creator` and `agent-creator` — walk you through
 producing new assets that conform to the conventions. (`skill-creator` is
-Anthropic's official skill-authoring tool, shipped here as a base skill.)
+Anthropic's official skill-authoring tool, shipped here as a baseline skill.)
 
 Prose teaches conventions slowly. Tooling teaches them the first time you use
 them. Typing `/skill-creator` and being asked the questions the skill
@@ -58,7 +72,8 @@ duplicates the same framing 15 times — and drifts when conventions change.
 
 One README per asset-type folder covers the same ground with less maintenance.
 The READMEs explain the pattern. The annotated example assets (like
-`example-reviewer`) show what good looks like. Individual assets stay lean.
+`example-reviewer`, kept kit-side) show what good looks like. Individual
+assets stay lean.
 
 ## Why annotated examples instead of blank templates
 
@@ -67,7 +82,8 @@ you what to type and why it belongs there.
 
 The meta-skills provide the templates (paste-ready, stub content). The
 example assets (like `example-reviewer.md`) provide the annotated versions with
-inline comments explaining the non-obvious choices. Together they cover both
+inline comments explaining the non-obvious choices — they are kit-side examples
+to copy from, not assets installed into adopted repos. Together they cover both
 modes — "I just need a starting point" and "I want to see a real one."
 
 ## Why flat orchestration (by default)

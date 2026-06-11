@@ -21,7 +21,7 @@ Preconditions: `.adoption/manifest.json` parses, and
    seams between verbatim blocks, orphaned references. Fix by reordering
    manifest entries, adjusting slots, or (sparingly, justified) a merge
    literal — then re-materialize. Commit each iteration:
-   `git add -A && git commit -m "adoption: materialize iteration <n>"`
+   `git add -A && git commit -m "chore(adoption): materialize iteration <n>"`
 3. Converge the mechanical gates — loop until BOTH exit 0:
    - `node .claude/ai-kit-adoption/scripts/check.mjs --root . --templates .claude/ai-kit-adoption/templates`
    - `node .claude/ai-kit-adoption/scripts/audit.mjs --root .`

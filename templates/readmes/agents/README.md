@@ -1,7 +1,7 @@
 # Agents
 
-Specialized roles both Claude Code and VS Code Copilot can delegate to. One
-agent = one responsibility.
+Specialized roles both Claude Code and GitHub Copilot (VS Code) can delegate
+to. One agent = one responsibility.
 
 Conventions (enforced by `ai-kit-check`): kebab-case filenames; a one-line role
 statement opening the body; `description` saying what the agent does and when

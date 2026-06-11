@@ -56,8 +56,9 @@ spec/            the standard: rules.md (R-IDs, source of truth) + target-layout
 templates/       payload materialized into every adopted repo: instructions/
                  (AGENTS.md/CLAUDE.md skeletons + slot bases), settings/,
                  readmes/ (R-48 stubs), ci/, gitignore
-scripts/ test/   the engine (zero-dep Node ≥ 20) — also copied into targets
-                 during adoption as .claude/ai-kit-adoption/
+scripts/ test/   the engine (zero-dep Node ≥ 20). Adoption copies only the
+                 five adoption scripts + scripts/lib/ + templates/ into
+                 targets as .claude/ai-kit-adoption/ (test/ never ships)
 .claude/         this repo's own live config; the adopt-* skills, baseline
                  skills (ai-kit-check, docs, git-conventions, skill-creator,
                  agent-creator) and agents are dual-role (used here AND

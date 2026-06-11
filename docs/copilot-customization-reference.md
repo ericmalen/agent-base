@@ -7,8 +7,26 @@ Start at Level 1 and progress as needs grow. Every level delivers value on its o
 > **Dual-tool note:** this repo is wired for both Copilot and Claude Code.
 > Shared agents and skills live in `.claude/agents/` and `.claude/skills/` —
 > Copilot reads those natively, alongside its own `.github/` paths. This doc is
-> the deep reference for Copilot's customization system; for the cross-tool
-> layout and what each tool reads, see [`cross-tool-setup.md`](./cross-tool-setup.md).
+> the deep reference for Copilot's customization system; the surface map below
+> shows what each tool reads, and the setup steps live in
+> [`cross-tool-setup.md`](./cross-tool-setup.md).
+
+---
+
+## Cross-tool surface map
+
+What each tool reads, per surface. Wiring steps:
+[`cross-tool-setup.md`](./cross-tool-setup.md).
+
+| Surface        | Lives in                | Claude Code     | Copilot                                     |
+| -------------- | ----------------------- | --------------- | ------------------------------------------- |
+| Instructions   | `AGENTS.md`             | via `CLAUDE.md` | native                                      |
+| Instructions   | `CLAUDE.md`             | native          | off (imports AGENTS.md)                     |
+| Path rules     | `.claude/rules/`        | native          | native                                      |
+| Skills         | `.claude/skills/`       | native          | native (default search path)                |
+| Agents         | `.claude/agents/`       | native          | native (detects + maps tools)               |
+| Hooks          | `.claude/settings.json` | native          | native (same format, R-46)                  |
+| Permissions    | `.claude/settings.json` | native          | — (editor flags in `.vscode/settings.json`) |
 
 ---
 
@@ -58,11 +76,10 @@ ai-kit uses `AGENTS.md` at the repo root as the canonical repo-wide instructions
 ```jsonc
 {
   "chat.useAgentsMdFile": true,
-  "chat.useNestedAgentsMdFiles": true,
 }
 ```
 
-`chat.useNestedAgentsMdFiles` extends discovery to **nested** `AGENTS.md` files placed inside subdirectories — the compat mechanism for path-scoped instructions (the default is `.claude/rules/`, R-52/R-53). See [Path-specific instructions](#path-specific-instructions) below.
+`chat.useNestedAgentsMdFiles` extends discovery to **nested** `AGENTS.md` files placed inside subdirectories — the compat mechanism for path-scoped instructions (the default is `.claude/rules/`, R-52/R-53). Set it `true` only in repos using the compat variant (R-45); ai-kit itself does not set it. See [Path-specific instructions](#path-specific-instructions) below.
 
 **Trade-offs to know:**
 
@@ -126,7 +143,7 @@ paths: ["packages/api/**"]
 
 Known tool caveat: path-scoped rules trigger when matching files are *read* — they may not load while creating a brand-new matching file. Keep universal musts in root `AGENTS.md`.
 
-The **compat variant** is a nested `AGENTS.md` placed inside the subdirectory it applies to (with `chat.useNestedAgentsMdFiles: true`, enabled in ai-kit). It has no frontmatter and no glob — scope is by *location* — and it is the cross-tool open standard, discovered by Copilot, Cursor, Codex, Aider, and Gemini CLI alike (Claude Code needs a sibling `CLAUDE.md` shim, R-15). Choose it at adoption when the team uses other AGENTS.md-ecosystem tools; a repo uses rules XOR nested AGENTS.md, never both (R-53).
+The **compat variant** is a nested `AGENTS.md` placed inside the subdirectory it applies to (enabled via `chat.useNestedAgentsMdFiles: true`, which adoption sets only on compat-variant repos — R-45/R-53). It has no frontmatter and no glob — scope is by *location* — and it is the cross-tool open standard, discovered by Copilot, Cursor, Codex, Aider, and Gemini CLI alike (Claude Code needs a sibling `CLAUDE.md` shim, R-15). Choose it at adoption when the team uses other AGENTS.md-ecosystem tools; a repo uses rules XOR nested AGENTS.md, never both (R-53).
 
 > **Tradeoff:** the alternative — `.github/instructions/*.instructions.md` with an `applyTo` glob — is Copilot-specific but is the mechanism GitHub.com's Copilot code review and cloud coding agent read most reliably. ai-kit does **not** ship `.github/instructions/` by default; if you depend on those server-side surfaces, add `.github/instructions/` files alongside — the mechanisms coexist (R-09/R-49).
 
@@ -289,7 +306,7 @@ disable-model-invocation: false
 | `argument-hint`            | —       | Placeholder text shown when invoked as a slash command                            |
 | `user-invocable`           | `true`  | When `false`, hides the skill from the `/` menu                                   |
 | `disable-model-invocation` | `false` | When `true`, skill requires manual `/` invocation (no auto-activation)            |
-| `context`                  | `inline`| Experimental. `inline` loads SKILL.md into the parent chat; `fork` runs the skill in an isolated subagent context. Use `fork` to keep large skills from polluting the parent transcript. |
+| `context`                  | `inline`| **Claude Code only — Copilot ignores it.** Experimental. `inline` loads SKILL.md into the parent chat; `fork` runs the skill in an isolated subagent context (in Claude Code). Use `fork` to keep large skills from polluting the parent transcript there. |
 
 > `infer` is deprecated. Use `disable-model-invocation` instead.
 
@@ -407,8 +424,9 @@ Drop these into `.vscode/settings.json` to enable the customization features con
 {
   // Instructions
   "chat.useAgentsMdFile": true,
-  // Nested AGENTS.md in subdirs — scopes conventions to a subtree (cross-tool).
-  "chat.useNestedAgentsMdFiles": true,
+  // Compat-variant repos ONLY (R-45/R-53): nested AGENTS.md discovery.
+  // Omit on rules-based repos — including ai-kit itself.
+  // "chat.useNestedAgentsMdFiles": true,
   // Off: CLAUDE.md only imports AGENTS.md, which Copilot already reads.
   "chat.useClaudeMdFile": false,
 
@@ -430,7 +448,7 @@ Drop these into `.vscode/settings.json` to enable the customization features con
 }
 ```
 
-Review each flag — some are preview features. Enable them deliberately. See `.vscode/settings.json` in ai-kit for the same set with full inline commentary.
+Review each flag — some are preview features. Enable them deliberately. `.vscode/settings.json` in ai-kit is a live example with inline commentary — it omits the compat-only nested key and adds editor file-nesting keys beyond this set (R-45 pins the required keys).
 
 ---
 
@@ -451,7 +469,7 @@ Review each flag — some are preview features. Enable them deliberately. See `.
 
 ## Resources
 
-- [VS Code Copilot Customization Overview](https://code.visualstudio.com/docs/copilot/customization/overview)
+- [GitHub Copilot (VS Code) customization overview](https://code.visualstudio.com/docs/copilot/customization/overview)
 - [Custom Instructions](https://code.visualstudio.com/docs/copilot/customization/custom-instructions)
 - [Custom Agents](https://code.visualstudio.com/docs/copilot/customization/custom-agents)
 - [Agent Skills](https://code.visualstudio.com/docs/copilot/customization/agent-skills)

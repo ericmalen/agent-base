@@ -1,11 +1,11 @@
 # ai-kit rule catalog
 
 **This file is the single source of truth for the target state.** The audit enforces
-every `mechanical` rule; the verifier rubric applies every `judgment` rule; docs and
-the generated fallback manual reference rules by ID and never restate them.
+every `mechanical` rule; the verifier rubric applies every `judgment` rule; docs
+reference rules by ID and never restate them (R-51).
 
-Version: 1.0-draft (June 2026) · Derived from: `spec/rules-draft.md` (harvest +
-verification, decisions D-1..D-5 resolved)
+Version: 1.0-draft (June 2026) · Distilled from a pre-repo working draft (not
+retained; decisions D-1..D-5 resolved)
 
 **Conventions.**
 - Rule IDs are permanent. Retired IDs are never reused (see Retired section).
@@ -280,6 +280,21 @@ in consumer repos.)
 
 ---
 
+## Audit exemptions (implementation)
+
+Besides the vendored-UPSTREAM exemption above, the audit implementation carries
+two narrow exemptions the rules would otherwise flag:
+
+- **Adoption-window tooling.** `.claude/ai-kit-adoption/`,
+  `.claude/skills/adopt-{inventory,plan,materialize,verify}/`, and
+  `.claude/agents/adoption-verifier.md` are skipped by the skills/agents/
+  reference checks: they exist only between install and the adopt-verify
+  teardown, and transient references (e.g. `.adoption/report.md`) are legal
+  there.
+- **Payload skeletons.** Files containing `<!-- ai-kit:slot:` markers are
+  template payload, not live configuration, and are excluded from live-config
+  checks.
+
 ## Retired IDs
 
 | ID | Was | Disposition |
@@ -291,7 +306,8 @@ in consumer repos.)
 Registration checks (`skill/agent-not-registered`), `pending-integration-present` +
 sidecar flow, audit-report gitignore/leak checks, `isAiKitOwnAsset` and
 manifest-role exemptions, migrate-specific permission allow-list entries,
-hash-manifest update flow.
+hash-manifest update flow. (Two narrow exemptions DID survive into v2 — see
+"Audit exemptions (implementation)" above.)
 
 ## Adoption-flow inputs (not rules, recorded in the kit marker)
 

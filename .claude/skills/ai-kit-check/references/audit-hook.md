@@ -1,6 +1,6 @@
 # Optional: audit Stop-hook
 
-An opt-in end-of-session nudge. When a Claude Code (or VS Code Copilot) session
+An opt-in end-of-session nudge. When a Claude Code or GitHub Copilot (VS Code) session
 ends, it runs the kit audit against this repo and prints one line if the
 AI-config has drifted off the target state. It never blocks the session and is
 silent when the repo is clean or no kit checkout is reachable.
