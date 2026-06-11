@@ -85,6 +85,8 @@ and has an empty `dispatch_order` — the repo-agnostic guardrail.
 ## Next steps
 
 - [Orchestration how-to](../how-to/orchestration-guide.md) — production flow.
+- [Troubleshooting](../how-to/orchestration-troubleshooting.md) — per-session
+  failure modes.
 - [Orchestration concepts](../explanation/orchestration.md) — architecture.
 - [Agents and skills reference](../reference/agents-and-skills.md) — full
   inventory.
