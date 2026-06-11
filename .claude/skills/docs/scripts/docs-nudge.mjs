@@ -16,6 +16,8 @@
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const out = (s) => process.stdout.write(s + '\n');
 // NOTE: raw() must NOT trim — porcelain lines are "XY path" where X may be
@@ -30,7 +32,9 @@ export function matches(path, patterns) {
     : path === p || path.startsWith(p + '/'));
 }
 
-try {
+// CLI body — entrypoint-guarded so importing matches() (tests) never runs the hook.
+const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) try {
   const mode = process.argv[2];
   const gitDir = git('rev-parse', '--git-dir');
   const baselineFile = `${gitDir}/ai-kit-docs-baseline`;

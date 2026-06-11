@@ -12,9 +12,19 @@ const NUDGE = join(KIT_ROOT, '.claude/skills/ai-kit-check/scripts/audit-nudge.mj
 // Run the hook in `cwd`, pointing it at the kit via AI_KIT_HOME unless told not to.
 function runNudge(cwd, { withKit = true } = {}) {
   const env = { ...process.env };
+  let fakeHome = null;
   if (withKit) env.AI_KIT_HOME = KIT_ROOT;
-  else delete env.AI_KIT_HOME;
+  else {
+    delete env.AI_KIT_HOME;
+    // audit-nudge also probes ~/tools/ai-kit (a documented install location);
+    // point HOME (and USERPROFILE, for Windows) at an empty temp dir so the
+    // "no kit reachable" premise holds on machines with a real checkout there.
+    fakeHome = mkdtempSync(join(tmpdir(), 'nudge-home-'));
+    env.HOME = fakeHome;
+    env.USERPROFILE = fakeHome;
+  }
   const res = spawnSync(execPath, [NUDGE], { cwd, env, encoding: 'utf8' });
+  if (fakeHome) rmSync(fakeHome, { recursive: true, force: true });
   return res;
 }
 
