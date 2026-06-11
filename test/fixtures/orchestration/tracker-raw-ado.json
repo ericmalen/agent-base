@@ -1,0 +1,18 @@
+{
+  "count": 3,
+  "value": [
+    {
+      "id": 231,
+      "fields": { "System.Title": "Rate-limit the tagging endpoint", "System.State": "To Do" },
+      "_links": { "html": { "href": "https://dev.azure.com/org/proj/_workitems/edit/231" } }
+    },
+    {
+      "id": 232,
+      "fields": { "System.Title": "Add audit log for tag deletions", "System.State": "Doing" }
+    },
+    {
+      "id": 233,
+      "fields": { "System.Title": "Spike: queue library", "System.State": "Resolved" }
+    }
+  ]
+}
