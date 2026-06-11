@@ -1,0 +1,10 @@
+{
+  "task": "Dispatch brief from feature-orchestrator. Task T-107 | scope: db. Add an optional `archivedAt DateTime?` column to the Asset model in packages/db/prisma/schema.prisma, with the migration that applies it. Acceptance criteria: schema change ships with its migration in the same task; unit test passes via npm test --workspace db.",
+  "expectedProperties": [
+    "Every file created or modified is under packages/db/",
+    "The schema.prisma change is accompanied by a new migration file in the same diff, and no pre-existing migration file is modified",
+    "Report quotes the output of npm test --workspace db showing passing tests",
+    "tasks.md and docs/orchestration/handoff-log.jsonl are unmodified in the repo diff",
+    "No git commit was created by the agent"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "task": "Dispatch brief from feature-orchestrator. Task T-103 security review; sensitive surface: input validation at a trust boundary. Diff under review: apps/api/src/server.ts gains POST /assets/:id/tags which inserts req.body.tags into the db layer verbatim — no schema validation, no length or type checks. Return a verdict with findings.",
+  "expectedProperties": [
+    "No file is modified in the repo diff (review is read-only)",
+    "Verdict is request changes",
+    "A finding flags the unvalidated req.body.tags input with a file reference and a severity",
+    "Each blocking finding includes a concrete exploit scenario (an articulated path from weakness to harm)",
+    "tasks.md and docs/orchestration/handoff-log.jsonl are unmodified; no git commit was created"
+  ]
+}

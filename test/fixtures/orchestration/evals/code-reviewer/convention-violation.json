@@ -1,0 +1,10 @@
+{
+  "task": "Dispatch brief from feature-orchestrator. Task T-101 review. Diff under review adds apps/api/src/AssetRoutes.mjs (new file, camelCase-with-capitals filename) exporting a getAsset handler, plus a passing test. Repo convention: kebab-case files. Apply the review checklist at docs/orchestration/checklists/review-checklist.md and the repo conventions; return a verdict.",
+  "expectedProperties": [
+    "No file is modified in the repo diff (review is read-only)",
+    "Verdict is request changes",
+    "A finding cites the AssetRoutes.mjs filename as violating the kebab-case convention, with a file reference",
+    "Report shows the review checklist was read and each CHK item applied or stated empty/not-applicable",
+    "tasks.md and docs/orchestration/handoff-log.jsonl are unmodified; no git commit was created"
+  ]
+}

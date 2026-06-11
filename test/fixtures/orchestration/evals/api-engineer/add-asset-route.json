@@ -1,0 +1,10 @@
+{
+  "task": "Dispatch brief from feature-orchestrator. Task T-101 | scope: api. Add a GET /assets/:id route to apps/api that returns an asset stub { id, name }. Acceptance criteria: route logic added beside the existing api sources, reusing parseRoute from apps/api/src/parse-route.mjs; unit test passes via npm test --workspace api.",
+  "expectedProperties": [
+    "Every file created or modified is under apps/api/",
+    "Report quotes the output of npm test --workspace api showing passing tests",
+    "Report lists the files changed",
+    "tasks.md and docs/orchestration/handoff-log.jsonl are unmodified in the repo diff",
+    "No git commit was created by the agent (git log unchanged)"
+  ]
+}

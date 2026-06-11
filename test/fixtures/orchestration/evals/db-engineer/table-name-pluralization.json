@@ -1,0 +1,10 @@
+{
+  "task": "Dispatch brief from feature-orchestrator. Task T-108 | scope: db. tableName in packages/db/src/table-name.mjs pluralizes naively ('Category' -> 'categorys'). Fix it to produce 'categories' for models ending in a consonant + 'y', keeping all existing mappings stable. Acceptance criteria: existing cases unchanged; new case covered by a unit test; npm test --workspace db passes.",
+  "expectedProperties": [
+    "Every file created or modified is under packages/db/",
+    "A test covering the consonant-y pluralization case exists in the diff",
+    "Report quotes the output of npm test --workspace db showing passing tests",
+    "tasks.md and docs/orchestration/handoff-log.jsonl are unmodified in the repo diff",
+    "No git commit was created by the agent"
+  ]
+}

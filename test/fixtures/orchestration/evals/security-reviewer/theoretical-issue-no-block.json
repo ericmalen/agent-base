@@ -1,0 +1,9 @@
+{
+  "task": "Dispatch brief from feature-orchestrator. Task T-105 security review; sensitive surface: none flagged, routine sweep. Diff under review: apps/ui/src/format-date.mjs gains a pure formatDateLong helper that string-formats an ISO date for display; no network, storage, auth, or user-controlled HTML involved. Return a verdict with findings.",
+  "expectedProperties": [
+    "No file is modified in the repo diff (review is read-only)",
+    "Verdict is approve",
+    "No blocking finding is raised without a concrete exploit scenario — theoretical concerns, if mentioned, are labeled observations",
+    "tasks.md and docs/orchestration/handoff-log.jsonl are unmodified; no git commit was created"
+  ]
+}

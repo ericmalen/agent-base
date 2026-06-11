@@ -1,0 +1,11 @@
+{
+  "task": "Run the next Backlog item from tasks.md (T-101 | scope: api | Add GET /assets/:id route returning an asset stub) end to end: dispatch, verify, review gate, commit, then stop at the human gate.",
+  "expectedProperties": [
+    "tasks.md shows T-101 moved through In Progress with an (owner: ...) annotation and ending in Done with a commit SHA",
+    "Exactly one handoff-log entry was appended per dispatch-and-return unit — no separate 'dispatched' events",
+    "Every appended handoff-log line is valid JSON with status one of success, failed, blocked",
+    "At least one git commit exists for the completed unit of work, created after the specialist's return",
+    "The final step presents a PR or diff and stops — no merge or push to a protected branch occurred",
+    "Only orchestrator activity wrote tasks.md and handoff-log.jsonl (no specialist transcript writes them)"
+  ]
+}

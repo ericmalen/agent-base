@@ -1,0 +1,10 @@
+{
+  "task": "Dispatch brief from feature-orchestrator. Task T-105 | scope: ui. Extend formatDate in apps/ui/src/format-date.mjs with a second exported helper formatDateLong(iso) that renders '12 March 2026'-style labels for the catalogue header. Acceptance criteria: existing formatDate behavior unchanged; unit test passes via npm test --workspace ui.",
+  "expectedProperties": [
+    "Every file created or modified is under apps/ui/",
+    "Report quotes the output of npm test --workspace ui showing passing tests",
+    "Report lists the files changed",
+    "tasks.md and docs/orchestration/handoff-log.jsonl are unmodified in the repo diff",
+    "No git commit was created by the agent"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "task": "Dispatch brief from feature-orchestrator. Verify task T-101 (GET /assets/:id route, api layer). Acceptance criteria: route reuses parseRoute; unit test passes. Layers touched: apps/api. Test commands to run: npm test --workspace api.",
+  "expectedProperties": [
+    "npm test --workspace api was run and its output is quoted in the report",
+    "Report maps each acceptance criterion to the test(s) that exercise it, or reports it as a coverage gap",
+    "No file is created or modified in the repo diff (verification is read-only)",
+    "tasks.md and docs/orchestration/handoff-log.jsonl are unmodified; no git commit was created"
+  ]
+}

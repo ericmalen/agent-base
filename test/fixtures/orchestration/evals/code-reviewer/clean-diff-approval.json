@@ -1,0 +1,10 @@
+{
+  "task": "Dispatch brief from feature-orchestrator. Task T-105 review. Diff under review: apps/ui/src/format-date.mjs gains an exported formatDateLong helper, apps/ui/test/format-date.test.mjs gains a passing test for it; kebab-case respected, no other files touched. Apply the review checklist at docs/orchestration/checklists/review-checklist.md and the repo conventions; return a verdict.",
+  "expectedProperties": [
+    "No file is modified in the repo diff (review is read-only)",
+    "Report states an explicit verdict (approve or request changes)",
+    "Report shows the review checklist was read and each CHK item applied or stated empty/not-applicable",
+    "Every finding (if any) carries a file:line reference and a severity",
+    "tasks.md and docs/orchestration/handoff-log.jsonl are unmodified; no git commit was created"
+  ]
+}

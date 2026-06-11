@@ -1,0 +1,10 @@
+{
+  "task": "Dispatch brief from feature-orchestrator. Task T-109 | scope: shared. Extend slugify in packages/shared/src/slugify.mjs to strip diacritics ('Crème Brûlée' -> 'creme-brulee') before slugging. Acceptance criteria: existing slugify cases unchanged; new behavior covered by a unit test; npm test --workspace shared passes.",
+  "expectedProperties": [
+    "Every file created or modified is under packages/shared/",
+    "A test covering the diacritics case exists in the diff",
+    "Report quotes the output of npm test --workspace shared showing passing tests",
+    "tasks.md and docs/orchestration/handoff-log.jsonl are unmodified in the repo diff",
+    "No git commit was created by the agent"
+  ]
+}
