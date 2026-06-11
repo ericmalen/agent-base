@@ -1,9 +1,14 @@
 # Handoff logging
 
-Every dispatch and return in the orchestration loop is recorded in
+Every dispatch-and-return unit in the orchestration loop is recorded in
 `docs/orchestration/handoff-log.jsonl` — one JSON object per line, appended
 by the **feature-orchestrator only**. Specialists never write this file;
 they report in their final message and the orchestrator logs.
+
+Direction is fixed: `from_agent` is the dispatching orchestrator, `to_agent`
+is the dispatched agent — even though the entry is written after the return.
+Analytics (log-report) group by `to_agent`; reversing the direction
+misattributes the dispatch to the orchestrator.
 
 ## Entry shape
 
@@ -36,9 +41,9 @@ Field rules:
 
 ## Rules
 
-- One entry per dispatch/return — including failures and retries. A failed
-  task's `blocked:` line in `tasks.md` references its log entry by
-  timestamp.
+- One entry per dispatch-and-return unit — including failures and retries;
+  never a separate "dispatched" event. A failed task's `blocked:` line in
+  `tasks.md` references its log entry by timestamp.
 - Single writer: concurrent sessions never append; in agent-team runs only
   the orchestrator session touches the log.
 - The log is an audit trail: never rewrite or delete entries; corrections

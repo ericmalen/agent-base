@@ -61,8 +61,8 @@
       "sha256": "f8c638384d206e459f3e7b9c4cb31f1a35f55fc1202b2e15cbdd5f575734e1af"
     },
     "handoff-logging": {
-      "version": "1.0.0",
-      "sha256": "d8d897948a89eff43b2fa791464fd843948642d2f1ebd70218274682bccb26d5"
+      "version": "1.1.0",
+      "sha256": "75ea1ad7db5d9fe801e9bc315f640f6eb32ebe872ce14181011e891cae1974fa"
     },
     "README": {
       "version": "1.0.0",
