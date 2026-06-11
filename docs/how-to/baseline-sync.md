@@ -91,16 +91,34 @@ at `pin` fails — a bad pin never silently falls back to an unpinned clone.
 For private repos, inject credentials (`secrets.KIT_TOKEN` on GitHub, a
 secret pipeline variable on ADO — see comments in each template).
 
-## Optional Renovate / bot PR
+## Bot PR (optional)
 
-A bot can run on schedule:
+`templates/ci/baseline-upgrade-bot.github.yml` is a scheduled workflow that
+does the upgrade for you: weekly (or on manual dispatch) it runs
+`sync-baseline --report --json`, and when the pin is behind with **zero
+conflicts** it applies `--upgrade` and opens a PR titled
+**"chore(agent-base): baseline v1.3.0 → v1.4.0"** with the real file diff.
 
-1. `sync-baseline --report --json`
-2. If `behind` and `conflictCount === 0`, branch + `sync-baseline --upgrade`
-3. Open PR: **“baseline v1.3.0 → v1.4.0 (N files, 0 conflicts)”**
+Install: copy the template to `.github/workflows/`, enable the repo setting
+*Allow GitHub Actions to create and approve pull requests*, and (private
+Agent Base repo only) add a `KIT_TOKEN` secret — see comments in the template.
 
-Example GitHub Actions schedule: see `baseline-pin-check.github.yml` (weekly
-cron stub included).
+Safety rules, encoded in the workflow:
+
+- PR only when `behind && conflictCount === 0`; conflicts turn the run red
+  for a human to resolve instead.
+- Never `--allow-major` — major upgrades are a deliberate human PR.
+- Never auto-merge; rollback is closing the PR (branch auto-deletes).
+
+No ADO equivalent ships yet — on Azure DevOps use the scheduled
+`baseline-pin-check.ado.yml` nudge plus a manual `base-refresh` run.
+
+### Renovate (supplement, not replacement)
+
+Renovate can bump the `"pin"` string in the marker via a custom regex
+manager, but it cannot copy skill trees — pair it with the bot workflow (or a
+CI step running `sync-baseline --upgrade`) if your teams already use
+Renovate. Otherwise the bot workflow alone is the simpler path.
 
 ## Legacy markers (set up before the first tag)
 

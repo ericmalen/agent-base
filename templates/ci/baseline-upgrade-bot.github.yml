@@ -1,0 +1,84 @@
+# baseline-upgrade-bot — weekly Renovate-style PR that actually copies baseline
+# files. Runs sync-baseline --report; when the pin is behind and there are ZERO
+# conflicts, applies --upgrade and opens a PR with the real diff.
+#
+# Safety rules (do not weaken):
+#   - PR only when behind && conflictCount === 0; conflicts turn the run red
+#     for a human instead.
+#   - Never --allow-major: major upgrades are a deliberate human PR.
+#   - Never auto-merge: the PR is reviewed and merged by a person.
+#
+# Setup:
+#   - Repo setting "Allow GitHub Actions to create and approve pull requests"
+#     must be enabled (Settings → Actions → General).
+#   - Private Agent Base repo? Use secrets.KIT_TOKEN — see commented line below.
+name: baseline-upgrade-bot
+on:
+  schedule:
+    - cron: '0 6 * * 1' # weekly Monday 06:00 UTC
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Plan baseline upgrade (--report)
+        id: plan
+        run: |
+          set -euo pipefail
+          MARKER=.claude/agent-base.json
+          test -f "$MARKER"
+          KIT_URL="$(node -e "process.stdout.write(require('./$MARKER').toolRepo)")"
+          PIN="$(node -e "const m=require('./$MARKER'); process.stdout.write(m.pin||('v'+m.standard))")"
+          # Private Agent Base repo? prepend credentials, e.g.:
+          # KIT_URL="$(echo "$KIT_URL" | sed "s#https://#https://x-token:${{ secrets.KIT_TOKEN }}@#")"
+          git clone --depth 1 --branch "$PIN" "$KIT_URL" "${RUNNER_TEMP}/agent-base" || {
+            echo "::error title=Agent Base pin clone failed::Could not clone $KIT_URL at tag $PIN. Check the tag exists and the runner can reach the repo; do not fall back to an unpinned clone."
+            exit 1
+          }
+          # --report exits 1 when conflicts exist — the JSON still has the plan.
+          node "${RUNNER_TEMP}/agent-base/scripts/sync-baseline.mjs" --report --json \
+            > "${RUNNER_TEMP}/plan.json" || true
+          node -e '
+            const p = JSON.parse(require("fs").readFileSync(process.env.RUNNER_TEMP + "/plan.json", "utf8"));
+            if (p.error) { console.error("sync-baseline error: " + p.error); process.exit(1); }
+            const conflicts = p.conflictCount ?? 0;
+            const out = [
+              "ready=" + (!!p.behind && conflicts === 0),
+              "behind=" + !!p.behind,
+              "conflicts=" + conflicts,
+              "from=" + p.pin,
+              "to=" + (p.targetPin ?? p.latest),
+              "files=" + (p.updateCount ?? 0),
+            ].join("\n");
+            require("fs").appendFileSync(process.env.GITHUB_OUTPUT, out + "\n");
+          '
+      - name: Conflicts need a human
+        if: steps.plan.outputs.behind == 'true' && steps.plan.outputs.conflicts != '0'
+        run: |
+          echo "::error title=Baseline upgrade blocked::${{ steps.plan.outputs.conflicts }} local-edit conflict(s) — run sync-baseline --report locally (or base-refresh) and resolve, then re-run."
+          exit 1
+      - name: Apply upgrade (--upgrade)
+        if: steps.plan.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          node "${RUNNER_TEMP}/agent-base/scripts/sync-baseline.mjs" --upgrade
+      - name: Open PR
+        if: steps.plan.outputs.ready == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/agent-base-baseline-${{ steps.plan.outputs.to }}
+          delete-branch: true
+          commit-message: 'chore(agent-base): baseline ${{ steps.plan.outputs.from }} -> ${{ steps.plan.outputs.to }}'
+          title: 'chore(agent-base): baseline ${{ steps.plan.outputs.from }} → ${{ steps.plan.outputs.to }}'
+          body: |
+            Automated Agent Base baseline upgrade: **${{ steps.plan.outputs.from }} → ${{ steps.plan.outputs.to }}**, ${{ steps.plan.outputs.files }} file(s), 0 conflicts.
+
+            Applied by `sync-baseline --upgrade` (marker pin bumped in `.claude/agent-base.json`).
+            Review the diff and merge manually — this bot never auto-merges and never crosses a major version.
