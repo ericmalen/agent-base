@@ -52,7 +52,7 @@ Shipped by `scripts/install-setup.mjs` allowlist.
 | `base-check` | Permanent maintenance |
 | `base-inventory`, `base-plan`, `base-apply`, `base-verify` | Setup window |
 | `docs`, `git-conventions`, `agent-creator`, `skill-creator` | Permanent baseline |
-| `retro`, `log-report`, `eval-runner` | Lifecycle — operate on orchestration surfaces when present |
+| `retro`, `log-report`, `eval-runner`, `tracker-sync` | Lifecycle — operate on orchestration surfaces when present |
 
 ## Generated per target (orchestration only)
 

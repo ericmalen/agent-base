@@ -75,7 +75,7 @@ test('install-setup ships orchestration lifecycle skills, keeps discovery/genera
     assert.equal(r.status, 0, `install-setup failed: ${r.stderr}`);
 
     // Lifecycle skills ship verbatim (invoked in the target's life post-generation).
-    for (const id of ['retro', 'log-report', 'eval-runner']) {
+    for (const id of ['retro', 'log-report', 'eval-runner', 'tracker-sync']) {
       const skill = `.claude/skills/${id}/SKILL.md`;
       assert.ok(existsSync(join(target, skill)), `${id} SKILL.md installed`);
       assert.equal(readFileSync(join(target, skill), 'utf8'),

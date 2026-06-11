@@ -79,8 +79,8 @@ tooling, and held to the kit's own conventions because they load here too:
   audit rules: it follows upstream's conventions, not the kit's.
 
 **Orchestration meta-skills** — discovery, generation, and quality. Kit-side
-only except the lifecycle trio (`retro`, `log-report`, `eval-runner`), which
-install into every adopted repo. Entry point:
+only except the lifecycle skills (`retro`, `log-report`, `eval-runner`,
+`tracker-sync`), which install into every adopted repo. Entry point:
 [`base-orchestrate`](./base-orchestrate/SKILL.md). How-to:
 [`docs/how-to/orchestration-guide.md`](../../docs/how-to/orchestration-guide.md).
 
@@ -101,6 +101,8 @@ Quality / lifecycle:
 - `eval-runner`, `drift-checker` — regression and template drift (Agent Base clone).
 - `retro`, `log-report` — flywheel intake and handoff analytics (project;
   installed at setup).
+- `tracker-sync` — tasks.md ⇄ tracker bridge, ADO work items or GitHub Issues
+  (project; installed at setup; DD-14 directional sync).
 
 ## A worked example: `git-conventions`
 

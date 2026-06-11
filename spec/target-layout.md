@@ -114,9 +114,15 @@ substitution — never hand-authored; every generated file is recorded
 
 Generated agents and skills land in the standard `.claude/` homes and obey the
 same rules as authored ones. The lifecycle skills every setup installs
-(`retro`, `log-report`, `eval-runner`) operate on these surfaces; the
-discovery/generation meta-assets stay kit-side and are never part of the
-target layout.
+(`retro`, `log-report`, `eval-runner`, `tracker-sync`) operate on these
+surfaces; the discovery/generation meta-assets stay kit-side and are never
+part of the target layout.
+
+Tracker bridge surfaces (optional, DD-14): tasks linked to a work tracker
+carry one indented `ref:` line (`AB#123` ADO / `#45` GitHub) in `tasks.md`;
+non-secret platform settings may live in
+`docs/orchestration/tracker-sync.json` (validated; credential-looking keys
+rejected — PATs are env-only).
 
 ## What is deliberately ABSENT
 

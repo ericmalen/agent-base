@@ -200,6 +200,7 @@ exist:
 | `retro` | Turn bugs/review findings into checklist items |
 | `log-report` | Summarize `handoff-log.jsonl` (failure rates, duration) |
 | `eval-runner` | Run golden evals for generated agents |
+| `tracker-sync` | Sync `tasks.md` with ADO work items / GitHub Issues (intake in, status out) |
 
 See [Lifecycle maintenance](#lifecycle-maintenance) below.
 
