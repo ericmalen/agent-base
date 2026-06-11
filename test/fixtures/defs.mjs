@@ -1,4 +1,4 @@
-// Fixture definitions (plan §10). Fixtures are DATA, materialized into temp
+// Fixture definitions. Fixtures are DATA, materialized into temp
 // git repos by buildFixture() — no nested .git dirs or junk checked in.
 //
 // Sentinels: distinctive strings planted in content. The harness asserts every

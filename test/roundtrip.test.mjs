@@ -1,5 +1,6 @@
-// Phase 1 tests: materializer, check gates, report generator.
-// Exit criterion (plan §10): the round-trip property test.
+// Round-trip tests: materializer, check gates, report generator.
+// Exit criterion: re-materializing from manifest + nodes reproduces the
+// working tree byte-for-byte (the round-trip property).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

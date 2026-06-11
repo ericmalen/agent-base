@@ -1,7 +1,7 @@
 // extract.mjs — pure extraction logic for inventory-extract.
 // No I/O here except what callers inject; everything is unit-testable.
 //
-// Block model (plan §3):
+// Block model:
 // - fence-aware Markdown parsing: a `#` inside a code fence is NOT a heading
 // - pre-first-heading content = explicit `preamble` pseudo-block
 // - setext headings supported (=== → h1, --- → h2)
@@ -15,7 +15,7 @@
 
 import { createHash } from 'node:crypto';
 
-export const SPLIT_MAX_HEADING_LEVEL = 3;
+const SPLIT_MAX_HEADING_LEVEL = 3;
 
 // ── Line splitting (terminator-preserving) ──────────────────────────────────
 
@@ -217,7 +217,7 @@ export function topLevelJsonKeys(text) {
 
 // ── Surface classification ──────────────────────────────────────────────────
 
-// Enumerated AI surfaces (plan §3). Paths are repo-relative, forward slashes.
+// Enumerated AI surfaces. Paths are repo-relative, forward slashes.
 export function classifySurface(path) {
   const base = path.split('/').pop();
   const lower = path.toLowerCase();
@@ -240,7 +240,7 @@ export function classifySurface(path) {
   return null; // not an enumerated surface → sweep territory
 }
 
-export function fileKind(path) {
+function fileKind(path) {
   if (/\.(md|mdc|markdown)$/i.test(path)) return 'markdown';
   if (/\.json$/i.test(path)) return 'json';
   return 'text';
@@ -248,8 +248,8 @@ export function fileKind(path) {
 
 // ── Content sweep ───────────────────────────────────────────────────────────
 
-// Marker list (approved Phase 0; recall over precision — tune against fixtures).
-export const SWEEP_MARKERS = [
+// Marker list (recall over precision — tune against fixtures).
+const SWEEP_MARKERS = [
   /\bclaude\b/i,
   /\bcopilot\b/i,
   /\bcursor\b/i,

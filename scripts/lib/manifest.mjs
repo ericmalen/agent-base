@@ -1,5 +1,5 @@
 // manifest.mjs — schema, loading, and syntactic validation for
-// .adoption/manifest.json (plan §4). Semantic invariants live in check.mjs.
+// .adoption/manifest.json. Semantic invariants live in check.mjs.
 //
 // Op vocabulary (complete by construction — keep verbatim / remove with
 // reason / replace with declared bytes):
@@ -24,11 +24,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { classifySurface } from './extract.mjs';
 
-export const NODE_OPS = new Set(['move', 'split', 'drop', 'merge', 'supersede']);
-export const FILE_OPS = new Set(['keep-file', 'out-of-scope']);
+const NODE_OPS = new Set(['move', 'split', 'drop', 'merge', 'supersede']);
+const FILE_OPS = new Set(['keep-file', 'out-of-scope']);
 
 // Targets the materializer may write (scope-constrained; check enforces).
-export const ALLOWED_TARGET_PATTERNS = [
+const ALLOWED_TARGET_PATTERNS = [
   /^AGENTS\.md$/, /^CLAUDE\.md$/, /^\.gitignore$/,
   /(^|\/)AGENTS\.md$/, /(^|\/)CLAUDE\.md$/,         // nested compat
   /^\.claude\//,

@@ -1,7 +1,7 @@
-// Seeded-defect harness (plan §10): a gate's value is proven by FAILING bad
-// runs. Phase 0 implements the defects testable against existing components
-// (extractor, audit). The check.mjs defects are wired as `todo` so Phase 1
-// cannot complete without flipping them to real failing-input tests.
+// Seeded-defect harness: a gate's value is proven by FAILING bad runs.
+// Extractor-, audit-, and check-gate defects run here as active unit tests
+// against fixtures. Verifier-level sabotage cannot be unit-tested — that
+// matrix lives with the validate-adoption skill (see the todos at the end).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -161,15 +161,16 @@ test('defect: target outside AI-config surfaces → scope fails', () => {
   } finally { rmSync(repo, { recursive: true, force: true }); }
 });
 
-// Round-trip property tests (the Phase 1 exit criterion) live in phase1.test.mjs.
+// Round-trip property tests (the constructive exit criterion) live in roundtrip.test.mjs.
 
-// ── verifier defects (Phase 3 — manual matrix, recorded per tool) ───────────
+// ── verifier defects (manual matrix, recorded per tool) ─────────────────────
 // Sabotage runs: seed N known defects (unjustified drops, dilution rewrites in
 // literals, bogus out-of-scope rulings) and record invocation-② catch rate.
-// These cannot be unit tests; the runbook owns them. Listed here so the suite
-// documents the full negative-test surface in one place.
+// These cannot be unit tests; the validate-adoption skill's sabotage matrix
+// owns them (.claude/skills/validate-adoption/references/sabotage.md). Listed
+// here so the suite documents the full negative-test surface in one place.
 
-test.todo('sabotage (runbook): unjustified drop — verifier must flag');
-test.todo('sabotage (runbook): dilution rewrite in a merge literal — verifier must flag');
-test.todo('sabotage (runbook): bogus out-of-scope ruling on a sweep candidate — verifier must flag');
-test.todo('sabotage (runbook): injection fixture — agents must disposition the steering text, not obey it');
+test.todo('sabotage (validate-adoption matrix): unjustified drop — verifier must flag');
+test.todo('sabotage (validate-adoption matrix): dilution rewrite in a merge literal — verifier must flag');
+test.todo('sabotage (validate-adoption matrix): bogus out-of-scope ruling on a sweep candidate — verifier must flag');
+test.todo('sabotage (validate-adoption matrix): injection fixture — agents must disposition the steering text, not obey it');

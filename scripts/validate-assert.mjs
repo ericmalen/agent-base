@@ -7,11 +7,12 @@
 // Exit: 0 = all assertions pass · 1 = failures (listed)
 
 import { resolve, join, dirname } from 'node:path';
-import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fixtures } from '../test/fixtures/defs.mjs';
 
-const kitRoot = resolve(dirname(new URL(import.meta.url).pathname), '..');
+const kitRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const args = process.argv.slice(2);
 const opt = { fixture: null, dir: null, json: false };
@@ -63,12 +64,30 @@ if (existsSync(join(dir, '.adoption/report.md'))) {
     if (lastRev) reportText = git('show', `${lastRev}:.adoption/report.md`);
   } catch {}
 }
-const grep = run('grep', ['-rl', '--exclude-dir=.git', '--exclude-dir=.adoption',
-  '--exclude-dir=node_modules', '-e', 'SENTINEL-', '.'], dir);
-const treeHits = grep.stdout ?? '';
+// Portable tree scan (no external grep): read every file outside .git/.adoption
+// once, then substring-test sentinels against the cached contents.
+const SCAN_SKIP = new Set(['.git', '.adoption', 'node_modules']);
+const treeFiles = [];
+(function scan(d) {
+  let entries;
+  try { entries = readdirSync(d, { withFileTypes: true }); } catch { return; }
+  for (const e of entries) {
+    if (SCAN_SKIP.has(e.name)) continue;
+    const p = join(d, e.name);
+    if (e.isDirectory()) scan(p);
+    else if (e.isFile()) treeFiles.push(p);
+  }
+})(dir);
+const contentCache = new Map();
+const inTreeCheck = (needle) => treeFiles.some((p) => {
+  if (!contentCache.has(p)) {
+    try { contentCache.set(p, readFileSync(p, 'utf8')); } catch { contentCache.set(p, ''); }
+  }
+  return contentCache.get(p).includes(needle);
+});
 results.sentinels = {};
 for (const s of def.sentinels) {
-  const inTree = run('grep', ['-rq', '--exclude-dir=.git', '--exclude-dir=.adoption', s, '.'], dir).status === 0;
+  const inTree = inTreeCheck(s);
   const inReport = reportText.includes(s);
   results.sentinels[s] = inTree ? 'in-output' : inReport ? 'accounted-in-report' : 'SILENT-LOSS';
   if (!inTree && !inReport) failures.push(`SILENT LOSS: ${s} absent from output AND report`);
