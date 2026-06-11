@@ -25,6 +25,17 @@ test('parseTasksMd: blocked-task fixture round-trips losslessly', () => {
   assert.equal(renderTasksMd(doc), text);
 });
 
+test('parseTasksMd: ref-carrying fixture round-trips losslessly (F3)', () => {
+  const text = loadText('tasks-with-refs.md');
+  const { doc, errors } = parseTasksMd(text);
+  assert.deepEqual(errors, []);
+  assert.equal(renderTasksMd(doc), text);
+  assert.equal(doc.backlog[0].ref, 'AB#231');
+  assert.equal(doc.backlog[1].ref, '#17');
+  assert.equal(doc.inProgress[0].ref, 'AB#230');
+  assert.equal(doc.done[0].ref, '#12');
+});
+
 test('parseTasksMd: parsed canonical example has expected structure', () => {
   const { doc } = parseTasksMd(loadText('tasks-canonical.md'));
   assert.deepEqual(doc.backlog, [{
@@ -33,6 +44,7 @@ test('parseTasksMd: parsed canonical example has expected structure', () => {
     title: 'Add asset-tagging endpoint',
     owner: null,
     commit: null,
+    ref: null,
     ac: [
       'POST /assets/:id/tags validates via shared Zod schema',
       'Prisma migration included; integration test passes',
@@ -45,9 +57,28 @@ test('parseTasksMd: parsed canonical example has expected structure', () => {
 });
 
 test('parseTasksMd: parsed fixtures pass validateTaskBacklog', () => {
-  for (const name of ['tasks-canonical.md', 'tasks-blocked.md']) {
+  for (const name of ['tasks-canonical.md', 'tasks-blocked.md', 'tasks-with-refs.md']) {
     assert.deepEqual(validateTaskBacklog(parseTasksMd(loadText(name)).doc), []);
   }
+});
+
+test('parseTasksMd: duplicate ref line on one task reports', () => {
+  const { errors } = parseTasksMd(
+    '# Tasks\n\n## Backlog\n\n- [ ] T-001 | scope: api | Title\n  - ref: #1\n  - ref: #2\n\n## In Progress\n\n## Done\n',
+  );
+  assert.deepEqual(errors, ['line 7: task T-001 has more than one ref line']);
+});
+
+test('parseTasksMd: ref line after AC or blocked reports (canonical order)', () => {
+  const { errors } = parseTasksMd(
+    '# Tasks\n\n## Backlog\n\n- [ ] T-001 | scope: api | Title\n  - AC: something\n  - ref: #1\n\n## In Progress\n\n## Done\n',
+  );
+  assert.deepEqual(errors, ['line 7: task T-001 ref line must precede AC and blocked lines']);
+});
+
+test('parseTasksMd: ref line without a preceding task reports', () => {
+  const { errors } = parseTasksMd('# Tasks\n\n## Backlog\n\n  - ref: #1\n\n## In Progress\n\n## Done\n');
+  assert.deepEqual(errors, ['line 5: ref line without a preceding task']);
 });
 
 // ── parser strictness ───────────────────────────────────────────────────────
@@ -121,6 +152,7 @@ test('validateTaskBacklog: bad task shape reports per field', () => {
     'backlog[0].owner must be a string or null',
     'backlog[0].commit must be a string or null',
     'backlog[0].blocked must be a string or null',
+    'backlog[0].ref must be a string or null',
     'backlog[0].ac must be an array',
     'inProgress[0] must be an object',
   ]);
@@ -128,7 +160,7 @@ test('validateTaskBacklog: bad task shape reports per field', () => {
 
 test('validateTaskBacklog: duplicate ids and misplaced blocked line report', () => {
   const task = (id, extra = {}) => ({
-    id, scope: ['api'], title: 't', owner: null, commit: null, ac: [], blocked: null, ...extra,
+    id, scope: ['api'], title: 't', owner: null, commit: null, ref: null, ac: [], blocked: null, ...extra,
   });
   const doc = {
     backlog: [task('T-001')],
@@ -138,5 +170,20 @@ test('validateTaskBacklog: duplicate ids and misplaced blocked line report', () 
   assert.deepEqual(validateTaskBacklog(doc), [
     'duplicate task id "T-001"',
     'inProgress[1] ("T-002") has a blocked line — blocked tasks belong in Backlog',
+  ]);
+});
+
+test('validateTaskBacklog: ref format and cross-task duplicates report (F3)', () => {
+  const task = (id, extra = {}) => ({
+    id, scope: ['api'], title: 't', owner: null, commit: null, ref: null, ac: [], blocked: null, ...extra,
+  });
+  const doc = {
+    backlog: [task('T-001', { ref: 'AB123' }), task('T-002', { ref: '#9' })],
+    inProgress: [task('T-003', { ref: '#9' })],
+    done: [task('T-004', { ref: 'owner/repo#12' })],
+  };
+  assert.deepEqual(validateTaskBacklog(doc), [
+    'backlog[0].ref must look like AB#123, #45, or owner/repo#45 (got AB123)',
+    'duplicate ref "#9" — one tracker item maps to one task',
   ]);
 });

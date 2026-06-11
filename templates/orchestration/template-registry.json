@@ -58,8 +58,8 @@
       "sha256": "437cfbd7def2662765c08ffde92ec38b5b0282416aa5ade01bb81491620fc25d"
     },
     "tasks-format": {
-      "version": "1.1.0",
-      "sha256": "3a6b60957d7986db916b31697807c43d4471a96a2122ce91f181488450a3a2f0"
+      "version": "1.2.0",
+      "sha256": "b92cffa8792ffc6dfd8806098ee4e0e783400ad75c28244349bce87a3fc6a0f1"
     },
     "handoff-logging": {
       "version": "1.1.0",

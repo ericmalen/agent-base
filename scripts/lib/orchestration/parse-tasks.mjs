@@ -19,14 +19,17 @@ const SECTION_HEADINGS = [
 const CHECKBOX = { backlog: ' ', inProgress: '~', done: 'x' };
 
 const TASK_RE = /^- \[( |~|x)\] (T-\d{3,}) \| scope: ([^|]+) \| (.+)$/;
+const REF_RE = /^ {2}- ref: (.+)$/;
 const AC_RE = /^ {2}- AC: (.+)$/;
 const BLOCKED_RE = /^ {2}- blocked: (.+)$/;
 // Trailing annotations on the title line; owner before commit when both.
 const ANNOTATION_RE = /^(.*?)(?: \(owner: ([^()]+)\))?(?: \(commit: ([^()]+)\))?$/;
 
 // Returns { doc, errors }: doc is { backlog, inProgress, done } arrays of
-// { id, scope, title, owner, commit, ac, blocked } iff errors is empty,
-// else null.
+// { id, scope, title, owner, commit, ref, ac, blocked } iff errors is empty,
+// else null. ref is tracker provenance (DD-14): "AB#123" (ADO) or "#45" /
+// "owner/repo#45" (GitHub), max one per task, canonically rendered between
+// the title line and any AC lines.
 export function parseTasksMd(text) {
   if (typeof text !== 'string') return { doc: null, errors: ['tasks.md input must be a string'] };
 
@@ -83,10 +86,22 @@ export function parseTasksMd(text) {
         title: title.trim(),
         owner: owner ?? null,
         commit: commit ?? null,
+        ref: null,
         ac: [],
         blocked: null,
       };
       doc[section].push(task);
+      return;
+    }
+
+    const refMatch = line.match(REF_RE);
+    if (refMatch) {
+      if (!task) { e(`${where}: ref line without a preceding task`); return; }
+      if (task.ref !== null) e(`${where}: task ${task.id} has more than one ref line`);
+      if (task.ac.length || task.blocked !== null) {
+        e(`${where}: task ${task.id} ref line must precede AC and blocked lines`);
+      }
+      task.ref = refMatch[1];
       return;
     }
 
@@ -128,6 +143,7 @@ export function renderTasksMd(doc) {
       const owner = t.owner ? ` (owner: ${t.owner})` : '';
       const commit = t.commit ? ` (commit: ${t.commit})` : '';
       body.push(`- [${CHECKBOX[key]}] ${t.id} | scope: ${t.scope.join(', ')} | ${t.title}${owner}${commit}`);
+      if (t.ref != null) body.push(`  - ref: ${t.ref}`);
       for (const ac of t.ac) body.push(`  - AC: ${ac}`);
       if (t.blocked !== null) body.push(`  - blocked: ${t.blocked}`);
     }

@@ -10,6 +10,8 @@
 //   validateTaskBacklog        — parsed tasks.md (A4; parser in parse-tasks.mjs)
 //   validateHandoffLog         — one handoff-log.jsonl entry (A5)
 //   validateGenerationManifest — docs/orchestration/generation-manifest.json (C4)
+//   validateSyncPlan           — computed tracker sync plan (F3, DD-14)
+//   validateTrackerSyncConfig  — docs/orchestration/tracker-sync.json (F3)
 
 const REPO_TYPES = new Set(['monorepo', 'single-package']);
 const PIPELINE_WHEN = new Set(['scheduled', 'multi_day']);   // §9.3 / DD-4
@@ -309,6 +311,10 @@ export function validateBlueprint(blueprint) {
 
 const TASK_ID_RE = /^T-\d{3,}$/;
 const BACKLOG_SECTIONS = ['backlog', 'inProgress', 'done'];
+// Tracker provenance (DD-14): ADO work item or GitHub issue (optionally
+// cross-repo). Format-checked here, not in the parser — the parser is
+// platform-agnostic structure only.
+const TASK_REF_RE = /^(AB#\d+|(?:[\w.-]+\/[\w.-]+)?#\d+)$/;
 
 // Validates the PARSED form ({ backlog, inProgress, done } — what
 // parseTasksMd emits and renderTasksMd consumes). Section membership encodes
@@ -320,6 +326,7 @@ export function validateTaskBacklog(doc) {
   const e = (m) => errors.push(m);
 
   const seen = new Set();
+  const seenRefs = new Set();
   for (const section of BACKLOG_SECTIONS) {
     if (!Array.isArray(doc[section])) {
       e(`${section} must be an array`);
@@ -350,6 +357,14 @@ export function validateTaskBacklog(doc) {
         if (!(field in t) || !isStringOrNull(t[field])) {
           e(`${where}.${field} must be a string or null`);
         }
+      }
+      if (!('ref' in t) || !isStringOrNull(t.ref)) {
+        e(`${where}.ref must be a string or null`);
+      } else if (t.ref !== null && !TASK_REF_RE.test(t.ref)) {
+        e(`${where}.ref must look like AB#123, #45, or owner/repo#45 (got ${t.ref})`);
+      } else if (t.ref !== null) {
+        if (seenRefs.has(t.ref)) e(`duplicate ref "${t.ref}" — one tracker item maps to one task`);
+        seenRefs.add(t.ref);
       }
       checkStringArray(t.ac, `${where}.ac`, e);
       // Failure protocol (D2): a blocked task sits in Backlog awaiting
@@ -466,6 +481,115 @@ export function validateHandoffLog(entry) {
   for (const field of ['turns_used', 'turn_limit']) {
     if (field in entry && (!Number.isInteger(entry[field]) || entry[field] < 1)) {
       e(`${field} must be a positive integer when present`);
+    }
+  }
+
+  return errors;
+}
+
+// ── sync-plan (F3, DD-14) ───────────────────────────────────────────────────
+
+const SYNC_PLATFORMS = new Set(['ado', 'gh']);
+const SYNC_STATES = new Set(['intake', 'active', 'done']);   // normalization contract
+const SYNC_CONFLICT_KINDS = new Set([
+  'tracker-done-task-open',   // tracker says done, task still in Backlog/In Progress
+  'duplicate-ref',            // two tasks carry the same ref
+  'missing-tracker-item',     // a ref points at no tracker item
+]);
+
+// Validates the plan computeSyncPlan emits (tracker-sync.mjs). The plan is
+// ephemeral — computed, applied or reported, never stored — but it crosses
+// the pure-core → applier/reporter boundary, so it gets the same shape gate
+// as stored artifacts.
+export function validateSyncPlan(plan) {
+  if (!isPlainObject(plan)) return ['sync plan must be an object'];
+  const errors = [];
+  const e = (m) => errors.push(m);
+
+  if (!SYNC_PLATFORMS.has(plan.platform)) {
+    e(`platform must be one of ${[...SYNC_PLATFORMS].join(' | ')} (got ${plan.platform})`);
+  }
+
+  if (!Array.isArray(plan.imports)) {
+    e('imports must be an array');
+  } else {
+    plan.imports.forEach((item, i) => {
+      const where = `imports[${i}]`;
+      if (!isPlainObject(item)) { e(`${where} must be an object`); return; }
+      if (typeof item.externalId !== 'string' || !TASK_REF_RE.test(item.externalId)) {
+        e(`${where}.externalId must look like AB#123, #45, or owner/repo#45 (got ${item.externalId})`);
+      }
+      if (!isNonEmptyString(item.title)) e(`${where}.title must be a non-empty string`);
+      if (!isStringOrNull(item.url ?? null)) e(`${where}.url must be a string or null`);
+    });
+  }
+
+  if (!Array.isArray(plan.statusUpdates)) {
+    e('statusUpdates must be an array');
+  } else {
+    plan.statusUpdates.forEach((u, i) => {
+      const where = `statusUpdates[${i}]`;
+      if (!isPlainObject(u)) { e(`${where} must be an object`); return; }
+      if (typeof u.taskId !== 'string' || !TASK_ID_RE.test(u.taskId)) {
+        e(`${where}.taskId must match T-### (got ${u.taskId})`);
+      }
+      if (typeof u.externalId !== 'string' || !TASK_REF_RE.test(u.externalId)) {
+        e(`${where}.externalId must look like AB#123, #45, or owner/repo#45 (got ${u.externalId})`);
+      }
+      if (!SYNC_STATES.has(u.to)) {
+        e(`${where}.to must be one of ${[...SYNC_STATES].join(' | ')} (got ${u.to})`);
+      }
+      if (!isStringOrNull(u.comment ?? null)) e(`${where}.comment must be a string or null`);
+    });
+  }
+
+  if (!Array.isArray(plan.conflicts)) {
+    e('conflicts must be an array');
+  } else {
+    plan.conflicts.forEach((c, i) => {
+      const where = `conflicts[${i}]`;
+      if (!isPlainObject(c)) { e(`${where} must be an object`); return; }
+      if (!SYNC_CONFLICT_KINDS.has(c.kind)) {
+        e(`${where}.kind must be one of ${[...SYNC_CONFLICT_KINDS].join(' | ')} (got ${c.kind})`);
+      }
+      if (!isNonEmptyString(c.detail)) e(`${where}.detail must be a non-empty string`);
+    });
+  }
+
+  return errors;
+}
+
+// ── tracker-sync config (F3) ────────────────────────────────────────────────
+
+const ADO_STATE_MAPS = new Set(['basic', 'agile']);
+
+// Optional, repo-stable, NON-SECRET values only (docs/orchestration/
+// tracker-sync.json). The PAT stays env-only (AZURE_DEVOPS_PAT) — a config
+// field for it is rejected outright.
+export function validateTrackerSyncConfig(cfg) {
+  if (!isPlainObject(cfg)) return ['tracker-sync config must be an object'];
+  const errors = [];
+  const e = (m) => errors.push(m);
+
+  if (!SYNC_PLATFORMS.has(cfg.platform)) {
+    e(`platform must be one of ${[...SYNC_PLATFORMS].join(' | ')} (got ${cfg.platform})`);
+  }
+
+  if (cfg.platform === 'ado') {
+    if (!isPlainObject(cfg.ado)) {
+      e('ado must be an object when platform is "ado"');
+    } else {
+      for (const field of ['org', 'project']) {
+        if (!isNonEmptyString(cfg.ado[field])) e(`ado.${field} must be a non-empty string`);
+      }
+      if ('stateMap' in cfg.ado && !ADO_STATE_MAPS.has(cfg.ado.stateMap)) {
+        e(`ado.stateMap must be one of ${[...ADO_STATE_MAPS].join(' | ')} (got ${cfg.ado.stateMap})`);
+      }
+      for (const key of Object.keys(cfg.ado)) {
+        if (/pat|token|secret|password/i.test(key)) {
+          e(`ado.${key} looks like a credential — secrets are env-only (AZURE_DEVOPS_PAT), never config`);
+        }
+      }
     }
   }
 
