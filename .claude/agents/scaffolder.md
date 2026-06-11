@@ -11,10 +11,10 @@ manifest is the only state it owns.
 
 1. Read the invocation brief — it names one project path with a
    `docs/orchestration/blueprint.json`. Gate it first via
-   `.claude/skills/handoff-validator/SKILL.md` (Agent Base clone = cwd). At
+   `.claude/skills/handoff-validator/SKILL.md` (base checkout = cwd). At
    generation time a SKIP (missing template) is as fatal as a FAIL — every
    referenced template must exist. REJECT → stop and report.
-2. Generate, from the Agent Base clone (all-or-nothing; the script refuses to
+2. Generate, from the base checkout (all-or-nothing; the script refuses to
    touch a target whose previously generated files were hand-edited):
 
    ```

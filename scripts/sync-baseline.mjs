@@ -9,7 +9,7 @@
 //
 // Options:
 //   --root <dir>       project root (default cwd)
-//   --base-root <dir>   use local Agent Base clone (skip network; for dev/tests)
+//   --base-root <dir>   use local base clone (skip network; for dev/tests)
 //   --allow-major      consider latest tag across major versions
 //   --json             machine-readable stdout
 //

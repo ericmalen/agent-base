@@ -60,6 +60,21 @@ export function latestCompatibleTag(tags, currentPin, { allowMajor = false } = {
   return (sameMajor[0] ?? tags.find((t) => t.semver.major === cur.major))?.tag ?? null;
 }
 
+/**
+ * npm/npx package spec for a toolRepo at a pin tag.
+ * github.com https URLs → `github:owner/repo#tag` (codeload fast path);
+ * anything else (ADO, GitLab, ssh) → `git+<url>#tag`.
+ */
+export function npxSpecFromToolRepo(toolRepo, pin) {
+  const url = String(toolRepo).trim().replace(/\/+$/, '');
+  const ref = pin ? `#${pin}` : '';
+  const gh = url.match(/^(?:git\+)?https:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?$/);
+  if (gh) return `github:${gh[1]}/${gh[2]}${ref}`;
+  if (url.startsWith('git+')) return `${url}${ref}`;
+  if (url.startsWith('git@')) return `git+ssh://${url.replace(':', '/')}${ref}`;
+  return `git+${url}${ref}`;
+}
+
 export function shallowCloneAt(toolRepo, ref, dest) {
   const r = spawnSync('git', ['clone', '--depth', '1', '--branch', ref, toolRepo, dest], {
     encoding: 'utf8',

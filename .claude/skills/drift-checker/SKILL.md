@@ -36,7 +36,7 @@ Slot maps for re-instantiation, paired via
   lists that skill id in the blueprint.
 - **docs** — verbatim copies; hash the Agent Base doc file directly.
 
-From the Agent Base clone root, target path as the argument:
+From the base checkout root, target path as the argument:
 
 ```
 node --input-type=module -e '

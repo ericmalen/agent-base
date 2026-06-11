@@ -41,7 +41,7 @@ safe.
 | Symptom | Likely cause | Recovery |
 |---|---|---|
 | Scaffolder reports a conflict and stops | A previously generated file was hand-edited (manifest SHA ≠ disk SHA) | Decide per file: keep your edit → move the change into the Agent Base template or blueprint and regenerate; discard → `git checkout -- <file>` then re-run the scaffolder. It never overwrites on conflict |
-| Re-run produces a diff on files you didn't touch | Agent Base templates moved between runs (TEMPLATE-DRIFT) | Expected after an Agent Base `git pull`. Run `drift-checker` from the Agent Base clone to classify, review the diff, commit the regeneration |
+| Re-run produces a diff on files you didn't touch | Agent Base templates moved between runs (TEMPLATE-DRIFT) | Expected after an Agent Base `git pull`. Run `drift-checker` from the base checkout to classify, review the diff, commit the regeneration |
 | Generated agents fail the target audit | Generation bug | `node <agent-base>/scripts/audit.mjs --strict` in the target names the R-IDs; file it against the Agent Base template (triage: template defect), don't hand-fix generated files |
 
 ## Session 5 — Execute
@@ -57,7 +57,7 @@ safe.
 
 When `/base-orchestrate` subagent dispatch fails on Copilot (phases start
 running inside your chat instead of fresh contexts), stop and run each phase
-manually — one **fresh chat** per phase, in the Agent Base clone workspace:
+manually — one **fresh chat** per phase, in the base checkout workspace:
 
 1. Allowlist on first prompt: `node <agent-base>/scripts/lib/orchestration/*` and
    read-only `git` in the target.

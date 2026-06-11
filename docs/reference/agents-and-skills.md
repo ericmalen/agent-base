@@ -5,7 +5,7 @@ what orchestration generation materializes per repo.
 
 ## Agent Base-side only (never installed)
 
-Run from an open Agent Base clone. Entry skill: `base-orchestrate`.
+Run from an open base checkout. Entry skill: `base-orchestrate`.
 
 ### Meta-agents
 

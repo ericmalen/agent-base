@@ -43,13 +43,13 @@ never installed (installer allowlist): `base-setup`, `base-refresh`,
 `base-orchestrate`, and `validate-setup`.
 
 - [`base-setup`](./base-setup/SKILL.md) — the setup entry point and
-  orchestrator. Run from this Agent Base clone against a project path. Agent Base-side
+  orchestrator. Run from this base checkout against a project path. Agent Base-side
   only.
 - [`base-refresh`](./base-refresh/SKILL.md) — baseline upgrade loop for
   set-up projects (sync-baseline report → upgrade → audit). Run from this
-  Agent Base clone against a project path. Agent Base-side only.
+  base checkout against a project path. Agent Base-side only.
 - [`base-orchestrate`](./base-orchestrate/SKILL.md) — orchestration entry
-  point (discovery → generation). Run from this Agent Base clone against a set-up
+  point (discovery → generation). Run from this base checkout against a set-up
   project path. Agent Base-side only.
 - `base-inventory`, `base-plan`, `base-apply`, `base-verify` — the
   four-phase setup pipeline. Installed for the setup window; removed
@@ -98,7 +98,7 @@ Generation (driven by `scaffolder`):
 
 Quality / lifecycle:
 
-- `eval-runner`, `drift-checker` — regression and template drift (Agent Base clone).
+- `eval-runner`, `drift-checker` — regression and template drift (base checkout).
 - `retro`, `log-report` — flywheel intake and handoff analytics (project;
   installed at setup).
 - `tracker-sync` — tasks.md ⇄ tracker bridge, ADO work items or GitHub Issues

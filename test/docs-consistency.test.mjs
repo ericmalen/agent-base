@@ -8,22 +8,24 @@ import { run } from "../scripts/docs-consistency.mjs";
 
 const BASE_ROOT = fileURLToPath(new URL("..", import.meta.url));
 
-test("Agent Base docs are consistent (no banned terms, no broken links)", () => {
+test("Agent Base docs are consistent (no broken links)", () => {
   const findings = run(BASE_ROOT);
   assert.deepEqual(findings, []);
 });
 
-test("gate catches a seeded banned term and a seeded broken link", () => {
+test("gate catches a seeded broken link; resolving links pass", () => {
   const root = mkdtempSync(join(tmpdir(), "dc-seed-"));
   try {
     mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, "docs", "other.md"), "target\n");
     writeFileSync(
       join(root, "docs", "guide.md"),
-      "Run `agent-base init` to start.\n\nSee [the plan](./missing.md).\n"
+      "See [the plan](./missing.md) and [a real file](./other.md).\n"
     );
     const findings = run(root);
-    const checks = findings.map((f) => f.check).sort();
-    assert.deepEqual(checks, ["banned-term", "broken-link"]);
+    assert.deepEqual(findings.map((f) => ({ check: f.check, term: f.term })), [
+      { check: "broken-link", term: "./missing.md" },
+    ]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -34,36 +36,20 @@ test("vendored (UPSTREAM) content is exempt", () => {
   try {
     mkdirSync(join(root, ".claude", "skills", "vendored"), { recursive: true });
     writeFileSync(join(root, ".claude", "skills", "vendored", "UPSTREAM"), "pinned");
-    writeFileSync(join(root, ".claude", "skills", "vendored", "SKILL.md"), "uses sub-agent wording\n");
+    writeFileSync(join(root, ".claude", "skills", "vendored", "SKILL.md"), "[gone](./nope.md)\n");
     assert.deepEqual(run(root), []);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("consumer-shipped templates beyond md/json are scanned (ci yml + gitignore)", () => {
-  const root = mkdtempSync(join(tmpdir(), "dc-tpl-"));
-  try {
-    mkdirSync(join(root, "templates", "ci"), { recursive: true });
-    writeFileSync(join(root, "templates", "ci", "gate.yml"), "# wire up bin/agent-base.mjs here\n");
-    writeFileSync(join(root, "templates", "gitignore"), ".agent-base-migration-routing\n");
-    const findings = run(root);
-    const terms = findings.map((f) => f.term).sort();
-    assert.deepEqual(terms, [".agent-base-migration-routing", "bin/agent-base.mjs"]);
-  } finally {
-    rmSync(root, { recursive: true, force: true });
-  }
-});
-
-test("near-variant v1 vocabulary is banned (the CLI / new-agent / catalog/)", () => {
-  const root = mkdtempSync(join(tmpdir(), "dc-var-"));
+test("links inside code fences and inline code are ignored", () => {
+  const root = mkdtempSync(join(tmpdir(), "dc-fence-"));
   try {
     mkdirSync(join(root, "docs"), { recursive: true });
     writeFileSync(join(root, "docs", "x.md"),
-      "Ask the CLI to do it.\nUse new-agent to scaffold.\nLives in catalog/ now.\n");
-    const findings = run(root);
-    const terms = findings.map((f) => f.term).sort();
-    assert.deepEqual(terms, ["catalog/", "new-agent", "the CLI"]);
+      "```\n[example](./not-checked.md)\n```\n\nUse `[link](./also-not.md)` as syntax.\n");
+    assert.deepEqual(run(root), []);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

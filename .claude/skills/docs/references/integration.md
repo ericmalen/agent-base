@@ -10,7 +10,7 @@ adopt Agent Base (shipped path-for-path by `install-setup`, alongside the
 `adopt-*` skills). During setup, existing bespoke documentation rules in
 your instruction files are `supersede`d by this package (your original text is
 preserved in the setup review report). To add it to an already-adopted repo
-that predates baseline status, copy from the Agent Base clone:
+that predates baseline status, copy from the base checkout:
 
 - `.claude/skills/docs/` → `.claude/skills/docs/`
 - `.claude/agents/docs-auditor.md` → `.claude/agents/docs-auditor.md`

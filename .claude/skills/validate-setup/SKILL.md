@@ -48,6 +48,12 @@ when no recognizable fixture/flag is present.
 3. Sabotage (mixed-messy only, after its clean run): follow
    [sabotage procedure](references/sabotage.md) — 3 seeded defects, fresh
    verifier subagent per defect, record caught/missed. Catch-rate = n/3.
+3b. npx packaging e2e (once per validation run, not per fixture): from a
+   throwaway dir, `npx --yes "git+file://<agent-base>#<current-branch>" audit
+   --root $WORK/fx-mixed-messy --json` — exercises npm's real git-pack
+   delivery path (bin resolution, packlist completeness). PASS = audit runs
+   and emits JSON (findings are fine; a module-not-found or missing-template
+   error is the failure being hunted). Record verdict in the report.
 4. Report → `<agent-base>/reports/validation-report-<date>.md` (create `reports/`
    if missing; it is gitignored — reports are working outputs, never committed):
    per-fixture table (phases completed, gate loops, assert verdict, sentinel
@@ -67,7 +73,7 @@ when no recognizable fixture/flag is present.
 
 ## Never
 
-- Never run fixtures inside the Agent Base clone; always a separate work dir.
+- Never run fixtures inside the base checkout; always a separate work dir.
 - Never let a subagent edit generated files directly — manifest/literals only
   (the reproducibility gate will catch it; a catch is a finding, not a fix).
 - Never soften failures in the report; a gate that failed is the headline.

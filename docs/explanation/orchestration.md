@@ -18,8 +18,8 @@ with shared dispatch rules and a handoff log.
 
 | Layer | Where it runs | Semantic? | Output |
 | --- | --- | --- | --- |
-| Discovery | Agent Base clone → target `docs/orchestration/` | Yes — profiling, interview, synthesis | `repo-profile.json`, `decisions.json`, `blueprint.json` |
-| Generation | Agent Base clone → target `.claude/` + docs | No — pure template slot fill | Generated agents, paired skills, payload docs, `generation-manifest.json` |
+| Discovery | base checkout → target `docs/orchestration/` | Yes — profiling, interview, synthesis | `repo-profile.json`, `decisions.json`, `blueprint.json` |
+| Generation | base checkout → target `.claude/` + docs | No — pure template slot fill | Generated agents, paired skills, payload docs, `generation-manifest.json` |
 | Execution | Project | Yes — orchestrator dispatches specialists | Commits, handoff log entries, PR at human gate |
 
 Discovery and generation meta-assets stay **Agent Base-side** (same pattern as

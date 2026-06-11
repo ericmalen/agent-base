@@ -7,7 +7,17 @@ consistently; do not rotate synonyms.
 | --- | --- |
 | **Agent Base** | The product (this repo). Display name in prose. |
 | **agent-base** | Slug: repo name, paths, package name. |
-| **Agent Base clone** | Local clone of this repo used to run setup or orchestration against a project. |
+| **base checkout** | Local copy of this repo used to run setup or orchestration against a project: a git clone, or an npx-staged release. |
+| **base clone** | A checkout that is a git clone (has `.git`; freshened with `git pull --ff-only`). Canonical for Agent Base development. |
+| **staged release** | Immutable copy of a tagged release at `~/.agent-base/versions/<tag>/`, created by the bootstrap commands. Never pulled; replaced by staging a newer tag. ("npx-staged release" only at first mention in a doc.) |
+| **stage** (verb) | Copy-once placement of a release into the release store (sentinel-guarded, idempotent). |
+| **release store** | `~/.agent-base/versions/`; managed by `agent-base cache list\|prune`. |
+| **bootstrap commands** | `agent-base setup`/`orchestrate`/`refresh` — stage the release and print the bootstrap prompt. |
+| **bootstrap prompt** | The printed paste-able prompt for an AI session opened in the project. |
+| **delegated commands** | `agent-base install`/`audit`/`sync`/`tracker-sync`/`starter`/`headless-guard` — passthroughs to `scripts/*.mjs`. |
+| **npx spec** | `github:owner/repo#tag` or `git+<url>#tag`, computed from the marker (`npxSpecFromToolRepo`). |
+| **pin** | Git tag in the marker (`pin`, falling back to `v`+`standard`); what npx and CI resolve. |
+| **refresh / sync / upgrade** | `refresh` = guided baseline-upgrade skill loop · `sync` = the deterministic engine (`sync-baseline.mjs`) · `--upgrade` = the sync mode that applies changes. |
 | **project** | Any repo receiving the standard layout. |
 | **starter** | New project emitted via `build-starter.mjs` (skips inventory). |
 | **existing project** | Project with prior AI config; inventory-first setup path. |

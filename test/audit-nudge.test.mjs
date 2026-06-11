@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, cpSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, cpSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -61,4 +61,32 @@ test('silent when no Agent Base checkout is reachable', () => {
     assert.equal(res.status, 0);
     assert.equal(res.stdout.trim(), '');
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('finds the npx-staged release at the marker pin when no other checkout exists', () => {
+  // realpathSync: macOS tmpdir is a symlink, which would defeat audit.mjs's
+  // resolve()-based isMain check when spawned from the staged copy.
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'nudge-staged-')));
+  const fakeHome = realpathSync(mkdtempSync(join(tmpdir(), 'nudge-stagedhome-')));
+  try {
+    // Project with a marker pinning v9.9.9 and guaranteed audit findings (no AGENTS.md).
+    mkdirSync(join(root, '.claude'), { recursive: true });
+    writeFileSync(join(root, '.claude', 'agent-base.json'),
+      JSON.stringify({ standard: '9.9.9', toolRepo: 'https://example.invalid/x', setupAt: '2026-01-01', githubCodeReview: false }));
+    // Staged release at ~/.agent-base/versions/v9.9.9 — real audit scripts.
+    const staged = join(fakeHome, '.agent-base', 'versions', 'v9.9.9');
+    mkdirSync(join(staged, 'scripts'), { recursive: true });
+    cpSync(join(BASE_ROOT, 'scripts', 'audit.mjs'), join(staged, 'scripts', 'audit.mjs'));
+    cpSync(join(BASE_ROOT, 'scripts', 'lib'), join(staged, 'scripts', 'lib'), { recursive: true });
+
+    const env = { ...process.env, HOME: fakeHome, USERPROFILE: fakeHome };
+    delete env.AI_KIT_HOME;
+    delete env.AGENT_BASE_HOME;
+    const res = spawnSync(execPath, [NUDGE], { cwd: root, env, encoding: 'utf8' });
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /\[agent-base\] AI-config audit found/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(fakeHome, { recursive: true, force: true });
+  }
 });

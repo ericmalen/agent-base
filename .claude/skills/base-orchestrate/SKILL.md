@@ -1,26 +1,29 @@
 ---
 name: base-orchestrate
-description: Generates repo-specific orchestration agents in a project (discovery → generation). Run from an open Agent Base clone with the set-up project's path. Use when asked to set up orchestration, generate a feature team, run repo-analyst/scaffolder, or enable tasks.md multi-agent dispatch. Not for plain agent-base setup (use base-setup) and not for executing tasks (use feature-orchestrator in the target after generation).
+description: Generates repo-specific orchestration agents in a project (discovery → generation). Run from an open base checkout (clone or npx-staged release) with the set-up project's path. Use when asked to set up orchestration, generate a feature team, run repo-analyst/scaffolder, or enable tasks.md multi-agent dispatch. Not for plain agent-base setup (use base-setup) and not for executing tasks (use feature-orchestrator in the target after generation).
 argument-hint: "[/path/to/project]"
 ---
 
 # base-orchestrate (orchestration entry point)
 
-You orchestrate discovery and generation from an open **Agent Base clone** against
-a **set-up project** path. The user interacts only at policy gates and final
-merge review. Phases run in FRESH contexts.
+You orchestrate discovery and generation from an open **base checkout**
+(clone or staged release) against a **set-up project** path. The user
+interacts only at policy gates and final merge review. Phases run in FRESH
+contexts.
 
 Agent Base-side only — `install-setup.mjs` never ships this skill.
 
 ## Preconditions (hard — stop with plain language if unmet)
 
-1. Target path exists, is NOT this Agent Base clone, and is a git repo.
+1. Target path exists, is NOT this base checkout, and is a git repo.
 2. Clean working tree in the target (`git status --porcelain` empty).
 3. Target shows agent-base setup baseline (at minimum `.claude/agent-base.json` and
    `base-check` skill). If missing, tell the user to run `/base-setup`
    first.
 4. `node --version` >= 20.
-5. Agent Base clone freshened: `git pull --ff-only` (warn and continue on failure).
+5. Checkout freshened — only if it is a clone (has `.git`): `git pull
+   --ff-only` (warn and continue on failure). An staged release has no
+   `.git` and is immutable at its tag — skip.
 
 ## Procedure
 
@@ -58,7 +61,7 @@ conventional message (e.g. `chore(orchestration): add repo profile`). Use
 
 ## Never
 
-- Never run discovery/generation with the Agent Base clone as the target.
+- Never run discovery/generation with the base checkout as the target.
 - Never skip Gate 1 or Gate 2.
 - Never hand-edit generated agents in the target — fix the blueprint or Agent Base
   template and re-run `scaffolder`.

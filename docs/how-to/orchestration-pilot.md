@@ -10,7 +10,7 @@ interventions**.
 - **Pilot:** a colleague with no prior exposure to Agent Base orchestration.
 - **Observer:** the Agent Base author. Silent by default; answers questions only by
   pointing at an existing doc section.
-- **Inputs the pilot gets, and nothing else:** an Agent Base clone at a tagged
+- **Inputs the pilot gets, and nothing else:** a base checkout at a tagged
   release, a real repo of their choice (already through `/base-setup`), and
   the docs — starting at the
   [orchestration guide](./orchestration-guide.md).
@@ -22,7 +22,7 @@ small task end-to-end) is an optional stretch goal — record which was run.
 
 An **intervention** (counts against the ≤ 2 bar) is any of:
 
-- Observer edits or writes any artifact in the pilot's repo or Agent Base clone
+- Observer edits or writes any artifact in the pilot's repo or base checkout
 - Observer runs any command on the pilot's behalf
 - Observer answers a question that is **not** answerable by pointing at an
   existing doc section

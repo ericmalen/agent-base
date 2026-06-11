@@ -20,7 +20,7 @@ from its pin would produce a file no manifest version describes (C5).
   validated `docs/orchestration/blueprint.json` in the target.
 - The project path.
 - The entry's template: `templates/orchestration/agents/<templateId>.template.md`
-  in the Agent Base clone.
+  in the base checkout.
 
 ## Procedure
 
@@ -38,7 +38,7 @@ from its pin would produce a file no manifest version describes (C5).
    [dispatch-order.mjs](../../../scripts/lib/orchestration/dispatch-order.mjs).
    Specialists never get it (an unused slot is an error).
 
-2. Instantiate the template strictly. From the Agent Base clone root:
+2. Instantiate the template strictly. From the base checkout root:
 
    ```
    node --input-type=module -e '

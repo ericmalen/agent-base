@@ -3,7 +3,7 @@
 # structurally paired step-for-step with orchestrator-run.ado.yml.
 #
 # Safety rules (do not weaken):
-#   - The guard (headless-guard.mjs) skips when the Backlog is empty, when
+#   - The guard (headless-guard) skips when the Backlog is empty, when
 #     only blocked/triage tasks remain, or while a previous orch/ PR is open.
 #   - The orchestrator runs exactly ONE task per run, commits on a work
 #     branch, and never pushes — the pipeline pushes and opens the PR.
@@ -20,7 +20,7 @@
 #   - Optional: docs/orchestration/tracker-sync.json to chain a tracker sync
 #     before the run (GitHub Issues need no extra secret; gh uses the
 #     workflow token).
-#   - Private Agent Base repo? Use secrets.KIT_TOKEN — see commented line.
+#   - Private Agent Base repo? Route git credentials via insteadOf — see commented line.
 name: orchestrator-run
 on:
   schedule:
@@ -42,17 +42,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Clone Agent Base at pin
+      - name: Resolve Agent Base npx spec
         run: |
           set -euo pipefail
-          MARKER=.claude/agent-base.json
-          test -f "$MARKER"
-          KIT_URL="$(node -e "process.stdout.write(require('./$MARKER').toolRepo)")"
-          PIN="$(node -e "const m=require('./$MARKER'); process.stdout.write(m.pin||('v'+m.standard))")"
-          # Private Agent Base repo? prepend credentials, e.g.:
-          # KIT_URL="$(echo "$KIT_URL" | sed "s#https://#https://x-token:${{ secrets.KIT_TOKEN }}@#")"
-          git clone --depth 1 --branch "$PIN" "$KIT_URL" "${RUNNER_TEMP}/agent-base" || {
-            echo "::error title=Agent Base pin clone failed::Could not clone $KIT_URL at tag $PIN; do not fall back to an unpinned clone."
+          test -f .claude/agent-base.json
+          NPX_SPEC="$(node -e 'const m=require("./.claude/agent-base.json");const pin=m.pin||("v"+m.standard);const url=String(m.toolRepo).trim().replace(/\/+$/,"");const gh=url.match(/^(?:git\+)?https:\/\/github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?$/);process.stdout.write((gh?"github:"+gh[1]+"/"+gh[2]:(url.startsWith("git+")?url:"git+"+url))+"#"+pin)')"
+          echo "NPX_SPEC=$NPX_SPEC" >> "$GITHUB_ENV"
+          # Private Agent Base repo? npm fetches git deps through git — route credentials, e.g.:
+          # git config --global url."https://x-token:${{ secrets.KIT_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          npx --yes "$NPX_SPEC" --version || {
+            echo "::error title=Agent Base pin resolution failed::Could not resolve $NPX_SPEC; do not fall back to an unpinned ref."
             exit 1
           }
       - name: Guard - decide whether to run
@@ -62,18 +61,7 @@ jobs:
         run: |
           set -euo pipefail
           gh pr list --state open --json headRefName --jq '[.[].headRefName]' > "${RUNNER_TEMP}/open-branches.json"
-          AGENT_BASE="${RUNNER_TEMP}/agent-base" node --input-type=module -e '
-            import { readFileSync, appendFileSync } from "node:fs";
-            const base = process.env.AGENT_BASE;
-            const { parseTasksMd } = await import(`${base}/scripts/lib/orchestration/parse-tasks.mjs`);
-            const { decideHeadlessRun } = await import(`${base}/scripts/lib/orchestration/headless-guard.mjs`);
-            const { doc, errors } = parseTasksMd(readFileSync("tasks.md", "utf8"));
-            if (errors.length) { console.error(errors.join("\n")); process.exit(1); }
-            const openBranches = JSON.parse(readFileSync(process.env.RUNNER_TEMP + "/open-branches.json", "utf8"));
-            const d = decideHeadlessRun({ tasksDoc: doc, openBranches });
-            console.log(`guard: run=${d.run} reason=${d.reason} task=${d.taskId ?? "-"}`);
-            appendFileSync(process.env.GITHUB_OUTPUT, `run=${d.run}\nreason=${d.reason}\ntask=${d.taskId ?? ""}\n`);
-          '
+          npx --yes "$NPX_SPEC" headless-guard --open-branches "${RUNNER_TEMP}/open-branches.json" >> "$GITHUB_OUTPUT"
       - name: Tracker sync (optional)
         if: steps.guard.outputs.run == 'true'
         env:
@@ -84,7 +72,7 @@ jobs:
           if [ ! -f docs/orchestration/tracker-sync.json ]; then
             echo "no tracker-sync.json — skipping tracker sync"; exit 0
           fi
-          node "${RUNNER_TEMP}/agent-base/scripts/tracker-sync.mjs" --target . --apply || true
+          npx --yes "$NPX_SPEC" tracker-sync --target . --apply || true
           if ! git diff --quiet tasks.md; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

@@ -26,7 +26,7 @@ invalid lines are reported with their line number and excluded from stats.
 
 ## Run
 
-Locate an Agent Base root first (same resolution as base-check): an Agent Base clone if you
+Locate an Agent Base root first (same resolution as base-check): a base checkout if you
 are in one; else the target's `.claude/agent-base-setup/` while the setup
 tooling is still present (it carries `scripts/lib/` verbatim); else
 shallow-clone the Agent Base repo (URL in `.claude/agent-base.json` → `toolRepo`). From

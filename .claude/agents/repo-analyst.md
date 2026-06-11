@@ -1,6 +1,6 @@
 ---
 name: repo-analyst
-description: Orchestration discovery analyst (B4). Profiles a project — layers, stacks, commands, conventions, gaps — and emits a schema-valid docs/orchestration/repo-profile.json in the target. Invoke from an open Agent Base clone when starting orchestration discovery of a project path. Profile only; never authors decisions or blueprints.
+description: Orchestration discovery analyst (B4). Profiles a project — layers, stacks, commands, conventions, gaps — and emits a schema-valid docs/orchestration/repo-profile.json in the target. Invoke from an open base checkout when starting orchestration discovery of a project path. Profile only; never authors decisions or blueprints.
 tools: Read, Grep, Glob, Bash, Write
 ---
 
@@ -27,7 +27,7 @@ never decisions or blueprints.
    - `convention-detector` (B3): `conventions.*` and `ci`, each with one
      line of evidence.
 4. Assemble the profile (`schemaVersion: 1`) and validate it BEFORE writing,
-   from the Agent Base clone:
+   from the base checkout:
 
    ```
    node --input-type=module -e '

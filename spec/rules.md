@@ -274,8 +274,9 @@ Set-up projects contain the `base-check` skill and the Agent Base marker
 (`.claude/agent-base.json`). Required marker fields (warning when missing):
 `standard` (semver), `toolRepo`, `setupAt`, `githubCodeReview`. Recommended
 release-pin fields (info when missing): `pin`, `lastSyncedAt` — used by
-baseline sync and the pinned-clone CI templates. Candidate for promotion to
-warning once tagged pins are the norm across set-up projects.
+baseline sync and the pin-resolved CI templates (npx at pin; clone fallback).
+Candidate for promotion to warning once tagged pins are the norm across
+set-up projects.
 
 **R-51 · Rule-ID indirection** · mechanical · Agent Base CI
 Agent Base docs, templates, and check metadata reference rules by R-ID only — never by

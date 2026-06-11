@@ -11,7 +11,7 @@
 # Setup:
 #   - Repo setting "Allow GitHub Actions to create and approve pull requests"
 #     must be enabled (Settings → Actions → General).
-#   - Private Agent Base repo? Use secrets.KIT_TOKEN — see commented line below.
+#   - Private Agent Base repo? Route git credentials via insteadOf — see commented line below.
 name: baseline-upgrade-bot
 on:
   schedule:
@@ -32,18 +32,13 @@ jobs:
         id: plan
         run: |
           set -euo pipefail
-          MARKER=.claude/agent-base.json
-          test -f "$MARKER"
-          KIT_URL="$(node -e "process.stdout.write(require('./$MARKER').toolRepo)")"
-          PIN="$(node -e "const m=require('./$MARKER'); process.stdout.write(m.pin||('v'+m.standard))")"
-          # Private Agent Base repo? prepend credentials, e.g.:
-          # KIT_URL="$(echo "$KIT_URL" | sed "s#https://#https://x-token:${{ secrets.KIT_TOKEN }}@#")"
-          git clone --depth 1 --branch "$PIN" "$KIT_URL" "${RUNNER_TEMP}/agent-base" || {
-            echo "::error title=Agent Base pin clone failed::Could not clone $KIT_URL at tag $PIN. Check the tag exists and the runner can reach the repo; do not fall back to an unpinned clone."
-            exit 1
-          }
+          test -f .claude/agent-base.json
+          NPX_SPEC="$(node -e 'const m=require("./.claude/agent-base.json");const pin=m.pin||("v"+m.standard);const url=String(m.toolRepo).trim().replace(/\/+$/,"");const gh=url.match(/^(?:git\+)?https:\/\/github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?$/);process.stdout.write((gh?"github:"+gh[1]+"/"+gh[2]:(url.startsWith("git+")?url:"git+"+url))+"#"+pin)')"
+          echo "NPX_SPEC=$NPX_SPEC" >> "$GITHUB_ENV"
+          # Private Agent Base repo? npm fetches git deps through git — route credentials, e.g.:
+          # git config --global url."https://x-token:${{ secrets.KIT_TOKEN }}@github.com/".insteadOf "https://github.com/"
           # --report exits 1 when conflicts exist — the JSON still has the plan.
-          node "${RUNNER_TEMP}/agent-base/scripts/sync-baseline.mjs" --report --json \
+          npx --yes "$NPX_SPEC" sync --report --json \
             > "${RUNNER_TEMP}/plan.json" || true
           node -e '
             const p = JSON.parse(require("fs").readFileSync(process.env.RUNNER_TEMP + "/plan.json", "utf8"));
@@ -68,7 +63,7 @@ jobs:
         if: steps.plan.outputs.ready == 'true'
         run: |
           set -euo pipefail
-          node "${RUNNER_TEMP}/agent-base/scripts/sync-baseline.mjs" --upgrade
+          npx --yes "$NPX_SPEC" sync --upgrade
       - name: Open PR
         if: steps.plan.outputs.ready == 'true'
         uses: peter-evans/create-pull-request@v6

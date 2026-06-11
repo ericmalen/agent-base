@@ -1,0 +1,68 @@
+# agent-base CLI reference
+
+The `agent-base` bin (`bin/agent-base.mjs`) is the npx entry point for
+consumers. It is additive: every command delegates to the same scripts the
+clone workflow runs, and the bin itself never ships into projects (the
+installer allowlist in `scripts/lib/baseline.mjs` decides what ships).
+
+## Invocation
+
+```sh
+npx github:ericmalen/agent-base#v1.1.0 <command> [args]
+```
+
+The `#<tag>` ref is the same release tag recorded as the project's pin in
+`.claude/agent-base.json` (`pin`, falling back to `v` + `standard`). Always
+pin; never run from an unpinned ref in CI. From a local clone the same
+surface is available as `node <clone>/bin/agent-base.mjs <command>`.
+
+Non-GitHub hosting (e.g. Azure DevOps) uses the `git+<https-url>#<tag>` spec
+form; `npxSpecFromToolRepo` in `scripts/lib/release.mjs` is the canonical
+mapping.
+
+## Bootstrap commands (LLM phases)
+
+These stage the running release to `~/.agent-base/versions/<tag>/`
+(copy-once, immutable — no `.git`, never pulled) and print the exact prompt
+to paste into your AI session opened in the project. They never modify the
+target repository.
+
+| Command | Prints a prompt for |
+|---|---|
+| `setup [path]` | `base-setup` — full agent-base setup of a repository |
+| `orchestrate [path]` | `base-orchestrate` — repo-specific orchestration generation |
+| `refresh [path]` | `base-refresh` — baseline pin upgrade |
+
+`path` defaults to the current directory. When run from a clone (a checkout
+with `.git`), staging is skipped and the prompt points at the clone itself.
+
+## Deterministic commands
+
+Arguments after the command pass through to the underlying script verbatim;
+exit codes propagate.
+
+| Command | Delegates to | Typical use |
+|---|---|---|
+| `install <path>` | `scripts/install-setup.mjs` | copy setup tooling into a project |
+| `audit [--root --json --strict]` | `scripts/audit.mjs` | conformance audit (CI: `audit --root . --strict`) |
+| `sync [--check\|--report\|--upgrade ...]` | `scripts/sync-baseline.mjs` | baseline pin check/upgrade |
+| `tracker-sync [--target --apply ...]` | `scripts/tracker-sync.mjs` | tasks.md ⇄ tracker bridge |
+| `starter <dir> [--git]` | `scripts/build-starter.mjs` | emit a clean starter repo |
+| `headless-guard [--root --open-branches <json>]` | `scripts/headless-guard.mjs` | run/skip decision for scheduled orchestrator pipelines; prints `run=`/`reason=`/`task=` lines |
+
+## Release store (`cache`)
+
+| Command | Effect |
+|---|---|
+| `cache list` | staged releases under `~/.agent-base/versions/`, newest first |
+| `cache prune [--keep N]` | remove all but the newest N (default 2) |
+
+Deleting `~/.agent-base/versions/<tag>` by hand is always safe — it is
+re-staged on the next bootstrap command at that tag.
+
+## Requirements
+
+Node ≥ 20. Private Agent Base repos resolve through your ambient git
+credentials (npm shells out to git for `github:`/`git+` specs); in CI use an
+`insteadOf` rewrite with a token — see the comments in the
+`templates/ci/` workflows.

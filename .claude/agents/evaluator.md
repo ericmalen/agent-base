@@ -15,7 +15,7 @@ fixes; writes nothing, gates everything.
 
 ### Gate mode — full orchestration health report
 
-2. Run `drift-checker` against the target (Agent Base clone = cwd). Report
+2. Run `drift-checker` against the target (base checkout = cwd). Report
    TEMPLATE-DRIFT and USER-EDIT separately, ERROR lines as corruption.
    TEMPLATE-DRIFT means evals would judge stale instantiations — flag
    re-scaffold as a prerequisite, then continue.

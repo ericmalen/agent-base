@@ -26,7 +26,7 @@ in Claude Code it is always invoked as a subagent.
 
 **Orchestration meta-agents** — discovery, generation, and orchestration health. Agent Base-side
 only (never installed into targets). Entry point: `/base-orchestrate` in an
-open Agent Base clone. How-to:
+open base checkout. How-to:
 [`docs/how-to/orchestration-guide.md`](../../docs/how-to/orchestration-guide.md).
 
 - [`repo-analyst.md`](./repo-analyst.md) — profiles a project into

@@ -9,7 +9,7 @@ First setup phase. Mechanical only: nothing is interpreted here.
 
 Scripts live at `.claude/agent-base-setup/scripts/` (placed by Agent Base
 installer). If that folder is missing, stop and tell the user to run the
-installer from their Agent Base clone first.
+installer from their base checkout first.
 
 ## Preconditions (hard — no fallback)
 

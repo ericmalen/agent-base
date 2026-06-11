@@ -30,7 +30,7 @@ Non-Basic ADO process template? Set `ado.stateMap` (`basic` | `agile`) in
 
 ## Run
 
-Locate an Agent Base root first (same resolution as base-check): an Agent Base clone
+Locate an Agent Base root first (same resolution as base-check): a base checkout
 if you are in one; else the target's `.claude/agent-base-setup/` while setup
 tooling is present; else shallow-clone the Agent Base repo (URL in
 `.claude/agent-base.json` → `toolRepo`). Then **always dry-run first**:

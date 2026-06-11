@@ -1,12 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
 
 import { parseTasksMd } from '../scripts/lib/orchestration/parse-tasks.mjs';
 import { decideHeadlessRun } from '../scripts/lib/orchestration/headless-guard.mjs';
 
 const FIXTURES = join(import.meta.dirname, 'fixtures', 'orchestration');
+const GUARD_CLI = join(import.meta.dirname, '..', 'scripts', 'headless-guard.mjs');
 const loadText = (name) => readFileSync(join(FIXTURES, name), 'utf8');
 const parse = (text) => parseTasksMd(text).doc;
 
@@ -72,10 +75,10 @@ test('orchestrator-run templates: both carry the headless invariants', () => {
     assert.match(text, /npm i -g @anthropic-ai\/claude-code/, `${name}: installs the Claude CLI`);
     assert.match(text, /claude -p "/, `${name}: headless claude -p invocation`);
     assert.match(text, /--max-turns 80/, `${name}: turn cap`);
-    assert.match(text, /headless-guard\.mjs/, `${name}: decisions come from the guard module`);
+    assert.match(text, /headless-guard/, `${name}: decisions come from the guard CLI`);
     assert.match(text, /ANTHROPIC_API_KEY/, `${name}: API key from platform secrets`);
     assert.match(text, /orch\/run-/, `${name}: work branch under orch/`);
-    assert.match(text, /tracker-sync\.mjs/, `${name}: optional tracker-sync chain`);
+    assert.match(text, /tracker-sync/, `${name}: optional tracker-sync chain`);
     assert.match(text, /do NOT push and do NOT open a PR/, `${name}: agent never pushes`);
   }
   assert.match(gh, /workflow_dispatch/, 'github: manual trigger');
@@ -94,7 +97,7 @@ test('orchestrator-run templates: step sequences are structurally paired', () =>
   const ghSteps = [...gh.matchAll(/^ {6}- name: (.+)$/gm)].map((m) => m[1]);
   const adoSteps = [...ado.matchAll(/^ {4}displayName: (.+)$/gm)].map((m) => m[1]);
   assert.deepEqual(ghSteps, [
-    'Clone Agent Base at pin',
+    'Resolve Agent Base npx spec',
     'Guard - decide whether to run',
     'Tracker sync (optional)',
     'Run feature-orchestrator headless',
@@ -103,4 +106,32 @@ test('orchestrator-run templates: step sequences are structurally paired', () =>
   // ADO carries one extra display name for its schedule block; the step
   // sequence after it must match GitHub's exactly.
   assert.deepEqual(adoSteps.filter((s) => s !== 'scheduled orchestrator run'), ghSteps);
+});
+
+// ── headless-guard CLI wrapper (scripts/headless-guard.mjs) ─────────────────
+
+test('headless-guard CLI: emits run/reason/task lines for an eligible backlog', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ab-guard-'));
+  cpSync(join(FIXTURES, 'tasks-canonical.md'), join(root, 'tasks.md'));
+  const r = spawnSync(process.execPath, [GUARD_CLI, '--root', root], { encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout, 'run=true\nreason=eligible-task\ntask=T-001\n');
+});
+
+test('headless-guard CLI: open orchestrator branch skips the run', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ab-guard-'));
+  cpSync(join(FIXTURES, 'tasks-canonical.md'), join(root, 'tasks.md'));
+  const branches = join(root, 'open-branches.json');
+  writeFileSync(branches, JSON.stringify(['orch/run-123', 'feature/x']));
+  const r = spawnSync(process.execPath, [GUARD_CLI, '--root', root, '--open-branches', branches], { encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout, 'run=false\nreason=orchestrator-pr-open\ntask=\n');
+});
+
+test('headless-guard CLI: missing tasks.md exits 1; bad flag exits 2', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ab-guard-'));
+  const missing = spawnSync(process.execPath, [GUARD_CLI, '--root', root], { encoding: 'utf8' });
+  assert.equal(missing.status, 1);
+  const usage = spawnSync(process.execPath, [GUARD_CLI, '--nope'], { encoding: 'utf8' });
+  assert.equal(usage.status, 2);
 });

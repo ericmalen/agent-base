@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// install-setup — copy the setup tooling from an Agent Base clone into a project.
-// Run FROM the Agent Base clone:
+// install-setup — copy the setup tooling from a base clone into a project.
+// Run FROM the base clone:
 //   node <clone>/scripts/install-setup.mjs /path/to/project
 
 import { cpSync, existsSync, mkdirSync } from 'node:fs';

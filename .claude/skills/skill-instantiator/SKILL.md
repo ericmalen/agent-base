@@ -19,7 +19,7 @@ its pin would produce a file no manifest version describes (C5).
 - A specialist entry from a validated `docs/orchestration/blueprint.json`.
 - The project path.
 - Each paired skill's template:
-  `templates/orchestration/skills/<skillId>.template.md` in the Agent Base clone.
+  `templates/orchestration/skills/<skillId>.template.md` in the base checkout.
 
 ## Procedure
 
@@ -27,7 +27,7 @@ its pin would produce a file no manifest version describes (C5).
    exactly the `layer-path`, `stack`, `test-cmd`, and `conventions` slots;
    strict substitution rejects anything missing or extra.
 2. Instantiate every paired skill; validate all before writing any. From the
-   Agent Base clone root:
+   base checkout root:
 
    ```
    node --input-type=module -e '

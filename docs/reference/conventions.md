@@ -76,7 +76,7 @@ Every setup installs the baseline skills (`base-check`, `docs`,
 lifecycle skills (`retro`, `log-report`, `eval-runner`) and the `docs-auditor`
 agent. The lifecycle skills are dormant until orchestration generation creates
 their surfaces (`docs/orchestration/`, generated agents). Orchestration
-discovery/generation meta-assets stay Agent Base-side and run from an Agent Base clone against
+discovery/generation meta-assets stay Agent Base-side and run from a base checkout against
 a target path — see [`spec/target-layout.md`](../../spec/target-layout.md).
 
 Directory- or layer-scoped conventions go in a path-scoped rules file at
