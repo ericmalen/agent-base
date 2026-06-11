@@ -75,3 +75,16 @@ the source — weakening counts as loss ("must" → "should", dropped caveats,
 narrowed scope). For every `drop` and `out-of-scope`, judge whether the reason
 is true and sufficient. Output one verdict row per entry: KEEP / RESTORE /
 ESCALATE-TO-HUMAN with one-line justification.
+
+A drop reason can be true yet INSUFFICIENT. These are insufficient by policy —
+verdict RESTORE or ESCALATE-TO-HUMAN, never KEEP:
+- "superseded / contradicted by the canonical (or newer) file" — the tool does
+  not adjudicate contradictions; conflicting rules are both kept and reconciled
+  by the owner (see the contradiction rule in adopt-plan step 4). A drop is only
+  valid for a byte-identical duplicate, never for a differing rule.
+- "older file" / "obsolete" / "no longer relevant" asserted without evidence in
+  the content itself.
+- "not AI instructions" applied to text that states an obligation, prohibition,
+  or constraint (that IS an instruction regardless of the file it sits in).
+Only a byte-identical duplicate ("duplicate of <node>, verified identical") or
+content the source itself marks dead is a sufficient drop reason.
