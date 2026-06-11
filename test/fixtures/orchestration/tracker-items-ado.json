@@ -1,0 +1,7 @@
+[
+  { "externalId": "AB#230", "title": "Bilingual toggle on catalogue page", "state": "intake", "url": null },
+  { "externalId": "AB#231", "title": "Rate-limit the tagging endpoint", "state": "done", "url": null },
+  { "externalId": "AB#229", "title": "Extract tag schema to types.ts", "state": "active", "url": null },
+  { "externalId": "AB#232", "title": "Add audit log for tag deletions", "state": "intake", "url": "https://dev.azure.com/org/proj/_workitems/edit/232" },
+  { "externalId": "AB#233", "title": "Spike: queue library", "state": "done", "url": null }
+]

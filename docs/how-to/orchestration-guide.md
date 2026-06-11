@@ -30,6 +30,19 @@ optional.
 Orchestration discovery and generation meta-assets stay **kit-side** — they
 run from the Agent Base clone against a target path, not from inside the target.
 
+### Pre-flight checklist
+
+Verify each before starting (these mirror the `/base-orchestrate` hard
+preconditions — failing one stops the run):
+
+| Check | Verify with |
+|---|---|
+| Target is a git repo, not the Agent Base clone | `git -C /path/to/project rev-parse` succeeds; path ≠ Agent Base clone |
+| Clean working tree | `git -C /path/to/project status --porcelain` prints nothing |
+| Baseline setup present | `.claude/agent-base.json` and `.claude/skills/base-check/` exist in the target |
+| Node ≥ 20 | `node --version` |
+| Kit clone fresh | `git -C ~/tools/agent-base pull --ff-only` |
+
 ## Quick start
 
 One-time: keep a Agent Base clone (`git clone <url> ~/tools/agent-base`).
@@ -74,11 +87,27 @@ to the target as they land.
 Sessions can be days apart. Each step reads the previous step's committed
 artifacts.
 
+Time budgets below are measured on the kit fixtures; a large real repo can
+take 2–3× longer per session. A silent wait inside one budget is normal —
+past 2× the budget with no artifact, see the
+[troubleshooting guide](./orchestration-troubleshooting.md).
+
 ### Session 1 — Profile (`repo-analyst`)
 
 From the Agent Base clone, dispatch the `repo-analyst` agent with the target path.
 It runs `structure-detector`, `dependency-mapper`, and `convention-detector`
 skills and writes a schema-valid `repo-profile.json`.
+
+**Expected output** (~5–15 min; compare
+[`maxi-repo.profile.json`](../../test/fixtures/orchestration/maxi-repo.profile.json)):
+
+- One `layers[]` entry per package/app you'd name yourself; each has a real
+  `path`, `stack`, and `testCmd` (or `null` plus a matching `gaps[]` entry —
+  never a guessed command)
+- `internalEdges[]` lists consumer→provider pairs you recognize (`[]` is
+  correct for single-package repos)
+- Everything the analyst couldn't evidence is in `gaps[]`, not invented
+- Missing a layer you expected? See troubleshooting before re-running.
 
 ### Session 2 — Decisions (`requirements-interviewer`)
 
@@ -87,7 +116,22 @@ gap-driven questions (TDD, review gates, security, QA depth, definition of
 done). Output is `decisions.json`; `decisions.md` is rendered from it — never
 hand-edit the Markdown.
 
-**Gate 1:** read `decisions.md` and confirm policy before synthesis.
+**Expected output** (~10–15 min including your answers; compare
+[`maxi-repo.decisions.json`](../../test/fixtures/orchestration/maxi-repo.decisions.json)):
+every question maps to one schema field with a finite enum — if you're asked
+something open-ended, the interviewer has drifted (see troubleshooting). All
+six fields populated; no field defaulted without you being asked.
+
+**Gate 1 — approve when every answer is yes:**
+
+- [ ] Each of the six decisions fields reflects a choice you made, not a default
+- [ ] The enum values match how the team actually works (e.g. `every-merge`
+      review only if that's real practice)
+- [ ] `decisions.md` says exactly what `decisions.json` says (it's rendered —
+      if you want a change, re-answer; don't edit either file by hand)
+
+To change an answer: re-dispatch `requirements-interviewer` and redo the
+affected question — never edit `decisions.md` directly.
 
 ### Session 3 — Blueprint (`plan-synthesizer`)
 
@@ -95,8 +139,22 @@ Dispatch `plan-synthesizer`. It applies `blueprint-generator` rules, computes
 `dispatch_order` from internal dependency edges, and gates with
 `handoff-validator` before writing `blueprint.json`.
 
-**Gate 2:** confirm the specialist roster (layer engineers, reviewers, QA,
-security) and dispatch thresholds.
+**Expected output** (~5–10 min; compare
+[`maxi-repo.synthesized.blueprint.json`](../../test/fixtures/orchestration/maxi-repo.synthesized.blueprint.json)):
+one specialist per profile layer (or the generic specialist for shapes the six
+named templates don't cover), plus reviewer/QA/security specialists when your
+decisions call for them; `dispatch_rules.dispatch_order` puts providers before
+consumers (e.g. `shared` before `ui`/`api`).
+
+**Gate 2 — approve when every answer is yes:**
+
+- [ ] Every profile layer is covered by a specialist (or a justified generic
+      fallback)
+- [ ] Reviewer/QA/security roster matches your Gate 1 decisions
+- [ ] `subagent_max_scopes` / `agent_team_min_scopes` thresholds are sane for
+      the repo (defaults: 2 / 3)
+- [ ] `dispatch_order` is provider-first and you recognize the ordering
+- [ ] Each specialist has eval requirements (`minGoldens`) set
 
 ### Session 4 — Generate (`scaffolder`)
 
@@ -104,8 +162,14 @@ Dispatch `scaffolder`. It materializes agents and skills via pure slot
 substitution, copies referenced docs into `docs/orchestration/`, and records
 every file in `generation-manifest.json`.
 
+**Expected output** (~5 min): one file in `.claude/agents/` per blueprint
+specialist + the orchestrator, paired skills in `.claude/skills/`, referenced
+docs under `docs/orchestration/`, and a `generation-manifest.json` entry
+(template id, version, SHA) for **every** generated file. Re-running
+immediately must be a no-op — any diff on a clean re-run is a bug.
+
 Re-run the scaffolder after kit template updates; it refuses to overwrite
-hand-edited generated files (conflict report instead).
+hand-edited generated files (conflict report instead — see troubleshooting).
 
 ### Session 5 — Execute (`feature-orchestrator`)
 
@@ -136,6 +200,7 @@ exist:
 | `retro` | Turn bugs/review findings into checklist items |
 | `log-report` | Summarize `handoff-log.jsonl` (failure rates, duration) |
 | `eval-runner` | Run golden evals for generated agents |
+| `tracker-sync` | Sync `tasks.md` with ADO work items / GitHub Issues (intake in, status out) |
 
 See [Lifecycle maintenance](#lifecycle-maintenance) below.
 
@@ -143,8 +208,9 @@ See [Lifecycle maintenance](#lifecycle-maintenance) below.
 
 Allowlist kit scripts when prompted (`node scripts/lib/orchestration/*`,
 read-only git). Subagent orchestration from `/base-orchestrate` should be
-attempted first; if phases run inline, follow the per-session table manually
-in fresh chats.
+attempted first; if phases run inline, follow the step-by-step
+[inline fallback procedure](./orchestration-troubleshooting.md#copilot-inline-fallback)
+in the troubleshooting guide.
 
 ## After generation
 
@@ -154,6 +220,9 @@ in fresh chats.
   hand-edit generated agent files.
 - **Update kit:** re-run setup if the baseline skills need refreshing;
   orchestration assets are independent of the setup branch machinery.
+- **Schedule it:** once execution works interactively, add the
+  [headless pipeline](./headless-orchestration.md) to ship backlog items as
+  scheduled PRs.
 
 ## Lifecycle maintenance
 
@@ -176,6 +245,8 @@ re-synthesize; skill gap → edit skill; one-off → retro checklist item.
 
 ## Further reading
 
+- [Troubleshooting](./orchestration-troubleshooting.md) — per-session failure
+  modes and recoveries
 - [Orchestration concepts](../explanation/orchestration.md) — architecture and
   design choices
 - [Agents and skills reference](../reference/agents-and-skills.md) — kit-side

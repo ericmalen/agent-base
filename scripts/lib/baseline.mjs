@@ -28,6 +28,7 @@ export const BASELINE_COPIES = [
   ['.claude/skills/retro', '.claude/skills/retro'],
   ['.claude/skills/log-report', '.claude/skills/log-report'],
   ['.claude/skills/eval-runner', '.claude/skills/eval-runner'],
+  ['.claude/skills/tracker-sync', '.claude/skills/tracker-sync'],
 ];
 
 export const ALL_INSTALL_COPIES = [...SETUP_WINDOW_COPIES, ...BASELINE_COPIES];

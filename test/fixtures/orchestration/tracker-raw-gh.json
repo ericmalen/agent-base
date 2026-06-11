@@ -1,0 +1,5 @@
+[
+  { "number": 17, "title": "Return 404 JSON body on missing asset", "state": "OPEN", "labels": [{ "name": "bug" }], "url": "https://github.com/owner/repo/issues/17" },
+  { "number": 18, "title": "Dark mode for the catalogue page", "state": "OPEN", "labels": [{ "name": "in-progress" }], "url": "https://github.com/owner/repo/issues/18" },
+  { "number": 12, "title": "Extract tag schema to types.ts", "state": "CLOSED", "labels": [], "url": "https://github.com/owner/repo/issues/12" }
+]

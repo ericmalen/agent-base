@@ -1,0 +1,154 @@
+# orchestrator-run — scheduled headless execution of the generated
+# feature-orchestrator against tasks.md (DD-15). Azure DevOps variant,
+# structurally paired step-for-step with orchestrator-run.github.yml.
+#
+# Safety rules (do not weaken):
+#   - The guard (headless-guard.mjs) skips when the Backlog is empty, when
+#     only blocked/triage tasks remain, or while a previous orch/ PR is open.
+#   - The orchestrator runs exactly ONE task per run, commits on a work
+#     branch, and never pushes — the pipeline pushes and opens the PR.
+#   - Never auto-merge / auto-complete: the PR is reviewed and merged by a
+#     person.
+#   - Audit trail: git history + docs/orchestration/handoff-log.jsonl +
+#     this pipeline's logs. No custom server, ever.
+#
+# Setup:
+#   - Requires completed orchestration generation (generation-manifest.json)
+#     and a seeded tasks.md.
+#   - Secret pipeline variable ANTHROPIC_API_KEY (required).
+#   - The build service identity needs "Contribute" and "Create pull request"
+#     on the repo (Project Settings → Repositories → Security).
+#   - Optional: docs/orchestration/tracker-sync.json plus a secret variable
+#     AZURE_DEVOPS_PAT to chain a tracker sync before the run.
+#   - Private Agent Base repo? Inject credentials via a secret variable —
+#     see the commented line below.
+# NOTE: there is no exact ADO equivalent of GitHub's concurrency group —
+# overlapping manual + scheduled runs are still serialized by the guard's
+# open-PR check (branch names include the build id, so collisions are
+# impossible).
+trigger: none
+schedules:
+  - cron: '0 5 * * 1-5' # weekdays 05:00 UTC
+    displayName: scheduled orchestrator run
+    branches:
+      include: [main]
+    always: true
+pool:
+  vmImage: ubuntu-latest
+steps:
+  - checkout: self
+    persistCredentials: true
+    fetchDepth: 0
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '20.x'
+  - bash: |
+      set -euo pipefail
+      MARKER=.claude/agent-base.json
+      test -f "$MARKER"
+      KIT_URL="$(node -e "process.stdout.write(require('./$MARKER').toolRepo)")"
+      PIN="$(node -e "const m=require('./$MARKER'); process.stdout.write(m.pin||('v'+m.standard))")"
+      # Private Agent Base repo? prepend credentials from a secret variable, e.g.:
+      # KIT_URL="$(echo "$KIT_URL" | sed "s#https://#https://x-token:${AGENT_BASE_TOKEN}@#")"
+      git clone --depth 1 --branch "$PIN" "$KIT_URL" "$(Agent.TempDirectory)/agent-base" || {
+        echo "##vso[task.logissue type=error]Could not clone $KIT_URL at tag $PIN — do not fall back to an unpinned clone."
+        exit 1
+      }
+    displayName: Clone Agent Base at pin
+  - bash: |
+      set -euo pipefail
+      curl -sf -u ":$SYSTEM_ACCESSTOKEN" \
+        "$(System.CollectionUri)$(System.TeamProject)/_apis/git/repositories/$(Build.Repository.ID)/pullrequests?searchCriteria.status=active&api-version=7.1" \
+        | node -e '
+          let raw = "";
+          process.stdin.on("data", (c) => { raw += c; }).on("end", () => {
+            const prs = JSON.parse(raw).value ?? [];
+            const branches = prs.map((p) => p.sourceRefName.replace("refs/heads/", ""));
+            require("fs").writeFileSync(process.env.AGENT_TEMPDIRECTORY + "/open-branches.json", JSON.stringify(branches));
+          });
+        '
+      KIT="$(Agent.TempDirectory)/agent-base" node --input-type=module -e '
+        import { readFileSync, appendFileSync } from "node:fs";
+        const kit = process.env.KIT;
+        const { parseTasksMd } = await import(`${kit}/scripts/lib/orchestration/parse-tasks.mjs`);
+        const { decideHeadlessRun } = await import(`${kit}/scripts/lib/orchestration/headless-guard.mjs`);
+        const { doc, errors } = parseTasksMd(readFileSync("tasks.md", "utf8"));
+        if (errors.length) { console.error(errors.join("\n")); process.exit(1); }
+        const openBranches = JSON.parse(readFileSync(process.env.AGENT_TEMPDIRECTORY + "/open-branches.json", "utf8"));
+        const d = decideHeadlessRun({ tasksDoc: doc, openBranches });
+        console.log(`guard: run=${d.run} reason=${d.reason} task=${d.taskId ?? "-"}`);
+        console.log(`##vso[task.setvariable variable=guardRun]${d.run}`);
+        console.log(`##vso[task.setvariable variable=guardTask]${d.taskId ?? ""}`);
+      '
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+      AGENT_TEMPDIRECTORY: $(Agent.TempDirectory)
+    displayName: Guard - decide whether to run
+  - bash: |
+      set -euo pipefail
+      if [ ! -f docs/orchestration/tracker-sync.json ]; then
+        echo "no tracker-sync.json — skipping tracker sync"; exit 0
+      fi
+      node "$(Agent.TempDirectory)/agent-base/scripts/tracker-sync.mjs" --target . --apply || true
+      if ! git diff --quiet tasks.md; then
+        git config user.name "orchestrator-run pipeline"
+        git config user.email "orchestrator-run@dev.azure.com"
+        git add tasks.md && git commit -m "chore(tasks): tracker sync"
+      fi
+    condition: and(succeeded(), eq(variables['guardRun'], 'true'))
+    env:
+      AZURE_DEVOPS_PAT: $(AZURE_DEVOPS_PAT)
+    displayName: Tracker sync (optional)
+  - bash: |
+      set -euo pipefail
+      npm i -g @anthropic-ai/claude-code
+      git config user.name "orchestrator-run pipeline"
+      git config user.email "orchestrator-run@dev.azure.com"
+      git checkout -b "orch/run-$(Build.BuildId)"
+      claude -p "You are feature-orchestrator. Read .claude/agents/feature-orchestrator.md and execute its procedures for exactly one task: $(guardTask). You are running headless: commit each unit of work as the procedures require, but do NOT push and do NOT open a PR — the pipeline does that after you finish. Stop after moving the task to Done or returning it to Backlog as blocked." \
+        --permission-mode acceptEdits \
+        --allowedTools "Read,Edit,Write,Bash,Glob,Grep,Task" \
+        --max-turns 80
+    condition: and(succeeded(), eq(variables['guardRun'], 'true'))
+    env:
+      ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)
+    displayName: Run feature-orchestrator headless
+  - bash: |
+      set -euo pipefail
+      if [ -z "$(git log "origin/$(Build.SourceBranchName)..HEAD" --oneline)" ]; then
+        echo "no commits produced — nothing to push"; exit 0
+      fi
+      git push -u origin "HEAD:orch/run-$(Build.BuildId)"
+      node -e '
+        const body = {
+          sourceRefName: "refs/heads/orch/run-" + process.env.BUILD_BUILDID,
+          targetRefName: "refs/heads/" + process.env.BUILD_SOURCEBRANCHNAME,
+          title: "orch: " + process.env.GUARD_TASK + " (scheduled run)",
+          description: "Headless feature-orchestrator run for " + process.env.GUARD_TASK +
+            ".\n\nAudit trail: this pipeline run, git history on this branch, and docs/orchestration/handoff-log.jsonl." +
+            "\nReview and merge manually — this pipeline never merges.",
+        };
+        fetch(process.env.SYSTEM_COLLECTIONURI + process.env.SYSTEM_TEAMPROJECT +
+          "/_apis/git/repositories/" + process.env.BUILD_REPOSITORY_ID + "/pullrequests?api-version=7.1", {
+          method: "POST",
+          headers: {
+            Authorization: "Basic " + Buffer.from(":" + process.env.SYSTEM_ACCESSTOKEN).toString("base64"),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        }).then(async (res) => {
+          if (!res.ok) { console.error("PR creation failed: " + res.status + " " + (await res.text())); process.exit(1); }
+          const pr = await res.json();
+          console.log("opened PR #" + pr.pullRequestId);
+        });
+      '
+    condition: and(succeeded(), eq(variables['guardRun'], 'true'))
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+      GUARD_TASK: $(guardTask)
+      BUILD_BUILDID: $(Build.BuildId)
+      BUILD_SOURCEBRANCHNAME: $(Build.SourceBranchName)
+      BUILD_REPOSITORY_ID: $(Build.Repository.ID)
+      SYSTEM_COLLECTIONURI: $(System.CollectionUri)
+      SYSTEM_TEAMPROJECT: $(System.TeamProject)
+    displayName: Push branch and open PR

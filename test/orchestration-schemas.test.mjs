@@ -8,6 +8,8 @@ import {
   validateDecisionsDoc,
   validateBlueprint,
   validateHandoffLog,
+  validateSyncPlan,
+  validateTrackerSyncConfig,
   DECISION_ENUMS,
 } from '../scripts/lib/orchestration/schemas.mjs';
 
@@ -354,6 +356,86 @@ test('validateHandoffLog: optional capture fields validated only when present', 
     'model must be a non-empty string when present',
     'turns_used must be a positive integer when present',
     'turn_limit must be a positive integer when present',
+  ]);
+});
+
+// ── validateSyncPlan (F3, DD-14) ────────────────────────────────────────────
+
+const validSyncPlan = () => ({
+  platform: 'ado',
+  imports: [{ externalId: 'AB#231', title: 'Rate-limit the tagging endpoint', url: 'https://dev.azure.com/x/y/_workitems/edit/231' }],
+  statusUpdates: [{ taskId: 'T-002', externalId: 'AB#230', to: 'active', comment: 'owner: feature-orchestrator' }],
+  conflicts: [{ kind: 'duplicate-ref', detail: 'ref "AB#9" appears on T-004 and T-005' }],
+});
+
+test('validateSyncPlan: well-formed plan validates clean', () => {
+  assert.deepEqual(validateSyncPlan(validSyncPlan()), []);
+  const gh = validSyncPlan();
+  gh.platform = 'gh';
+  gh.imports[0].externalId = '#17';
+  gh.imports[0].url = null;
+  gh.statusUpdates[0].externalId = 'owner/repo#45';
+  gh.statusUpdates[0].comment = null;
+  assert.deepEqual(validateSyncPlan(gh), []);
+});
+
+test('validateSyncPlan: non-object and missing arrays report', () => {
+  assert.deepEqual(validateSyncPlan(null), ['sync plan must be an object']);
+  assert.deepEqual(validateSyncPlan({ platform: 'jira' }), [
+    'platform must be one of ado | gh (got jira)',
+    'imports must be an array',
+    'statusUpdates must be an array',
+    'conflicts must be an array',
+  ]);
+});
+
+test('validateSyncPlan: bad entry shapes report per field', () => {
+  const plan = validSyncPlan();
+  plan.imports[0].externalId = 'WI-231';
+  plan.imports[0].title = ' ';
+  plan.statusUpdates[0].taskId = '002';
+  plan.statusUpdates[0].to = 'closed';
+  plan.conflicts[0].kind = 'mystery';
+  plan.conflicts[0].detail = '';
+  assert.deepEqual(validateSyncPlan(plan), [
+    'imports[0].externalId must look like AB#123, #45, or owner/repo#45 (got WI-231)',
+    'imports[0].title must be a non-empty string',
+    'statusUpdates[0].taskId must match T-### (got 002)',
+    'statusUpdates[0].to must be one of intake | active | done (got closed)',
+    'conflicts[0].kind must be one of tracker-done-task-open | duplicate-ref | missing-tracker-item (got mystery)',
+    'conflicts[0].detail must be a non-empty string',
+  ]);
+});
+
+// ── validateTrackerSyncConfig (F3) ──────────────────────────────────────────
+
+test('validateTrackerSyncConfig: valid ado and gh configs validate clean', () => {
+  assert.deepEqual(validateTrackerSyncConfig({ platform: 'gh' }), []);
+  assert.deepEqual(validateTrackerSyncConfig({
+    platform: 'ado',
+    ado: { org: 'myorg', project: 'myproject', stateMap: 'agile' },
+  }), []);
+});
+
+test('validateTrackerSyncConfig: ado block required and enum-checked', () => {
+  assert.deepEqual(validateTrackerSyncConfig({ platform: 'ado' }), [
+    'ado must be an object when platform is "ado"',
+  ]);
+  assert.deepEqual(validateTrackerSyncConfig({
+    platform: 'ado',
+    ado: { org: '', project: 'p', stateMap: 'scrum' },
+  }), [
+    'ado.org must be a non-empty string',
+    'ado.stateMap must be one of basic | agile (got scrum)',
+  ]);
+});
+
+test('validateTrackerSyncConfig: credential-looking config keys rejected (secrets are env-only)', () => {
+  assert.deepEqual(validateTrackerSyncConfig({
+    platform: 'ado',
+    ado: { org: 'o', project: 'p', pat: 'hunter2' },
+  }), [
+    'ado.pat looks like a credential — secrets are env-only (AZURE_DEVOPS_PAT), never config',
   ]);
 });
 

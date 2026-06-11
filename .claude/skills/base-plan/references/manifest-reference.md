@@ -66,6 +66,11 @@ gate — copy the matching kit template, do not route it through the manifest:
 - `templates/ci/docs-impact.{github,ado}.yml` — the docs-impact gate
   (offered by the `docs` skill); GitHub → `.github/workflows/`, ADO →
   `.azuredevops/`.
+- `templates/ci/orchestrator-run.{github,ado}.yml` — scheduled headless
+  feature-orchestrator runs (DD-15); GitHub → `.github/workflows/`, ADO →
+  `.azuredevops/`. Offer ONLY when
+  `docs/orchestration/generation-manifest.json` exists; needs the
+  `ANTHROPIC_API_KEY` secret. See `docs/how-to/headless-orchestration.md`.
 
 Marker literal content:
 `{ "standard": "1.4.0", "toolRepo": "https://github.com/…/agent-base", "pin": "v1.4.0", "lastSyncedAt": "2026-06-11", "setupAt": "2026-03-01", "githubCodeReview": false }`
