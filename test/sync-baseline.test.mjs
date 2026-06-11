@@ -8,14 +8,16 @@ import { runSyncBaseline } from '../scripts/sync-baseline.mjs';
 import { buildMarker, readMarker, writeMarker } from '../scripts/lib/marker.mjs';
 
 const BASE_ROOT = join(import.meta.dirname, '..');
+// "current" must track the live package version or every release bump breaks this suite
+const BASE_VERSION = JSON.parse(readFileSync(join(BASE_ROOT, 'package.json'), 'utf8')).version;
 
 function seedProject(root, markerExtra = {}) {
   mkdirSync(join(root, '.claude/skills/base-check'), { recursive: true });
   writeFileSync(join(root, '.claude/skills/base-check/SKILL.md'), readFileSync(
     join(BASE_ROOT, '.claude/skills/base-check/SKILL.md'), 'utf8'));
   writeMarker(root, buildMarker({
-    standard: '1.0.0',
-    pin: 'v1.0.0',
+    standard: BASE_VERSION,
+    pin: `v${BASE_VERSION}`,
     setupAt: '2026-01-01',
     lastSyncedAt: '2026-01-01',
     ...markerExtra,
