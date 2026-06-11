@@ -38,7 +38,8 @@ Preconditions: `.setup/manifest.json` parses, and
    re-apply. If an audit finding and repo content genuinely conflict,
    surface it to the user rather than silently dropping content.
 4. Regenerate the report: `node .claude/agent-base-setup/scripts/report.mjs --root .`
-5. Commit, then tell the user: fresh session → `base-verify`.
+5. Commit, then tell the user: fresh session → `base-verify` (or, with subagents
+   enabled, the `base-setup` orchestrator dispatches the next phase automatically).
 
 If the iteration count climbs past ~6 without converging, STOP and report the
 blocking pattern to the user (this is pivot-trigger telemetry — record it).

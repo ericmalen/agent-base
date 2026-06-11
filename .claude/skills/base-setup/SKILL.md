@@ -75,7 +75,9 @@ repo is untouched until THEY merge. Abort = delete the branch.
 Read `.claude/skills/base-inventory/SKILL.md` in the project and execute
 its procedure now (newly installed skills may not be registered in this
 session — reading the file and following it is equivalent). At its end, relay
-its handoff to the user: start a fresh session and run `base-plan`.
+its handoff to the user verbatim — including its note that enabling subagent
+dispatch lets the four phases run as one `base-setup` command, with the manual
+"start a fresh session and run `base-plan`" path as the fallback.
 
 ## Never
 

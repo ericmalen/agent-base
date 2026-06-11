@@ -56,4 +56,5 @@ for schema and worked examples before authoring.
    out-of-scope, merges) and a short prose plan. Do not proceed without
    explicit approval; fold feedback in via manifest edits, re-run 5-6.
 8. Commit: `git add .setup && git commit -m "chore(setup): plan approved"`.
-   Tell the user: fresh session → `base-apply`.
+   Tell the user: fresh session → `base-apply` (or, with subagents enabled, the
+   `base-setup` orchestrator dispatches the next phase automatically).
