@@ -105,7 +105,9 @@ export function planGeneration(blueprint, registry, readTemplate) {
     }
   }
 
-  for (const docPath of blueprint.docs) {
+  // The orchestration README (update flow, ownership, rollback) ships with
+  // every generation regardless of blueprint.docs.
+  for (const docPath of ['docs/orchestration/README.md', ...blueprint.docs]) {
     const id = docPath.split('/').pop().replace(/\.md$/, '');
     const reg = registry.docs[id];
     if (!reg) {
@@ -122,6 +124,20 @@ export function planGeneration(blueprint, registry, readTemplate) {
   }
 
   return errors.length ? { files: [], errors } : { files, errors: [] };
+}
+
+// USER-EDIT detection (C5): a previously generated file whose on-disk bytes
+// no longer match its manifest SHA was touched by a human — regeneration
+// must stop and report, never overwrite. readTargetFile(path) -> current
+// content or null when the file is gone (a deleted file is not a conflict;
+// regeneration recreates it).
+export function findUserEdits(priorManifest, readTargetFile) {
+  return priorManifest.generated
+    .filter((entry) => {
+      const onDisk = readTargetFile(entry.path);
+      return onDisk !== null && sha256(onDisk) !== entry.sha256;
+    })
+    .map((entry) => entry.path);
 }
 
 // Manifest for a plan — same entry order as files; validates against

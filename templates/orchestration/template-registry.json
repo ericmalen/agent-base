@@ -63,6 +63,10 @@
     "handoff-logging": {
       "version": "1.0.0",
       "sha256": "d8d897948a89eff43b2fa791464fd843948642d2f1ebd70218274682bccb26d5"
+    },
+    "README": {
+      "version": "1.0.0",
+      "sha256": "4424438fd3197f1a5d021152e84c8995b99ae0cdd1114cce6800343a99c6afcf"
     }
   }
 }

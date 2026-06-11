@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 
-import { planGeneration, manifestFor } from '../scripts/lib/orchestration/scaffold.mjs';
+import { planGeneration, manifestFor, findUserEdits } from '../scripts/lib/orchestration/scaffold.mjs';
 import { validateGenerationManifest } from '../scripts/lib/orchestration/schemas.mjs';
 
 const ROOT = join(import.meta.dirname, '..');
@@ -26,8 +26,9 @@ test('planGeneration: maxi synthesized blueprint plans the full asset set', () =
   const { files, errors } = planGeneration(loadFixture('maxi-repo.synthesized.blueprint.json'), registry, readTemplate);
   assert.deepEqual(errors, []);
   const paths = files.map((f) => f.path);
-  // 8 agents + 3 paired skills (ui/api/db engineers) + 3 docs
-  assert.equal(files.length, 14);
+  // 8 agents + 3 paired skills (ui/api/db engineers) + README + 3 docs
+  assert.equal(files.length, 15);
+  assert.ok(paths.includes('docs/orchestration/README.md'));
   assert.ok(paths.includes('.claude/agents/feature-orchestrator.md'));
   assert.ok(paths.includes('.claude/skills/api-testing/SKILL.md'));
   assert.ok(paths.includes('docs/orchestration/dispatch-rules.md'));
@@ -129,4 +130,43 @@ test('validateGenerationManifest: unknown keys rejected at both levels (determin
       'generated[0]: unknown key "writtenAt"',
     ],
   );
+});
+
+// ── C5: update flow ─────────────────────────────────────────────────────────
+
+test('C5: findUserEdits — pristine target clean, edited file reported, deleted file not a conflict', () => {
+  const { files } = planGeneration(loadFixture('maxi-repo.synthesized.blueprint.json'), registry, readTemplate);
+  const manifest = manifestFor(files);
+  const disk = new Map(files.map((f) => [f.path, f.content]));
+  const read = (p) => disk.has(p) ? disk.get(p) : null;
+
+  assert.deepEqual(findUserEdits(manifest, read), []);
+
+  disk.set('.claude/agents/api-engineer.md', disk.get('.claude/agents/api-engineer.md') + '\n// hand edit\n');
+  disk.delete('docs/orchestration/tasks-format.md');
+  assert.deepEqual(findUserEdits(manifest, read), ['.claude/agents/api-engineer.md']);
+});
+
+test('C5: template improvement → version bump → regenerated file, no conflict', () => {
+  const bp = loadFixture('mini-repo.synthesized.blueprint.json');
+  const v1 = planGeneration(bp, registry, readTemplate);
+  assert.deepEqual(v1.errors, []);
+  const v1Manifest = manifestFor(v1.files);
+  const disk = new Map(v1.files.map((f) => [f.path, f.content]));
+
+  // kit-side template improvement, registry updated in the same change
+  const improved = readTemplate('agent', 'generic-specialist') + '\n<!-- improved guidance -->\n';
+  const sha = (t) => createHash('sha256').update(t, 'utf8').digest('hex');
+  const bumpedRegistry = JSON.parse(JSON.stringify(registry));
+  bumpedRegistry.agents['generic-specialist'] = { version: '1.1.0', sha256: sha(improved) };
+  const readBumped = (kind, id) => (kind === 'agent' && id === 'generic-specialist') ? improved : readTemplate(kind, id);
+
+  // pristine target → no conflicts, regeneration proceeds
+  assert.deepEqual(findUserEdits(v1Manifest, (p) => disk.get(p) ?? null), []);
+  const v2 = planGeneration(bp, bumpedRegistry, readBumped);
+  assert.deepEqual(v2.errors, []);
+  const entry = manifestFor(v2.files).generated.find((g) => g.path === '.claude/agents/cli-engineer.md');
+  const oldEntry = v1Manifest.generated.find((g) => g.path === '.claude/agents/cli-engineer.md');
+  assert.equal(entry.templateVersion, '1.1.0');
+  assert.notEqual(entry.sha256, oldEntry.sha256);
 });

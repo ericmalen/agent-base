@@ -20,9 +20,8 @@ manifest is the only state it owns.
    ```
    node --input-type=module -e '
    import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-   import { createHash } from "node:crypto";
    import { dirname, join } from "node:path";
-   import { planGeneration, manifestFor } from "./scripts/lib/orchestration/scaffold.mjs";
+   import { planGeneration, manifestFor, findUserEdits } from "./scripts/lib/orchestration/scaffold.mjs";
    const target = process.argv[1];
    const manifestPath = join(target, "docs/orchestration/generation-manifest.json");
    const bp = JSON.parse(readFileSync(join(target, "docs/orchestration/blueprint.json"), "utf8"));
@@ -31,16 +30,13 @@ manifest is the only state it owns.
                   skill: (id) => `templates/orchestration/skills/${id}.template.md`,
                   doc:   (id) => `templates/orchestration/docs/${id}.md` };
    const readTemplate = (kind, id) => existsSync(dirs[kind](id)) ? readFileSync(dirs[kind](id), "utf8") : null;
-   const sha = (t) => createHash("sha256").update(t, "utf8").digest("hex");
    if (existsSync(manifestPath)) {
      const prior = JSON.parse(readFileSync(manifestPath, "utf8"));
-     const conflicts = prior.generated.filter((g) => {
-       const p = join(target, g.path);
-       return existsSync(p) && sha(readFileSync(p, "utf8")) !== g.sha256;
-     });
+     const readTargetFile = (p) => existsSync(join(target, p)) ? readFileSync(join(target, p), "utf8") : null;
+     const conflicts = findUserEdits(prior, readTargetFile);
      if (conflicts.length) {
        console.error("USER-EDIT conflicts — resolve by hand, nothing written:");
-       conflicts.forEach((c) => console.error(`  ${c.path}`));
+       conflicts.forEach((c) => console.error(`  ${c}`));
        process.exit(1);
      }
    }
