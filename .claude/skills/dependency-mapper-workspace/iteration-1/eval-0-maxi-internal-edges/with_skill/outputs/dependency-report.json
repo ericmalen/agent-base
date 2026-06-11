@@ -1,0 +1,44 @@
+{
+  "internalEdges": [
+    { "from": "ui", "to": "shared", "devOnly": false, "evidence": "apps/ui/package.json dependencies: \"shared\": \"*\" (npm workspace package-name match)" },
+    { "from": "api", "to": "shared", "devOnly": false, "evidence": "apps/api/package.json dependencies: \"shared\": \"*\" (npm workspace package-name match)" }
+  ],
+  "externalDeps": {
+    "ui": [
+      { "name": "react", "role": "framework" },
+      { "name": "react-dom", "role": "framework (DOM renderer)" },
+      { "name": "vite", "role": "build tool (dev)" },
+      { "name": "@vitejs/plugin-react", "role": "build integration (dev)" },
+      { "name": "typescript", "role": "language (dev)" }
+    ],
+    "api": [
+      { "name": "express", "role": "framework (HTTP server)" },
+      { "name": "typescript", "role": "language (dev)" },
+      { "name": "@types/express", "role": "type definitions (dev)" }
+    ],
+    "db": [
+      { "name": "@prisma/client", "role": "ORM client" },
+      { "name": "prisma", "role": "ORM CLI / migrations (dev)" }
+    ],
+    "shared": [
+      { "name": "zod", "role": "schema/validation library" },
+      { "name": "typescript", "role": "language (dev)" }
+    ]
+  },
+  "stackRefinements": {
+    "ui": "React 18 + TypeScript, built with Vite (manifest confirms; tests via node --test)",
+    "api": "Express 4 + TypeScript (manifest confirms; tests via node --test)",
+    "db": "Prisma 5 (schema in packages/db/prisma/schema.prisma; @prisma/client at runtime)",
+    "shared": "TypeScript shared package defined by Zod schemas (validation/types provider)"
+  },
+  "ordering": {
+    "providers": ["shared"],
+    "consumers": ["ui", "api"],
+    "independent": ["db"],
+    "summary": "shared is the only provider — consumed at runtime by both ui and api — so in cross-layer tasks shared changes first, then api and ui (no edge between them; either order). db has no internal edges in either direction and can be sequenced independently."
+  },
+  "gaps": [
+    "db has zero internal consumers: api neither declares db in its manifest nor imports it in source (apps/api/src/server.ts imports only express). Either the api→db wiring is missing/undeclared or the db layer is currently dead weight — confirm with the team before deriving dispatch rules that assume api depends on db.",
+    "Internal dependency on shared uses bare version \"*\" rather than the workspace:* protocol; resolution relies on npm workspaces hoisting. Works, but worth noting as a convention signal."
+  ]
+}

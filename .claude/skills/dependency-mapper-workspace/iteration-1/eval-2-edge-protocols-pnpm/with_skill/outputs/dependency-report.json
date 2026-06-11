@@ -1,0 +1,33 @@
+{
+  "internalEdges": [
+    { "from": "svc", "to": "core", "devOnly": false, "via": "workspace:* (@edge/core)" },
+    { "from": "svc", "to": "test-kit", "devOnly": true, "via": "workspace:* (@edge/test-kit, devDependencies)" },
+    { "from": "web", "to": "core", "devOnly": false, "via": "file:../core (@edge/core)" }
+  ],
+  "externalDeps": {
+    "core": ["zod"],
+    "svc": ["fastify", "typescript (dev, build)"],
+    "web": ["react", "react-dom", "vite (dev, build)"],
+    "test-kit": ["vitest"],
+    "legacy": []
+  },
+  "stackRefinements": {
+    "core": "Node ESM library; zod schema/validation — likely the shared domain/types layer",
+    "svc": "Fastify HTTP service, TypeScript-compiled (tsc build), node:test for tests",
+    "web": "React 18 SPA built with Vite, ESM",
+    "test-kit": "Shared test utilities built on vitest (vitest is a runtime dependency of the package, but the package itself is consumed dev-only)",
+    "legacy": "No manifest; contains only src/index.js — plain JavaScript, stack unconfirmed"
+  },
+  "ordering": {
+    "providers": ["core", "test-kit"],
+    "consumers": ["svc", "web"],
+    "isolated": ["legacy"],
+    "dispatchOrder": ["core", "test-kit", "svc", "web", "legacy"],
+    "notes": "core is the sole runtime provider (consumed by svc via workspace:* and by web via file: link) — it changes first when a task spans layers. test-kit is a provider only through a dev-only edge into svc, so it carries a weaker ordering signal. svc and web have no edge between them and can change in parallel after core. legacy participates in no edges; its position in the order is arbitrary."
+  },
+  "gaps": [
+    "legacy layer (packages/legacy) has no recognizable manifest (no package.json) — internal edges and external deps for it cannot be determined; only src/index.js exists",
+    "web consumes core via a relative file:../core link instead of the pnpm workspace:* protocol used elsewhere — same edge semantically, but inconsistent linking worth confirming with the team",
+    "test-kit lists vitest under dependencies (not devDependencies) while every package's test script uses node --test — test-runner intent is ambiguous"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "internalEdges": [],
+  "externalDeps": {
+    "cli": []
+  },
+  "stackRefinements": {
+    "cli": "Zero-dependency Node >= 20 ESM CLI (node: builtins only — node:fs, node:test, node:assert); ESLint configured via .eslintrc.json but eslint is not a declared dependency"
+  },
+  "ordering": "Single layer (cli) with zero internal edges — no provider/consumer ordering signal; any task dispatches directly to the cli layer. deriveDispatchOrder input is empty.",
+  "gaps": [
+    "eslint is referenced by .eslintrc.json but absent from package.json dependencies/devDependencies and the lockfile — lint tooling presumably expected globally or via npx; lint command unconfirmed"
+  ]
+}

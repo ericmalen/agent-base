@@ -1,0 +1,43 @@
+{
+  "internalEdges": [
+    { "from": "svc", "to": "core", "devOnly": false, "via": "workspace:* (@edge/core)" },
+    { "from": "svc", "to": "test-kit", "devOnly": true, "via": "workspace:* (@edge/test-kit, devDependencies)" },
+    { "from": "web", "to": "core", "devOnly": false, "via": "file:../core (@edge/core)" }
+  ],
+  "externalDeps": {
+    "core": [
+      { "name": "zod", "role": "schema library" }
+    ],
+    "svc": [
+      { "name": "fastify", "role": "HTTP framework" },
+      { "name": "typescript", "role": "build tool (tsc)", "devOnly": true }
+    ],
+    "web": [
+      { "name": "react", "role": "UI framework" },
+      { "name": "react-dom", "role": "UI framework (DOM renderer)" },
+      { "name": "vite", "role": "build tool", "devOnly": true }
+    ],
+    "test-kit": [
+      { "name": "vitest", "role": "test framework" }
+    ],
+    "legacy": []
+  },
+  "stackRefinements": {
+    "core": "Node ESM shared library with zod schemas",
+    "svc": "Fastify service, TypeScript-compiled (tsc build)",
+    "web": "React 18 frontend built with Vite",
+    "test-kit": "Shared test utilities built on vitest (dev-only consumer-facing)",
+    "legacy": "CommonJS bundle (module.exports) with no manifest; stack cannot be confirmed from dependencies"
+  },
+  "ordering": {
+    "providers": ["core"],
+    "consumers": ["svc", "web"],
+    "signal": "core is the sole runtime provider, consumed by both svc and web; when a task spans layers, change core first, then svc and web in either order. test-kit is consumed only as a devDependency of svc, so it carries little ordering weight. legacy participates in no internal edges.",
+    "suggestedDispatchOrder": ["core", "svc", "web"]
+  },
+  "gaps": [
+    "legacy (packages/legacy) has no recognizable manifest (no package.json); internal and external dependencies for this layer cannot be mapped.",
+    "web links @edge/core via file:../core instead of the workspace: protocol used elsewhere; edge still recorded, but the inconsistent linkage convention is worth confirming with the team.",
+    "legacy/src/index.js uses CommonJS (module.exports) while the repo root declares type: module; module-system mismatch noted for the profile."
+  ]
+}
