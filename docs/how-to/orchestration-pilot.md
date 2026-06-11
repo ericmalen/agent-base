@@ -52,8 +52,8 @@ File the completed report as `reports/orchestration-pilot-<repo>-<date>.md`
 | Skill gap | Edit the meta-skill |
 | One-off in the generated repo | `retro` checklist item in that repo |
 
-Phase F exits when **two** pilots have passed and one scheduled headless
-orchestrator run has shipped a PR.
+Phase F exits when **two** pilots have passed and one scheduled
+[headless run](./headless-orchestration.md) has shipped a PR.
 
 ## Report template
 

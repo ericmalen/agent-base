@@ -220,6 +220,9 @@ in the troubleshooting guide.
   hand-edit generated agent files.
 - **Update kit:** re-run setup if the baseline skills need refreshing;
   orchestration assets are independent of the setup branch machinery.
+- **Schedule it:** once execution works interactively, add the
+  [headless pipeline](./headless-orchestration.md) to ship backlog items as
+  scheduled PRs.
 
 ## Lifecycle maintenance
 
