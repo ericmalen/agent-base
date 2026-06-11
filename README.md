@@ -49,7 +49,9 @@ node ~/tools/agent-base/scripts/build-starter.mjs /path/to/new-repo --git
 ### Check for drift later
 
 Set-up projects get a permanent `base-check` skill — run it any time to audit
-against the conventions and fix findings by rule ID.
+against the conventions and fix findings by rule ID. To pull a newer baseline
+release, use `base-refresh` (or `sync-baseline` directly) — see
+[`docs/how-to/baseline-sync.md`](./docs/how-to/baseline-sync.md).
 
 ### Generate orchestration (optional)
 

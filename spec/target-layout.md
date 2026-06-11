@@ -58,6 +58,13 @@ Note: the `base-check` skill deliberately does NOT bundle the audit engine —
 during setup it runs `.claude/agent-base-setup/scripts/audit.mjs`; after
 teardown it uses an Agent Base checkout (clone URL in the `.claude/agent-base.json` marker).
 
+Marker fields (R-50): required — `standard` (semver), `toolRepo`, `setupAt`,
+`githubCodeReview`; recommended — `pin` (release tag), `lastSyncedAt`.
+Baseline copies (the permanent skills/agents above) are owned by
+`sync-baseline`: upgrades replace them wholesale from the pinned release and
+bump `pin`/`lastSyncedAt` — local edits to baseline files surface as
+conflicts, never silently overwritten.
+
 ## Compat variant (nested AGENTS.md instead of rules/)
 
 Chosen at setup when the team uses other AGENTS.md-ecosystem tools
