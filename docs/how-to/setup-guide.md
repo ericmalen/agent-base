@@ -15,40 +15,53 @@ zero-dependency Node invoked as `node <script>.mjs` (shell-agnostic, no
 bash required); the only external command it spawns is `git`. The CI
 templates run on hosted Ubuntu runners, not your machine.
 
-You never type a terminal command. The AI clones the kit, installs the
+At most you type one `npx` command. The AI resolves Agent Base, installs the
 tooling, and runs every script itself.
 
 ## Starting a NEW project (starter)
 
-Emit the clean target state directly from a Agent Base clone:
+Emit the clean target state directly:
 
 ```sh
+npx github:ericmalen/agent-base#v1.1.0 starter /path/to/new-repo --git
+# or, from a clone:
 node ~/tools/agent-base/scripts/build-starter.mjs /path/to/new-repo --git
 ```
 
-Fill in AGENTS.md and you're done. No AI session required. (The kit's CI
+Fill in AGENTS.md and you're done. No AI session required. (Agent Base's CI
 publishes the same output as a build artifact named `starter`, if you'd
 rather download than run the script.)
 
 ## Setting up an EXISTING repo (or a new one, equivalently)
 
-Open Claude Code or Copilot (agent mode) in your repo and paste ONE prompt:
+From your repo root:
+
+```sh
+npx github:ericmalen/agent-base#v1.1.0 setup
+```
+
+This stages the release at a stable path and prints the exact prompt to paste
+into Claude Code or Copilot (agent mode) opened in your repo. Non-GitHub
+hosting uses the `git+<https-url>#<tag>` spec form — see the
+[CLI reference](../reference/agent-base-cli.md).
+
+Prefer zero terminal? Paste ONE prompt instead:
 
 > Clone https://dev.azure.com/&lt;org&gt;/agent-base/_git/agent-base into a temp folder
 > and follow its .claude/skills/base-setup/SKILL.md to set up this repository.
 
-That's the whole setup. The AI installs the tooling, commits it, and starts
-the four-phase flow below. The setup-time tooling is removed again before
-merge; what stays is the permanent baseline — the `base-check`, `docs`,
+Either way that's the whole setup. The AI installs the tooling, commits it,
+and starts the four-phase flow below. The setup-time tooling is removed again
+before merge; what stays is the permanent baseline — the `base-check`, `docs`,
 `git-conventions`, `skill-creator`, and `agent-creator` skills; the
 orchestration lifecycle skills `retro`, `log-report`, and `eval-runner`
 (dormant until orchestration generation creates their surfaces); and the
 `docs-auditor` agent.
 
-**Repeat users:** keep a Agent Base clone (`git clone <url> ~/tools/agent-base`), open
-it in your tool, and say `/base-setup /path/to/repo`. The skill freshens
-the clone, installs the tooling into the target, and orchestrates all four
-phases from there.
+**Working from a clone (Agent Base development, or fallback):** keep a clone
+(`git clone <url> ~/tools/agent-base`), open it in your tool, and say
+`/base-setup /path/to/repo`. The skill freshens the clone, installs the
+tooling into the target, and orchestrates all four phases from there.
 
 **Copilot users:** Copilot will ask approval when the AI runs git/node — to
 reduce prompts, allowlist `node .claude/agent-base-setup/scripts/*` and
@@ -90,7 +103,8 @@ your repo is untouched until YOU merge.
 - Updating to a newer Agent Base release: use baseline sync, not a re-setup.
   `sync-baseline --check` flags a stale pin; `--report` shows the plan;
   `--upgrade` applies it — see [baseline-sync](./baseline-sync.md). The
-  `base-refresh` skill (run from an Agent Base clone, like `base-setup`)
+  `base-refresh` skill (run from a base checkout, like `base-setup` —
+  `npx github:ericmalen/agent-base#<new-tag> refresh` prints the prompt)
   walks the full loop for you. Re-run the full setup flow only for
   major/breaking changes to routing or layout; your current state is just
   new existing-project input, protected by the same machinery.

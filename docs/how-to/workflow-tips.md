@@ -133,7 +133,9 @@ conventions.
 
 - **Run the `base-check` skill at any time** to audit the repo's AI
   configuration against the conventions ([`conventions.md`](../reference/conventions.md))
-  and fix findings by rule ID.
+  and fix findings by rule ID. Ask for a **deep check** to also re-sweep the
+  repo for AI instructions buried outside the configured surface (new docs,
+  READMEs) — findings route back through a `base-plan` delta.
 - **If a file is doing two jobs, split it.** One role per agent, one workflow
   per skill, one scope per rules file — apply it as maintenance, not just at
   creation time.

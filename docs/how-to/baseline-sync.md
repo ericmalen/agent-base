@@ -22,8 +22,8 @@ Every set-up project records releases in [`.claude/agent-base.json`](../../spec/
 | Field | Role |
 | --- | --- |
 | `standard` | Semver of the Agent Base standard at setup/last sync |
-| `toolRepo` | Clone URL for Agent Base (GitHub or Azure DevOps) |
-| `pin` | Git tag checked out for audit CI and baseline sync |
+| `toolRepo` | Agent Base repo URL (GitHub or Azure DevOps) — clone target and npx spec source |
+| `pin` | Git tag resolved for audit CI (npx) and baseline sync |
 | `lastSyncedAt` | Date baseline files were last synced from `pin` |
 | `setupAt` | Date setup completed (immutable) |
 | `githubCodeReview` | Setup policy flag (R-09/R-49) |
@@ -33,28 +33,30 @@ the same major are **compatible** by default.
 
 ## Commands
 
-From a project root (or pass `--root`):
+From a project root (or pass `--root`), via npx at your pin — no clone needed:
 
 ```sh
 # CI / weekly nudge — exit 1 when pin is behind
-node /path/to/agent-base/scripts/sync-baseline.mjs --check
+npx github:ericmalen/agent-base#v1.1.0 sync --check
 
 # Bot-friendly JSON plan (files to update, conflicts)
-node /path/to/agent-base/scripts/sync-baseline.mjs --report --json
+npx github:ericmalen/agent-base#v1.1.0 sync --report --json
 
-# Apply safe updates (skips files with local edits vs old kit)
-node /path/to/agent-base/scripts/sync-baseline.mjs --upgrade
+# Apply safe updates (skips files with local edits vs the old release)
+npx github:ericmalen/agent-base#v1.1.0 sync --upgrade
 
 # Preview only
-node /path/to/agent-base/scripts/sync-baseline.mjs --upgrade --dry-run
+npx github:ericmalen/agent-base#v1.1.0 sync --upgrade --dry-run
 ```
 
+The same commands work from a clone
+(`node /path/to/agent-base/scripts/sync-baseline.mjs --check` …).
 Use `--allow-major` to consider the latest tag across major versions.
 
 During development, point at a local clone:
 
 ```sh
-node ~/tools/agent-base/scripts/sync-baseline.mjs --check --kit-root ~/tools/agent-base
+node ~/tools/agent-base/scripts/sync-baseline.mjs --check --base-root ~/tools/agent-base
 ```
 
 ## What gets synced
@@ -71,29 +73,30 @@ never touched.
 
 For each baseline file:
 
-- Matches old kit, differs on new kit → **auto-update**
-- Matches new kit already → **unchanged**
-- Differs from both old and new kit → **conflict** (human resolves, then re-run)
+- Matches the old release, differs on the new release → **auto-update**
+- Matches the new release already → **unchanged**
+- Differs from both old and new release → **conflict** (human resolves, then re-run)
 
 This is the polished version of “pull from source” — not silent auto-sync.
 
 ## CI templates
 
-Copy from the Agent Base clone when the project has CI:
+Copy from a base checkout when the project has CI:
 
 | Template | Purpose |
 | --- | --- |
 | `templates/ci/audit-strict.github.yml` / `.ado.yml` | Audit at **pinned** release (`--strict`) |
 | `templates/ci/baseline-pin-check.github.yml` / `.ado.yml` | Fail/warn when `pin` is behind |
 
-All read `toolRepo` and `pin` from the marker, and fail hard when the clone
-at `pin` fails — a bad pin never silently falls back to an unpinned clone.
-For private repos, inject credentials (`secrets.KIT_TOKEN` on GitHub, a
+All compute an npx spec from the marker (`toolRepo` + `pin`) and run Agent
+Base via `npx --yes` at that pin, failing hard when resolution fails — a bad
+pin never silently falls back to an unpinned ref. For private repos, route
+git credentials with an `insteadOf` rewrite (`secrets.KIT_TOKEN` on GitHub, a
 secret pipeline variable on ADO — see comments in each template).
 
 Note: workflow copies in your repo are **not** owned by `sync-baseline` (it
 syncs only baseline skills/agents). When the templates change in Agent Base,
-re-copy them from the clone yourself — `--report` will never list them.
+re-copy them from a checkout yourself — `--report` will never list them.
 
 ## Bot PR (optional)
 
@@ -134,7 +137,7 @@ Pick your case from the marker (`.claude/agent-base.json`):
 - **`standard` is not semver (e.g. a sha)** → the marker fails validation.
   Edit the marker once by hand: set `standard` to the release you are
   effectively on (e.g. `1.0.0`), add `"pin": "v1.0.0"`, and check that
-  `toolRepo` points at the current Agent Base clone URL (pre-rename projects
+  `toolRepo` points at the current Agent Base repo URL (pre-rename projects
   may still point at the repo's retired v1 name). Then run `--upgrade`
   normally.
 - **Pre-rename marker or layout** (marker file or paths from before the
@@ -143,9 +146,10 @@ Pick your case from the marker (`.claude/agent-base.json`):
   input, protected by the normal gates. Don't hand-migrate.
 
 After any of these, also re-copy any CI templates your repo had installed
-(`audit-strict`, `baseline-pin-check`) — older copies silently fell back to
-an unpinned clone when the pin clone failed; current ones fail loudly. See
-the note under [CI templates](#ci-templates).
+(`audit-strict`, `baseline-pin-check`) — older copies cloned at the pin (or,
+before that, silently fell back to an unpinned clone); current ones resolve
+via npx at the pin and fail loudly. See the note under
+[CI templates](#ci-templates).
 
 ## Related
 

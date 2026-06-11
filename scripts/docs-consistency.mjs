@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// docs-consistency.mjs — guards kit docs against vocabulary drift.
+// docs-consistency.mjs — relative Markdown links in Agent Base docs must
+// resolve to existing files (Agent Base's own docs are not covered by the
+// R-07 audit, which checks adopted-repo surfaces).
 //
-// Two checks, zero dependencies:
-//   1. Banned terms: v1 CLI / dropped-surface vocabulary must not reappear in
-//      consumer-facing prose (spec/ is exempt — it DEFINES the dropped
-//      surfaces).
-//   2. Relative Markdown links resolve to existing files (the kit's own docs
-//      are not covered by the R-07 audit, which checks adopted-repo surfaces).
+// A banned-vocabulary check lived here until June 2026; it was removed after
+// review showed its only catch was a false positive (half the list was
+// rename-shadows of retired ai-kit terms that never existed under the
+// agent-base name).
 //
 // Usage: node scripts/docs-consistency.mjs [--root <dir>] [--json]
 // Exit 0 = clean, 1 = findings.
@@ -15,51 +15,8 @@ import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join, dirname, resolve, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const BANNED_TERMS = [
-  "bin/agent-base.mjs",
-  "agent-base init",
-  "agent-base update",
-  "agent-base audit",
-  "agent-base.config.json",
-  ".agent-base-migration-routing",
-  "ai-kit",
-  "greenfield",
-  "brownfield",
-  "adopt-inventory",
-  "adopt-plan",
-  "adopt-materialize",
-  "adopt-verify",
-  "ai-kit-adopt",
-  "ai-kit-check",
-  "ai-kit-orchestrate",
-  "kit clone",
-  "factory, not the house",
-  "/optimize",
-  "/migrate",
-  "layer-agents",
-  "/new-agent",
-  ".github/prompts",
-  ".prompt.md",
-  "sub-agent",
-  "the CLI", // v1 had a CLI; v2 distribution is install-setup.mjs
-  "new-agent",
-  "catalog/", // retired v1 zone (assets live under .claude/ now)
-];
-
-// (file, term) pairs that are deliberately allowed.
-export const ALLOW = new Set([
-  // documents the VS Code BUILT-IN /create-prompt, annotated as out-of-surface (R-54)
-  "docs/reference/built-in-reference.md .prompt.md",
-  // retired-term glossary — lists banned vocabulary on purpose
-  "docs/reference/terminology.md ai-kit",
-  "docs/reference/terminology.md greenfield",
-  "docs/reference/terminology.md brownfield",
-  "docs/reference/terminology.md kit clone",
-]);
-
-const SCAN_DIRS = ["docs", "templates", ".claude"];
+const SCAN_DIRS = ["docs", "templates", ".claude", "spec"];
 const SCAN_FILES = ["README.md", "AGENTS.md", "CLAUDE.md"];
-const LINK_EXTRA_DIRS = ["spec"]; // link-checked but exempt from banned terms
 
 function isVendored(dir) {
   // a directory carrying an UPSTREAM provenance marker is held to upstream's
@@ -90,24 +47,7 @@ export function collectFiles(root) {
   const files = [];
   for (const d of SCAN_DIRS) if (existsSync(join(root, d))) files.push(...walk(join(root, d), root));
   for (const f of SCAN_FILES) if (existsSync(join(root, f))) files.push(f);
-  const linkOnly = [];
-  for (const d of LINK_EXTRA_DIRS) if (existsSync(join(root, d))) linkOnly.push(...walk(join(root, d), root));
-  return { files, linkOnly };
-}
-
-export function checkBannedTerms(root, files) {
-  const findings = [];
-  for (const rel of files) {
-    const lines = readFileSync(join(root, rel), "utf8").split("\n");
-    lines.forEach((line, i) => {
-      for (const term of BANNED_TERMS) {
-        if (line.includes(term) && !ALLOW.has(rel + " " + term)) {
-          findings.push({ check: "banned-term", file: rel, line: i + 1, term });
-        }
-      }
-    });
-  }
-  return findings;
+  return { files };
 }
 
 const LINK_RE = /\[[^\]]*\]\(([^)\s]+)\)/g;
@@ -139,11 +79,8 @@ export function checkLinks(root, files) {
 }
 
 export function run(root) {
-  const { files, linkOnly } = collectFiles(root);
-  return [
-    ...checkBannedTerms(root, files),
-    ...checkLinks(root, [...files, ...linkOnly]),
-  ];
+  const { files } = collectFiles(root);
+  return checkLinks(root, files);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

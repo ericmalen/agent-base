@@ -2,8 +2,8 @@
 
 This is the **setup tool, not your application repo**: the repo that builds and
 ships AI-config setups into other repositories. Nobody starts a project by
-cloning this repo — setup runs *from a project* against a shared Agent Base
-clone.
+cloning this repo — setup runs *from a project* against a base
+checkout (npx-staged release via the `agent-base` bin, or a shared clone).
 
 ## Overview
 
@@ -25,7 +25,7 @@ unit-tested, shell-agnostic.
 |---|---|
 | `templates/` | Payload copied into every project: `instructions/` (AGENTS.md/CLAUDE.md skeletons + slot bases), `settings/`, `readmes/`, `ci/`, `gitignore`. |
 | `scripts/` + `test/` | The engine. Dev tooling here; setup copies ONLY the five setup scripts (inventory-extract, apply, check, report, audit) + `scripts/lib/` + `templates/` into projects as `.claude/agent-base-setup/` — `test/` never ships. |
-| `.claude/` | This repo's live config AND the baseline shipped to every project. The `base-*` setup skills, `setup-verifier` agent, and the baseline `base-check`, `docs`, `git-conventions`, `skill-creator`, `agent-creator`, `retro`, `log-report`, `eval-runner` skills + `docs-auditor` agent are dual-role: loaded here AND installed path-for-path into projects (see `scripts/install-setup.mjs`, the allowlist that decides what ships). Orchestration discovery/generation meta-assets (`repo-analyst`, `scaffolder`, `evaluator`, and their paired skills) stay Agent Base-side — run from an Agent Base clone against a project path, same pattern as `base-setup`. `base-setup` is the setup entry point — run from this clone against a project path; deliberately NOT installed into projects. |
+| `.claude/` | This repo's live config AND the baseline shipped to every project. The `base-*` setup skills, `setup-verifier` agent, and the baseline `base-check`, `docs`, `git-conventions`, `skill-creator`, `agent-creator`, `retro`, `log-report`, `eval-runner` skills + `docs-auditor` agent are dual-role: loaded here AND installed path-for-path into projects (see `scripts/install-setup.mjs`, the allowlist that decides what ships). Orchestration discovery/generation meta-assets (`repo-analyst`, `scaffolder`, `evaluator`, and their paired skills) stay Agent Base-side — run from a base checkout (clone or staged release) against a project path, same pattern as `base-setup`. `base-setup` is the setup entry point — run from a checkout against a project path; deliberately NOT installed into projects. |
 | `docs/` | Consumer-facing guides. |
 | `reports/` | Generated outputs (validation/audit reports). Gitignored. |
 
@@ -37,8 +37,8 @@ unit-tested, shell-agnostic.
   `.claude/agent-base.json`).
 - Generated reports go to `reports/`, never committed.
 - v1/v2 are internal generations; released artifacts version from 1.0.
-- Agent Base CI gates beyond tests: `docs-consistency` (banned v1 vocabulary + doc
-  link resolution) and `rule-check-map` (spec-rule ⇄ audit-check coverage).
+- Agent Base CI gates beyond tests: `docs-consistency` (doc link resolution)
+  and `rule-check-map` (spec-rule ⇄ audit-check coverage).
 
 ## Documentation
 
@@ -59,8 +59,11 @@ notes.
   in spec). The installer allowlist (`scripts/install-setup.mjs`) decides
   what ships to projects; `base-setup` stays Agent Base-side only.
 - Do not move `.claude/skills/base-setup/` or rename `scripts/`,
-  `templates/` — paths are load-bearing (one-prompt flow in
-  `docs/how-to/setup-guide.md`, `apply.mjs`, `install-setup.mjs`).
+  `templates/`, or `bin/` — paths are load-bearing (one-prompt flow in
+  `docs/how-to/setup-guide.md`, `apply.mjs`, `install-setup.mjs`, the
+  `agent-base` bin in `package.json`). `bin/` is the npx entry point and
+  must never enter the installer allowlist — CLI-only helpers live in
+  `bin/lib/`, not `scripts/lib/` (which ships wholesale into projects).
   Within `templates/`: `instructions/` is resolved by project path during
   slot assembly (`apply.mjs`), and `gitignore` is dotless so it is
   never live — neither here nor when copied into projects.

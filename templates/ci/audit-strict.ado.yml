@@ -1,5 +1,7 @@
 # audit-strict — set-up projects must stay conformant to the Agent Base standard layout.
-# Azure DevOps variant. Clones toolRepo at marker.pin before running audit --strict.
+# Azure DevOps variant. Resolves Agent Base via npx at marker.pin before running
+# audit --strict; a failed resolution fails the build — never fall back to an
+# unpinned ref.
 trigger:
   branches:
     include: ['*']
@@ -15,12 +17,12 @@ steps:
       versionSpec: '20.x'
   - bash: |
       set -euo pipefail
-      MARKER=.claude/agent-base.json
-      KIT_URL="$(node -e "process.stdout.write(require('./$MARKER').toolRepo)")"
-      PIN="$(node -e "const m=require('./$MARKER'); process.stdout.write(m.pin||('v'+m.standard))")"
-      git clone --depth 1 --branch "$PIN" "$KIT_URL" "$(Agent.TempDirectory)/agent-base" || {
-        echo "##vso[task.logissue type=error]Could not clone $KIT_URL at tag $PIN — check the tag exists and the agent can reach the repo."
+      test -f .claude/agent-base.json
+      NPX_SPEC="$(node -e 'const m=require("./.claude/agent-base.json");const pin=m.pin||("v"+m.standard);const url=String(m.toolRepo).trim().replace(/\/+$/,"");const gh=url.match(/^(?:git\+)?https:\/\/github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?$/);process.stdout.write((gh?"github:"+gh[1]+"/"+gh[2]:(url.startsWith("git+")?url:"git+"+url))+"#"+pin)')"
+      # Private Agent Base repo? npm fetches git deps through git — route credentials from a secret variable, e.g.:
+      # git config --global url."https://x-token:${AGENT_BASE_TOKEN}@dev.azure.com/".insteadOf "https://dev.azure.com/"
+      npx --yes "$NPX_SPEC" audit --root . --strict || {
+        echo "##vso[task.logissue type=error]Audit findings, or $NPX_SPEC could not be resolved — check the tag exists and the agent can reach the repo; never fall back to an unpinned ref."
         exit 1
       }
-      node "$(Agent.TempDirectory)/agent-base/scripts/audit.mjs" --root . --strict
-    displayName: Clone Agent Base at pin and audit (--strict)
+    displayName: Resolve Agent Base npx spec and audit (--strict)

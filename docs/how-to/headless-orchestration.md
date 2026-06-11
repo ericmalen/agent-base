@@ -11,7 +11,7 @@ unit-tested guard logic; a run always ends at PR creation, **never a merge**.
   (`docs/orchestration/generation-manifest.json` exists — see the
   [orchestration guide](./orchestration-guide.md))
 - A seeded `tasks.md` with at least one unblocked, non-`triage` Backlog item
-- The matching CI template copied from an Agent Base clone:
+- The matching CI template copied from a base checkout:
   - `templates/ci/orchestrator-run.github.yml` → `.github/workflows/`
   - `templates/ci/orchestrator-run.ado.yml` → `.azuredevops/` (point a
     pipeline at it)
@@ -29,9 +29,12 @@ to push — the pipeline pushes.
 
 ## What a run does
 
-1. **Clone Agent Base at pin** — same mechanism as the audit gate; a failed
-   pin clone fails the run, never an unpinned fallback.
-2. **Guard** — `scripts/lib/orchestration/headless-guard.mjs` decides
+1. **Resolve Agent Base at pin** — computes the npx spec from the marker
+   (`toolRepo` + `pin`) and runs every Agent Base command via
+   `npx --yes <spec>`; a failed resolution fails the run, never an unpinned
+   fallback.
+2. **Guard** — the `headless-guard` command (a thin CLI over
+   `scripts/lib/orchestration/headless-guard.mjs`) decides
    run/skip: skips on empty Backlog, on blocked-or-`triage`-only Backlog
    (tracker imports awaiting scoping never burn a run), or while a previous
    `orch/` PR is open (one writer at a time, DD-11). Otherwise it picks the
@@ -70,7 +73,7 @@ health.
 | `claude` exits non-zero after max turns | The task was too big for the cap — split it in `tasks.md` or raise `--max-turns` in the template |
 | Task bounced to Backlog with `blocked:` | Working as designed (failure protocol, one retry) — read the referenced handoff-log entry |
 | PR creation fails on ADO | Build service identity lacks "Create pull request" — Project Settings → Repositories → Security |
-| Pin clone fails | The marker's `pin` tag is missing or unreachable — fix `.claude/agent-base.json`, never fall back unpinned |
+| Pin resolution fails | The marker's `pin` tag is missing or unreachable via npx — fix `.claude/agent-base.json` (and git credentials for a private repo), never fall back unpinned |
 
 ## Further reading
 

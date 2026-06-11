@@ -2,26 +2,39 @@
 // audit-nudge — optional end-of-session conscience for set-up projects (CC/VS Code
 // Stop hook). Mirrors the docs-nudge pattern: no network, never blocks, exits 0
 // ALWAYS. One line if the repo has drifted off the agent-base target state; silent
-// when clean or when no kit checkout is reachable.
+// when clean or when no base checkout is reachable.
 //
 // Opt-in wiring (.claude/settings.json — read by Claude Code AND VS Code):
 //   "hooks": { "Stop": [ { "hooks": [ { "type": "command",
 //     "command": "node .claude/skills/base-check/scripts/audit-nudge.mjs" } ] } ] }
 //
-// Kit lookup order (no clone — speed + offline): $AGENT_BASE_HOME (or legacy
-// $AI_KIT_HOME), .claude/agent-base-setup (during setup), ~/tools/agent-base,
-// then the repo itself (Agent Base is self-set-up). Absent clone → silent.
+// Agent Base lookup order (no clone — speed + offline): $AGENT_BASE_HOME (or legacy
+// $AI_KIT_HOME), .claude/agent-base-setup (during setup), the npx-staged
+// release at this project's pin (~/.agent-base/versions/<pin>),
+// ~/tools/agent-base, then the repo itself (Agent Base is self-set-up).
+// Absent checkout → silent.
 
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
+function markerPin() {
+  try {
+    const m = JSON.parse(readFileSync(resolve('.claude/agent-base.json'), 'utf8'));
+    return m.pin ?? (m.standard ? `v${m.standard}` : null);
+  } catch {
+    return null;
+  }
+}
+
 function findAudit() {
   const home = process.env.AGENT_BASE_HOME || process.env.AI_KIT_HOME;
+  const pin = markerPin();
   const candidates = [
     home && join(home, 'scripts', 'audit.mjs'),
     resolve('.claude/agent-base-setup/scripts/audit.mjs'),
+    pin && join(homedir(), '.agent-base', 'versions', pin, 'scripts', 'audit.mjs'),
     join(homedir(), 'tools', 'agent-base', 'scripts', 'audit.mjs'),
     resolve('scripts/audit.mjs'),
   ].filter(Boolean);
@@ -30,7 +43,7 @@ function findAudit() {
 
 try {
   const auditPath = findAudit();
-  if (!auditPath) process.exit(0); // kit absent — nothing to nudge against
+  if (!auditPath) process.exit(0); // Agent Base absent — nothing to nudge against
 
   const res = spawnSync(process.execPath, [auditPath, '--root', '.', '--json'],
     { encoding: 'utf8', timeout: 10000 });

@@ -3,7 +3,7 @@
 # structurally paired step-for-step with orchestrator-run.github.yml.
 #
 # Safety rules (do not weaken):
-#   - The guard (headless-guard.mjs) skips when the Backlog is empty, when
+#   - The guard (headless-guard) skips when the Backlog is empty, when
 #     only blocked/triage tasks remain, or while a previous orch/ PR is open.
 #   - The orchestrator runs exactly ONE task per run, commits on a work
 #     branch, and never pushes — the pipeline pushes and opens the PR.
@@ -20,7 +20,7 @@
 #     on the repo (Project Settings → Repositories → Security).
 #   - Optional: docs/orchestration/tracker-sync.json plus a secret variable
 #     AZURE_DEVOPS_PAT to chain a tracker sync before the run.
-#   - Private Agent Base repo? Inject credentials via a secret variable —
+#   - Private Agent Base repo? Route git credentials via a secret variable —
 #     see the commented line below.
 # NOTE: there is no exact ADO equivalent of GitHub's concurrency group —
 # overlapping manual + scheduled runs are still serialized by the guard's
@@ -44,17 +44,16 @@ steps:
       versionSpec: '20.x'
   - bash: |
       set -euo pipefail
-      MARKER=.claude/agent-base.json
-      test -f "$MARKER"
-      KIT_URL="$(node -e "process.stdout.write(require('./$MARKER').toolRepo)")"
-      PIN="$(node -e "const m=require('./$MARKER'); process.stdout.write(m.pin||('v'+m.standard))")"
-      # Private Agent Base repo? prepend credentials from a secret variable, e.g.:
-      # KIT_URL="$(echo "$KIT_URL" | sed "s#https://#https://x-token:${AGENT_BASE_TOKEN}@#")"
-      git clone --depth 1 --branch "$PIN" "$KIT_URL" "$(Agent.TempDirectory)/agent-base" || {
-        echo "##vso[task.logissue type=error]Could not clone $KIT_URL at tag $PIN — do not fall back to an unpinned clone."
+      test -f .claude/agent-base.json
+      NPX_SPEC="$(node -e 'const m=require("./.claude/agent-base.json");const pin=m.pin||("v"+m.standard);const url=String(m.toolRepo).trim().replace(/\/+$/,"");const gh=url.match(/^(?:git\+)?https:\/\/github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?$/);process.stdout.write((gh?"github:"+gh[1]+"/"+gh[2]:(url.startsWith("git+")?url:"git+"+url))+"#"+pin)')"
+      echo "##vso[task.setvariable variable=npxSpec]$NPX_SPEC"
+      # Private Agent Base repo? npm fetches git deps through git — route credentials from a secret variable, e.g.:
+      # git config --global url."https://x-token:${AGENT_BASE_TOKEN}@dev.azure.com/".insteadOf "https://dev.azure.com/"
+      npx --yes "$NPX_SPEC" --version || {
+        echo "##vso[task.logissue type=error]Could not resolve $NPX_SPEC — do not fall back to an unpinned ref."
         exit 1
       }
-    displayName: Clone Agent Base at pin
+    displayName: Resolve Agent Base npx spec
   - bash: |
       set -euo pipefail
       curl -sf -u ":$SYSTEM_ACCESSTOKEN" \
@@ -67,29 +66,21 @@ steps:
             require("fs").writeFileSync(process.env.AGENT_TEMPDIRECTORY + "/open-branches.json", JSON.stringify(branches));
           });
         '
-      KIT="$(Agent.TempDirectory)/agent-base" node --input-type=module -e '
-        import { readFileSync, appendFileSync } from "node:fs";
-        const kit = process.env.KIT;
-        const { parseTasksMd } = await import(`${kit}/scripts/lib/orchestration/parse-tasks.mjs`);
-        const { decideHeadlessRun } = await import(`${kit}/scripts/lib/orchestration/headless-guard.mjs`);
-        const { doc, errors } = parseTasksMd(readFileSync("tasks.md", "utf8"));
-        if (errors.length) { console.error(errors.join("\n")); process.exit(1); }
-        const openBranches = JSON.parse(readFileSync(process.env.AGENT_TEMPDIRECTORY + "/open-branches.json", "utf8"));
-        const d = decideHeadlessRun({ tasksDoc: doc, openBranches });
-        console.log(`guard: run=${d.run} reason=${d.reason} task=${d.taskId ?? "-"}`);
-        console.log(`##vso[task.setvariable variable=guardRun]${d.run}`);
-        console.log(`##vso[task.setvariable variable=guardTask]${d.taskId ?? ""}`);
-      '
+      GUARD_OUT="$(npx --yes "$NPX_SPEC" headless-guard --open-branches "$AGENT_TEMPDIRECTORY/open-branches.json")"
+      echo "$GUARD_OUT"
+      echo "##vso[task.setvariable variable=guardRun]$(echo "$GUARD_OUT" | sed -n 's/^run=//p')"
+      echo "##vso[task.setvariable variable=guardTask]$(echo "$GUARD_OUT" | sed -n 's/^task=//p')"
     env:
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
       AGENT_TEMPDIRECTORY: $(Agent.TempDirectory)
+      NPX_SPEC: $(npxSpec)
     displayName: Guard - decide whether to run
   - bash: |
       set -euo pipefail
       if [ ! -f docs/orchestration/tracker-sync.json ]; then
         echo "no tracker-sync.json — skipping tracker sync"; exit 0
       fi
-      node "$(Agent.TempDirectory)/agent-base/scripts/tracker-sync.mjs" --target . --apply || true
+      npx --yes "$NPX_SPEC" tracker-sync --target . --apply || true
       if ! git diff --quiet tasks.md; then
         git config user.name "orchestrator-run pipeline"
         git config user.email "orchestrator-run@dev.azure.com"
@@ -98,6 +89,7 @@ steps:
     condition: and(succeeded(), eq(variables['guardRun'], 'true'))
     env:
       AZURE_DEVOPS_PAT: $(AZURE_DEVOPS_PAT)
+      NPX_SPEC: $(npxSpec)
     displayName: Tracker sync (optional)
   - bash: |
       set -euo pipefail

@@ -1,10 +1,13 @@
 {
   "name": "agent-base",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "agent-base": "bin/agent-base.mjs"
+  },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "test": "node --test \"test/**/*.test.mjs\"",

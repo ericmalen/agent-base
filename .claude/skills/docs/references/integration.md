@@ -6,11 +6,11 @@ the repo is in git.
 ## Path A — repo already on agent-base (or adopting it now)
 
 The docs package is **baseline** agent-base — it installs automatically when you
-adopt the kit (shipped path-for-path by `install-setup`, alongside the
+adopt Agent Base (shipped path-for-path by `install-setup`, alongside the
 `adopt-*` skills). During setup, existing bespoke documentation rules in
 your instruction files are `supersede`d by this package (your original text is
 preserved in the setup review report). To add it to an already-adopted repo
-that predates baseline status, copy from the Agent Base clone:
+that predates baseline status, copy from the base checkout:
 
 - `.claude/skills/docs/` → `.claude/skills/docs/`
 - `.claude/agents/docs-auditor.md` → `.claude/agents/docs-auditor.md`
@@ -20,7 +20,7 @@ that predates baseline status, copy from the Agent Base clone:
 ## Path B — standalone (repo not using agent-base)
 
 Same two copies as above — the package has no dependency on the rest of
-the kit. Both Claude Code and GitHub Copilot (VS Code, agent mode) read those
+Agent Base. Both Claude Code and GitHub Copilot (VS Code, agent mode) read those
 locations natively; other agents can follow the conventions as plain
 files via the AGENTS.md pointer that setup writes.
 

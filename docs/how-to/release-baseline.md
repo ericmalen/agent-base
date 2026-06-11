@@ -32,8 +32,20 @@ default; majors need `--allow-major` (human-reviewed).
 From a clean tree on `main`:
 
 ```sh
+# Pre-tag smoke checks — a release must be npx-resolvable:
+npm pack --dry-run            # packlist sanity (templates/, .claude/, spec/ included)
+node bin/agent-base.mjs --help
+
 npm version patch   # or minor / major — bumps package.json, commits, tags vX.Y.Z
 git push origin main --follow-tags
+```
+
+The tag must reach the origin remote — consumers resolve releases with
+`npx github:<owner>/agent-base#vX.Y.Z` (or `git+<url>#vX.Y.Z`), which fails
+if the tag is absent. Optionally verify from a scratch directory:
+
+```sh
+npx --yes github:ericmalen/agent-base#vX.Y.Z --version
 ```
 
 ## Tag gate

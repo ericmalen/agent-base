@@ -13,7 +13,7 @@ the Markdown companion is rendered, never written by hand.
    `<target>/docs/orchestration/repo-profile.json`; if missing, stop and
    report (discovery runs first).
 2. Load the question bank: `.claude/skills/interview-guide/SKILL.md` in the
-   Agent Base clone. For each decisions field, decide ask vs confirm per its "Ask
+   base checkout. For each decisions field, decide ask vs confirm per its "Ask
    when" column, using the profile's `gaps[]` and conventions as evidence.
 3. Collect answers. Interactive session: ask the human, one question at a
    time, offering the finite options only. Dispatched run: answers come in
@@ -21,7 +21,7 @@ the Markdown companion is rendered, never written by hand.
    value gets re-asked or reported — never coerced silently.
 4. Apply the guide's consistency checks across the answer set.
 5. Assemble `decisions.json` (`schemaVersion: 1` + the six fields) and
-   validate BEFORE writing, from the Agent Base clone:
+   validate BEFORE writing, from the base checkout:
 
    ```
    node --input-type=module -e '
@@ -56,7 +56,7 @@ the Markdown companion is rendered, never written by hand.
 - Never write a `decisions.json` that fails `validateDecisionsDoc`.
 - Never proceed to blueprint synthesis or generation — that is the
   plan-synthesizer's job (B8).
-- Never modify the profile, the target's source, or the kit.
+- Never modify the profile, the target's source, or Agent Base.
 
 ## Documents
 

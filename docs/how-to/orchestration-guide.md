@@ -1,8 +1,9 @@
 # Orchestration in a repository
 
 How to generate and run a repo-specific multi-agent team — discovery,
-generation, and execution — from an open Agent Base clone against a project that
-has already completed [setup](./setup-guide.md).
+generation, and execution — from an open base checkout (clone or
+npx-staged release) against a project that has already completed
+[setup](./setup-guide.md).
 
 ## What you get
 
@@ -25,10 +26,11 @@ optional.
 - Target in **git** with a **clean working tree**
 - **Node ≥ 20** on the machine (the AI runs scripts — you never will)
 - Claude Code or Copilot in **agent mode**
-- An open **Agent Base clone** (same pattern as `/base-setup`)
+- An **base checkout** (staged release or open clone — same pattern
+  as `/base-setup`)
 
-Orchestration discovery and generation meta-assets stay **kit-side** — they
-run from the Agent Base clone against a target path, not from inside the target.
+Orchestration discovery and generation meta-assets stay **Agent Base-side** — they
+run from the base checkout against a target path, not from inside the target.
 
 ### Pre-flight checklist
 
@@ -37,17 +39,23 @@ preconditions — failing one stops the run):
 
 | Check | Verify with |
 |---|---|
-| Target is a git repo, not the Agent Base clone | `git -C /path/to/project rev-parse` succeeds; path ≠ Agent Base clone |
+| Target is a git repo, not the base checkout | `git -C /path/to/project rev-parse` succeeds; path ≠ base checkout |
 | Clean working tree | `git -C /path/to/project status --porcelain` prints nothing |
 | Baseline setup present | `.claude/agent-base.json` and `.claude/skills/base-check/` exist in the target |
 | Node ≥ 20 | `node --version` |
-| Kit clone fresh | `git -C ~/tools/agent-base pull --ff-only` |
+| Checkout fresh | Clones: `git -C ~/tools/agent-base pull --ff-only`. staged releases are immutable at their tag — pick a newer tag instead |
 
 ## Quick start
 
-One-time: keep a Agent Base clone (`git clone <url> ~/tools/agent-base`).
+From the project:
 
-Open the **Agent Base clone** in Claude Code (or Copilot agent mode) and run:
+```sh
+npx github:ericmalen/agent-base#v1.1.0 orchestrate
+```
+
+then paste the printed prompt into your AI session. Or, from a clone
+(one-time: `git clone <url> ~/tools/agent-base`), open the **base
+clone** in Claude Code (or Copilot agent mode) and run:
 
 ```text
 /base-orchestrate /path/to/project
@@ -56,9 +64,9 @@ Open the **Agent Base clone** in Claude Code (or Copilot agent mode) and run:
 The skill orchestrates discovery and generation in fresh contexts and stops at
 human gates. Details below.
 
-**Repeat users:** freshen the Agent Base clone (`git pull --ff-only`), then
-`/base-orchestrate /path/to/repo` again to regenerate from an updated
-blueprint or kit templates.
+**Repeat users:** freshen the checkout (clones: `git pull --ff-only`; npx:
+re-run at the newer tag), then `/base-orchestrate /path/to/repo` again to
+regenerate from an updated blueprint or Agent Base templates.
 
 ## When to use orchestration
 
@@ -87,14 +95,14 @@ to the target as they land.
 Sessions can be days apart. Each step reads the previous step's committed
 artifacts.
 
-Time budgets below are measured on the kit fixtures; a large real repo can
+Time budgets below are measured on the Agent Base fixtures; a large real repo can
 take 2–3× longer per session. A silent wait inside one budget is normal —
 past 2× the budget with no artifact, see the
 [troubleshooting guide](./orchestration-troubleshooting.md).
 
 ### Session 1 — Profile (`repo-analyst`)
 
-From the Agent Base clone, dispatch the `repo-analyst` agent with the target path.
+From the base checkout, dispatch the `repo-analyst` agent with the target path.
 It runs `structure-detector`, `dependency-mapper`, and `convention-detector`
 skills and writes a schema-valid `repo-profile.json`.
 
@@ -168,7 +176,7 @@ docs under `docs/orchestration/`, and a `generation-manifest.json` entry
 (template id, version, SHA) for **every** generated file. Re-running
 immediately must be a no-op — any diff on a clean re-run is a bug.
 
-Re-run the scaffolder after kit template updates; it refuses to overwrite
+Re-run the scaffolder after Agent Base template updates; it refuses to overwrite
 hand-edited generated files (conflict report instead — see troubleshooting).
 
 ### Session 5 — Execute (`feature-orchestrator`)
@@ -206,7 +214,7 @@ See [Lifecycle maintenance](#lifecycle-maintenance) below.
 
 ## Copilot users
 
-Allowlist kit scripts when prompted (`node scripts/lib/orchestration/*`,
+Allowlist Agent Base scripts when prompted (`node scripts/lib/orchestration/*`,
 read-only git). Subagent orchestration from `/base-orchestrate` should be
 attempted first; if phases run inline, follow the step-by-step
 [inline fallback procedure](./orchestration-troubleshooting.md#copilot-inline-fallback)
@@ -214,11 +222,11 @@ in the troubleshooting guide.
 
 ## After generation
 
-- **Drift:** run `drift-checker` from the Agent Base clone when templates change.
-- **Health gate:** invoke `evaluator` before distributing kit updates.
+- **Drift:** run `drift-checker` from the base checkout when templates change.
+- **Health gate:** invoke `evaluator` before distributing Agent Base updates.
 - **Regenerate:** re-run `scaffolder` against the stored blueprint — never
   hand-edit generated agent files.
-- **Update kit:** re-run setup if the baseline skills need refreshing;
+- **Update Agent Base:** re-run setup if the baseline skills need refreshing;
   orchestration assets are independent of the setup branch machinery.
 - **Schedule it:** once execution works interactively, add the
   [headless pipeline](./headless-orchestration.md) to ship backlog items as
@@ -235,12 +243,12 @@ dispatch counts, failure rates, and duration. Flags agents with failure rate
 > 20% or high turn utilization.
 
 **Eval runner (`eval-runner`):** smoke tier (1×) after template edits; release
-tier (5×, pass ≥ 4/5) before kit distribution. Goldens live in
+tier (5×, pass ≥ 4/5) before Agent Base distribution. Goldens live in
 `docs/orchestration/evals/<agent>/`.
 
 **Triage:** route recurring issues per
 [`triage-rules`](../../templates/orchestration/docs/triage-rules.md) —
-template defect → fix kit template and re-scaffold; blueprint defect →
+template defect → fix Agent Base template and re-scaffold; blueprint defect →
 re-synthesize; skill gap → edit skill; one-off → retro checklist item.
 
 ## Further reading
@@ -249,11 +257,11 @@ re-synthesize; skill gap → edit skill; one-off → retro checklist item.
   modes and recoveries
 - [Orchestration concepts](../explanation/orchestration.md) — architecture and
   design choices
-- [Agents and skills reference](../reference/agents-and-skills.md) — kit-side
+- [Agents and skills reference](../reference/agents-and-skills.md) — Agent Base-side
   vs shipped vs generated inventory
 - [Copilot parity](../reference/orchestration-copilot-parity.md) — tool
   limitations
 - [First run tutorial](../tutorials/orchestration-first-run.md) — walkthrough
-  on kit fixtures
+  on Agent Base fixtures
 - [Build plan (engineering)](../../notes/agent-orchestration-plan.md) — phase
   history and acceptance criteria (not a how-to)

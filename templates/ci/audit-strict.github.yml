@@ -1,9 +1,10 @@
 # audit-strict — set-up projects must stay conformant to the Agent Base standard layout.
 # Installed by setup for repos with GitHub CI (alongside docs-impact).
-# Runs the kit audit at the pinned release (--strict).
+# Runs the Agent Base audit at the pinned release (--strict).
 #
-# Shallow-clones toolRepo at marker.pin (fallback: v{standard}). Private kit?
-# Use secrets.KIT_TOKEN — see commented line below.
+# Resolves Agent Base via npx at marker.pin (fallback: v{standard}); a failed
+# resolution fails the build — never fall back to an unpinned ref. Private
+# Agent Base repo? Route git credentials via insteadOf — see commented line below.
 name: audit-strict
 on:
   pull_request:
@@ -20,16 +21,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Clone Agent Base at pin and audit (--strict)
+      - name: Resolve Agent Base npx spec and audit (--strict)
         run: |
           set -euo pipefail
-          MARKER=.claude/agent-base.json
-          KIT_URL="$(node -e "process.stdout.write(require('./$MARKER').toolRepo)")"
-          PIN="$(node -e "const m=require('./$MARKER'); process.stdout.write(m.pin||('v'+m.standard))")"
-          # Private kit? prepend credentials, e.g.:
-          # KIT_URL="$(echo "$KIT_URL" | sed "s#https://#https://x-token:${{ secrets.KIT_TOKEN }}@#")"
-          git clone --depth 1 --branch "$PIN" "$KIT_URL" "${RUNNER_TEMP}/agent-base" || {
-            echo "::error title=Agent Base pin clone failed::Could not clone $KIT_URL at tag $PIN. Check the tag exists and the runner can reach the repo."
+          test -f .claude/agent-base.json
+          NPX_SPEC="$(node -e 'const m=require("./.claude/agent-base.json");const pin=m.pin||("v"+m.standard);const url=String(m.toolRepo).trim().replace(/\/+$/,"");const gh=url.match(/^(?:git\+)?https:\/\/github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?$/);process.stdout.write((gh?"github:"+gh[1]+"/"+gh[2]:(url.startsWith("git+")?url:"git+"+url))+"#"+pin)')"
+          # Private Agent Base repo? npm fetches git deps through git — route credentials, e.g.:
+          # git config --global url."https://x-token:${{ secrets.KIT_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          npx --yes "$NPX_SPEC" audit --root . --strict || {
+            echo "::error title=Agent Base audit failed::Audit findings, or $NPX_SPEC could not be resolved (check the tag exists and the runner can reach the repo; never fall back to an unpinned ref)."
             exit 1
           }
-          node "${RUNNER_TEMP}/agent-base/scripts/audit.mjs" --root . --strict
