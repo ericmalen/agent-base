@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, readdirSync, existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
@@ -9,7 +9,7 @@ import { instantiateTemplate } from '../scripts/lib/orchestration/instantiate.mj
 import { renderDispatchOrder } from '../scripts/lib/orchestration/dispatch-order.mjs';
 import { validateGenerationManifest, validateTaskBacklog } from '../scripts/lib/orchestration/schemas.mjs';
 import { parseTasksMd } from '../scripts/lib/orchestration/parse-tasks.mjs';
-import { planGeneration } from '../scripts/lib/orchestration/scaffold.mjs';
+import { planGeneration, manifestFor } from '../scripts/lib/orchestration/scaffold.mjs';
 
 const FIXTURES = join(import.meta.dirname, 'fixtures', 'orchestration');
 const TEMPLATES = join(import.meta.dirname, '..', 'templates', 'orchestration', 'agents');
@@ -180,6 +180,70 @@ test('C3: skill-instantiator SKILL.md embedded script matches planGeneration byt
         assert.equal(written, planned.content, `${skillId}: skill script output diverges from planGeneration`);
       }
     }
+  } finally {
+    rmSync(target, { recursive: true, force: true });
+  }
+});
+
+// ── E3: drift-checker fresh re-instantiation tracks the scaffolder ───────────
+// drift-checker re-instantiates manifest entries and compares SHAs. It must
+// derive slots from the SAME agentSlots() the scaffolder uses (it imports it);
+// if it ever hand-rolled the derivation again, a clean target would spuriously
+// report TEMPLATE-DRIFT. This scaffolds a clean target and runs the skill's
+// real embedded classification script — all-MATCH is the regression guard.
+
+const driftScript = () => {
+  const md = readFileSync(join(ROOT, '.claude', 'skills', 'drift-checker', 'SKILL.md'), 'utf8');
+  const m = md.match(/node --input-type=module -e '\n([\s\S]*?)\n' <target-repo-path>/);
+  assert.ok(m, 'manifest-entries script not found in drift-checker/SKILL.md');
+  return m[1]; // first block = the agent/skill/doc classifier (uses agentSlots)
+};
+
+const scaffoldTarget = () => {
+  const { bp, files } = planMaxi();
+  const target = mkdtempSync(join(tmpdir(), 'drift-checker-'));
+  for (const f of files) {
+    mkdirSync(join(target, dirname(f.path)), { recursive: true });
+    writeFileSync(join(target, f.path), f.content);
+  }
+  mkdirSync(join(target, 'docs', 'orchestration'), { recursive: true });
+  writeFileSync(join(target, 'docs/orchestration/generation-manifest.json'),
+    JSON.stringify(manifestFor(files), null, 2));
+  writeFileSync(join(target, 'docs/orchestration/blueprint.json'), JSON.stringify(bp, null, 2));
+  return { target, files };
+};
+
+const runDrift = (script, target) => {
+  const res = spawnSync(process.execPath, ['--input-type=module', '-e', script, target],
+    { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(res.status, 0, `drift script failed: ${res.stderr}`);
+  return res.stdout.trim().split('\n').filter(Boolean);
+};
+
+test('E3: drift-checker classifies a clean scaffolded target as all-MATCH', () => {
+  const script = driftScript();
+  const { target, files } = scaffoldTarget();
+  try {
+    const lines = runDrift(script, target);
+    assert.equal(lines.length, files.length, 'one classification line per manifest entry');
+    for (const line of lines) {
+      assert.match(line, /^MATCH /, `drift on a clean target — slot derivation diverged from the scaffolder: ${line}`);
+    }
+  } finally {
+    rmSync(target, { recursive: true, force: true });
+  }
+});
+
+test('E3: drift-checker flags a hand-edited generated file as USER-EDIT only', () => {
+  const script = driftScript();
+  const { target } = scaffoldTarget();
+  try {
+    const victim = join(target, '.claude/agents/api-engineer.md');
+    writeFileSync(victim, readFileSync(victim, 'utf8') + '\n<!-- hand edit -->\n');
+    const lines = runDrift(script, target);
+    const edited = lines.filter((l) => !l.startsWith('MATCH '));
+    assert.deepEqual(edited, ['USER-EDIT .claude/agents/api-engineer.md'],
+      'exactly the touched file is USER-EDIT, everything else MATCH');
   } finally {
     rmSync(target, { recursive: true, force: true });
   }

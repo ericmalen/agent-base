@@ -19,13 +19,27 @@ import { renderDispatchOrder } from './dispatch-order.mjs';
 
 const sha256 = (text) => createHash('sha256').update(text, 'utf8').digest('hex');
 
-const agentSlotMap = (agent) => ({
-  ...agent.slots,
-  name: agent.name,
-  tools: agent.tools.join(', '),
-  'model-tier': agent.modelTier,
-  'turn-limit': String(agent.turnLimit),
-});
+// The exact slot map generation feeds an agent template: the blueprint entry's
+// own slots plus the injected quartet, plus — for the orchestrator — the
+// rendered dispatch order (injected so the prose can't drift from the
+// blueprint's dispatch_rules.dispatch_order). Keyed by NAME, not reference, so
+// re-instantiation from a freshly parsed blueprint (drift-checker) derives
+// byte-identical slots. Exported as the single source of this derivation: the
+// drift-checker imports it rather than hand-copying, which would silently
+// diverge the moment a new slot is injected here.
+export function agentSlots(agent, blueprint) {
+  const slots = {
+    ...agent.slots,
+    name: agent.name,
+    tools: agent.tools.join(', '),
+    'model-tier': agent.modelTier,
+    'turn-limit': String(agent.turnLimit),
+  };
+  if (agent.name === blueprint.orchestrator?.name) {
+    slots['dispatch-order'] = renderDispatchOrder(blueprint.dispatch_rules?.dispatch_order);
+  }
+  return slots;
+}
 
 // readTemplate(kind, id) -> template/doc source text, or null when the kit
 // has no such file ('agent' | 'skill' | 'doc').
@@ -68,13 +82,7 @@ export function planGeneration(blueprint, registry, readTemplate) {
       continue;
     }
     if (!checkPin(reg, source, `agent template ${agent.templateId}`)) continue;
-    // The orchestrator additionally gets the rendered dispatch order —
-    // injected (like the quartet) so the blueprint can't drift from its own
-    // dispatch_rules.dispatch_order.
-    const slots = agent === blueprint.orchestrator
-      ? { ...agentSlotMap(agent), 'dispatch-order': renderDispatchOrder(blueprint.dispatch_rules?.dispatch_order) }
-      : agentSlotMap(agent);
-    const { content, errors: instErrors } = instantiateTemplate(source, slots);
+    const { content, errors: instErrors } = instantiateTemplate(source, agentSlots(agent, blueprint));
     if (instErrors.length) {
       instErrors.forEach((m) => e(`agent ${agent.name}: ${m}`));
       continue;

@@ -24,12 +24,13 @@ kinds, ALWAYS reported separately — they have different remedies:
 Slot maps for re-instantiation, paired via
 [template-registry.json](../../../templates/orchestration/template-registry.json):
 
-- **agents** (`.claude/agents/<name>.md`) — the blueprint entry's `slots`
-  plus the quartet `name`, `tools` joined `", "`, `model-tier`, `turn-limit`
-  stringified (same derivation as
-  [handoff-validator](../handoff-validator/SKILL.md)); the orchestrator
-  additionally gets `dispatch-order`, rendered via `renderDispatchOrder`
-  from `dispatch_rules.dispatch_order`.
+- **agents** (`.claude/agents/<name>.md`) — slots come from `agentSlots(agent,
+  blueprint)`, imported from
+  [scaffold.mjs](../../../scripts/lib/orchestration/scaffold.mjs): the
+  blueprint entry's `slots` plus the injected `name`/`tools`/`model-tier`/
+  `turn-limit` quartet, plus the orchestrator's rendered `dispatch-order`. This
+  is the SAME function the scaffolder uses, so re-instantiation here cannot
+  drift from what generation wrote — never re-derive the slot map by hand.
 - **skills** (`.claude/skills/<id>/SKILL.md`) — the OWNING specialist's
   `slots` only, no quartet; the owner is the specialist whose `templateId`
   equals the skill template's `pairsWith` in the registry.
@@ -43,7 +44,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { basename } from "node:path";
 import { instantiateTemplate } from "./scripts/lib/orchestration/instantiate.mjs";
-import { renderDispatchOrder } from "./scripts/lib/orchestration/dispatch-order.mjs";
+import { agentSlots } from "./scripts/lib/orchestration/scaffold.mjs";
 const t = process.argv[1];
 const manifest = JSON.parse(readFileSync(`${t}/docs/orchestration/generation-manifest.json`, "utf8"));
 const bp = JSON.parse(readFileSync(`${t}/docs/orchestration/blueprint.json`, "utf8"));
@@ -56,10 +57,7 @@ for (const en of manifest.generated) {
   if (en.path.startsWith(".claude/agents/")) {
     const a = agents.find((x) => x.name === basename(en.path, ".md"));
     if (!a) { console.log(`ERROR ${en.path}: no blueprint entry`); continue; }
-    const slots = { ...a.slots, name: a.name, tools: a.tools.join(", "),
-      "model-tier": a.modelTier, "turn-limit": String(a.turnLimit) };
-    if (a.name === bp.orchestrator.name) slots["dispatch-order"] = renderDispatchOrder(bp.dispatch_rules?.dispatch_order);
-    fresh = sha(instantiateTemplate(readFileSync(`templates/orchestration/agents/${en.templateId}.template.md`, "utf8"), slots).content ?? "");
+    fresh = sha(instantiateTemplate(readFileSync(`templates/orchestration/agents/${en.templateId}.template.md`, "utf8"), agentSlots(a, bp)).content ?? "");
   } else if (en.path.startsWith(".claude/skills/")) {
     const owner = agents.find((x) => x.templateId === reg.skills[en.templateId]?.pairsWith);
     if (!owner) { console.log(`ERROR ${en.path}: no owning specialist`); continue; }
