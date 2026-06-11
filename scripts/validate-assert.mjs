@@ -53,17 +53,31 @@ if (hasAdoption) {
 
 // 2. Sentinel accounting: each sentinel present in working tree OR covered in
 //    the report's drop / out-of-scope sections. Silent loss = hard failure.
-// F-2 fix: adopt-verify removes .adoption/ as merge prep — when absent,
-// read the report from git history (last commit that carried it).
+// F-2: adopt-verify removes .adoption/ as merge prep — when absent, read the
+// report from git history. REGRESSION GUARD: the lookup MUST use
+// --diff-filter=AM. Plain `git log -1 -- <path>` returns the DELETION commit
+// (the rm that removed .adoption/); `git show <deletion>:<path>` then fails,
+// the catch swallows it, reportText stays '', and every dropped-but-documented
+// sentinel reads as SILENT-LOSS. --diff-filter=AM skips the delete and finds
+// the report-generation commit. If the report is genuinely unreadable we record
+// it as a distinct condition rather than letting an empty report masquerade as
+// content loss (the original F-2 fix shipped without this guard or this signal).
 let reportText = '';
+let reportUnreadable = false;
 if (existsSync(join(dir, '.adoption/report.md'))) {
   reportText = readFileSync(join(dir, '.adoption/report.md'), 'utf8');
 } else {
   try {
-    const lastRev = git('log', '-1', '--format=%H', '--', '.adoption/report.md');
+    const lastRev = git('log', '-1', '--diff-filter=AM', '--format=%H', '--', '.adoption/report.md');
     if (lastRev) reportText = git('show', `${lastRev}:.adoption/report.md`);
-  } catch {}
+  } catch { /* fall through to the unreadable signal below */ }
+  if (!reportText) {
+    reportUnreadable = true;
+    failures.push('report.md unreadable: .adoption/ absent and no Add/Modify commit found in git history '
+      + '(sentinel accounting below cannot rely on the report — treat results as inconclusive, not as silent loss)');
+  }
 }
+results.reportUnreadable = reportUnreadable;
 // Portable tree scan (no external grep): read every file outside .git/.adoption
 // once, then substring-test sentinels against the cached contents.
 const SCAN_SKIP = new Set(['.git', '.adoption', 'node_modules']);
