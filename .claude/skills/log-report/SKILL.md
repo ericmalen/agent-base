@@ -20,7 +20,7 @@ Group by `to_agent` (the dispatched agent); each entry is one dispatch.
   utilization > 80%.
 
 Each line is validated with `validateHandoffLog` from Agent Base's
-[schemas.mjs](../../../scripts/lib/orchestration/schemas.mjs)
+`scripts/lib/orchestration/schemas.mjs`
 (Agent Base-root path; resolution below);
 invalid lines are reported with their line number and excluded from stats.
 

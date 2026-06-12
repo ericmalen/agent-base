@@ -6,6 +6,9 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { audit } from '../scripts/audit.mjs';
+import { runSyncBaseline } from '../scripts/sync-baseline.mjs';
+import { BASELINE_COPIES } from '../scripts/lib/baseline.mjs';
+import { baselineFileHashes } from '../scripts/lib/sync-plan.mjs';
 
 const BUILD = join(import.meta.dirname, '..', 'scripts', 'build-starter.mjs');
 const BASE_VERSION = JSON.parse(
@@ -92,6 +95,42 @@ test('starter build: output is audit-clean', () => {
     assert.equal(r.status, 0, r.stderr);
     const report = audit({ root: target, strict: true });
     assert.deepEqual(report.findings, [], JSON.stringify(report.findings, null, 2));
+  } finally {
+    rmSync(target, { recursive: true, force: true });
+  }
+});
+
+test('starter build: ships the full permanent baseline, byte-identical to source', () => {
+  const target = mkdtempSync(join(tmpdir(), 'ab-starter-'));
+  try {
+    const r = run([target]);
+    assert.equal(r.status, 0, r.stderr);
+    for (const [, dst] of BASELINE_COPIES) {
+      assert.ok(existsSync(join(target, dst)), `starter ships ${dst}`);
+    }
+    assert.ok(existsSync(join(target, '.claude/agents/README.md')), 'agents folder README (R-48)');
+    // src == dst for every baseline pair, so the same walk hashes both sides
+    const want = baselineFileHashes(join(import.meta.dirname, '..'));
+    const got = baselineFileHashes(target);
+    assert.deepEqual([...got.entries()].sort(), [...want.entries()].sort(),
+      'baseline trees byte-identical to Agent Base source');
+    assert.ok(want.size > 0, 'parity oracle is non-empty');
+  } finally {
+    rmSync(target, { recursive: true, force: true });
+  }
+});
+
+test('starter build: fresh starter is repair-complete (sync-baseline no-op)', () => {
+  const target = mkdtempSync(join(tmpdir(), 'ab-starter-'));
+  try {
+    const r = run([target]);
+    assert.equal(r.status, 0, r.stderr);
+    const res = runSyncBaseline({
+      root: target, baseRoot: join(import.meta.dirname, '..'), upgrade: true, json: true,
+    });
+    assert.equal(res.exitCode, 0);
+    assert.equal(res.payload.applied, false);
+    assert.match(res.message, /already at latest/);
   } finally {
     rmSync(target, { recursive: true, force: true });
   }

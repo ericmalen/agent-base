@@ -5,10 +5,11 @@
 
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, cpSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { instantiate as instantiateTemplate } from './lib/template.mjs';
 import { buildMarker } from './lib/marker.mjs';
+import { BASELINE_COPIES } from './lib/baseline.mjs';
 
 const baseRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const baseVersion = JSON.parse(readFileSync(join(baseRoot, 'package.json'), 'utf8')).version ?? '1.0.0';
@@ -34,9 +35,6 @@ const tpl = (rel) => readFileSync(join(baseRoot, 'templates', rel), 'utf8');
 // starter: no slot is filled → optional sections drop out, mandatory slots
 // instantiate empty (shared with apply so the two stay byte-identical).
 const instantiate = (rel) => instantiateTemplate(tpl(rel));
-// base-check is a permanent baseline skill — its source of truth is .claude/skills/,
-// not templates/ (it ships verbatim, like docs/git-conventions).
-const skill = (rel) => readFileSync(join(baseRoot, '.claude/skills', rel), 'utf8');
 
 const files = {
   'AGENTS.md': instantiate('instructions/AGENTS.md'),
@@ -45,10 +43,7 @@ const files = {
   '.claude/settings.json': tpl('settings/claude/settings.json'),
   '.vscode/settings.json': tpl('settings/vscode/settings.json'),
   '.claude/skills/README.md': tpl('readmes/skills/README.md'),
-  '.claude/skills/base-check/SKILL.md': skill('base-check/SKILL.md'),
-  '.claude/skills/base-check/references/rubric.md': skill('base-check/references/rubric.md'),
-  '.claude/skills/base-check/references/audit-hook.md': skill('base-check/references/audit-hook.md'),
-  '.claude/skills/base-check/scripts/audit-nudge.mjs': skill('base-check/scripts/audit-nudge.mjs'),
+  '.claude/agents/README.md': tpl('readmes/agents/README.md'),
   '.claude/agent-base.json': `${JSON.stringify(buildMarker({
     standard: baseVersion,
     setupAt: new Date().toISOString().slice(0, 10),
@@ -71,6 +66,19 @@ for (const [rel, content] of Object.entries(files)) {
   const abs = join(target, rel);
   mkdirSync(dirname(abs), { recursive: true });
   writeFileSync(abs, content);
+}
+
+// Permanent baseline ships verbatim from the same allowlist install-setup and
+// sync-baseline use — the starter is born repair-complete.
+for (const [src, dst] of BASELINE_COPIES) {
+  const from = join(baseRoot, src);
+  if (!existsSync(from)) {
+    console.error(`build-starter: missing in Agent Base: ${src} (incomplete clone?)`);
+    process.exit(1);
+  }
+  const to = join(target, dst);
+  mkdirSync(dirname(to), { recursive: true });
+  cpSync(from, to, { recursive: true });
 }
 
 if (flags.includes('--git')) {
