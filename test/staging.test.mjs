@@ -74,6 +74,23 @@ test('pruneStaged keeps the newest N', () => {
   assert.deepEqual(listStaged(home).map((e) => e.tag), ['v1.3.0', 'v1.2.0']);
 });
 
+test('pruneStaged sweeps stale orphaned partial dirs, keeps fresh ones', () => {
+  const home = mkdtempSync(join(tmpdir(), 'ab-home-'));
+  const { path } = stageRelease({ pkgRoot: fakePackage('1.0.0'), home });
+  const versions = join(path, '..');
+  mkdirSync(join(versions, 'v0.9.0.partial-111'));
+  mkdirSync(join(versions, 'v0.8.0.partial-222'));
+
+  // fresh partials survive (could belong to a concurrent in-flight stage)
+  assert.deepEqual(pruneStaged({ keep: 5, home }), []);
+
+  const stale = Date.now() + 2 * 60 * 60 * 1000; // pretend 2h have passed
+  const removed = pruneStaged({ keep: 5, home, now: stale });
+  assert.deepEqual(removed.sort(), ['v0.8.0.partial-222', 'v0.9.0.partial-111']);
+  assert.ok(existsSync(path)); // staged release untouched
+  assert.deepEqual(listStaged(home).map((e) => e.tag), ['v1.0.0']);
+});
+
 test('bootstrapPrompt references the right skill and immutability note', () => {
   const p = bootstrapPrompt({ command: 'orchestrate', checkoutPath: '/stage/v1.2.3', targetPath: '/proj' });
   assert.match(p, /\/stage\/v1\.2\.3\/\.claude\/skills\/base-orchestrate\/SKILL\.md/);

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -77,6 +77,41 @@ test('cli: bootstrap command rejects unknown flags', () => {
   const r = run(['setup', '--frobnicate']);
   assert.equal(r.status, 2);
   assert.match(r.stderr, /unknown flag --frobnicate/);
+});
+
+test('cli: bootstrap command rejects a nonexistent target path', () => {
+  const r = run(['setup', join(tmpdir(), 'ab-cli-no-such-dir-7f3a'), '--print']);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /target is not an existing directory/);
+});
+
+test('cli: bootstrap command rejects a file as target', () => {
+  const target = mkdtempSync(join(tmpdir(), 'ab-cli-target-'));
+  const file = join(target, 'somefile');
+  writeFileSync(file, 'x\n');
+  const r = run(['setup', file, '--print']);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /target is not an existing directory/);
+});
+
+test('cli: bootstrap command rejects extra positional args', () => {
+  const target = mkdtempSync(join(tmpdir(), 'ab-cli-target-'));
+  const r = run(['setup', target, target]);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /expected at most one path/);
+});
+
+test('cli: packaging guard — zero deps and staging-critical paths in the files whitelist', () => {
+  const pkg = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'package.json'), 'utf8'));
+  // staging copies only the package dir; runtime deps would land in a sibling
+  // node_modules and silently break every staged release
+  assert.equal(pkg.dependencies, undefined);
+  for (const p of ['bin', 'scripts', 'templates', '.claude', 'spec']) {
+    assert.ok(pkg.files.includes(p), `files whitelist ships ${p}`);
+  }
+  for (const p of ['test', 'notes']) {
+    assert.ok(!pkg.files.includes(p), `files whitelist excludes ${p}`);
+  }
 });
 
 test('cli: cache prune rejects bad --keep', () => {

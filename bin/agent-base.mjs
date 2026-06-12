@@ -11,11 +11,12 @@
 // bin is additive and never ships into projects (see scripts/lib/baseline.mjs
 // allowlist; AGENTS.md "Do Not").
 //
-// Exit: passthrough for delegated scripts · 0 ok · 2 usage error
+// Exit: passthrough for delegated scripts and the launched claude session ·
+// 0 ok · 2 usage error
 
 import { spawnSync } from 'node:child_process';
 import { join, resolve, dirname } from 'node:path';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { stageRelease, listStaged, pruneStaged } from './lib/staging.mjs';
 import { bootstrapPrompt, stagedNotice, launchNotice, fallbackInstructions } from './lib/prompts.mjs';
@@ -81,6 +82,7 @@ if (DELEGATED[command]) {
   const r = spawnSync(process.execPath, [join(pkgRoot, 'scripts', DELEGATED[command]), ...rest], {
     stdio: 'inherit',
   });
+  if (r.error) console.error(`agent-base ${command}: ${r.error.message}`);
   process.exit(r.status ?? 1);
 }
 
@@ -93,7 +95,21 @@ if (LLM_ENTRIES.has(command)) {
       process.exit(2);
     }
   }
+  if (positional.length > 1) {
+    console.error(`agent-base ${command}: expected at most one path, got: ${positional.join(' ')}`);
+    process.exit(2);
+  }
   const targetPath = positional[0] ? resolve(positional[0]) : process.cwd();
+  let targetStat;
+  try {
+    targetStat = statSync(targetPath);
+  } catch {
+    // fall through — reported below
+  }
+  if (!targetStat?.isDirectory()) {
+    console.error(`agent-base ${command}: target is not an existing directory: ${targetPath}`);
+    process.exit(2);
+  }
   const { path, dev, copied } = stageRelease({ pkgRoot });
   console.log(stagedNotice({ checkoutPath: path, dev, copied }));
 

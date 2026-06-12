@@ -33,7 +33,9 @@ From a clean tree on `main`:
 
 ```sh
 # Pre-tag smoke checks — a release must be npx-resolvable:
-npm pack --dry-run            # packlist sanity (templates/, .claude/, spec/ included)
+npm pack --dry-run            # packlist sanity: the package.json files whitelist
+                              # ships templates/, .claude/, spec/, scripts/, bin/,
+                              # docs/ — never test/ or notes/
 node bin/agent-base.mjs --help
 
 npm version patch   # or minor / major — bumps package.json, commits, tags vX.Y.Z

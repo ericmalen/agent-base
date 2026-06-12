@@ -44,7 +44,9 @@ step 1; `--print` forces step 3 (never modifies the target).
 | `orchestrate [path]` | `base-orchestrate` — repo-specific orchestration generation |
 | `refresh [path]` | `base-refresh` — baseline pin upgrade |
 
-`path` defaults to the current directory. When run from a clone (a checkout
+`path` defaults to the current directory and must be an existing directory
+(usage error 2 otherwise — nothing is staged or written). When run from a
+clone (a checkout
 with `.git`), staging is skipped and the prompt points at the clone itself.
 Windows always uses the launcher-skill path: `claude` installs as a `.cmd`
 shim there, which cannot safely receive a multi-line prompt argument.
@@ -68,7 +70,7 @@ exit codes propagate.
 | Command | Effect |
 |---|---|
 | `cache list` | staged releases under `~/.agent-base/versions/`, newest first |
-| `cache prune [--keep N]` | remove all but the newest N (default 2) |
+| `cache prune [--keep N]` | remove all but the newest N (default 2); also sweeps temp dirs orphaned by a crashed stage (older than an hour) |
 
 Deleting `~/.agent-base/versions/<tag>` by hand is always safe — it is
 re-staged on the next bootstrap command at that tag.
