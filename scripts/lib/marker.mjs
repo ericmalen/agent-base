@@ -1,6 +1,6 @@
 // marker.mjs — Agent Base marker (.claude/agent-base.json) read/write/validate.
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, lstatSync } from 'node:fs';
 import { join } from 'node:path';
 import { stripJsonComments } from './extract.mjs';
 import { parseSemver, tagToSemver } from './release.mjs';
@@ -34,6 +34,10 @@ export function readMarker(root) {
 
 export function writeMarker(root, fields) {
   const abs = join(root, MARKER_PATH);
+  // never write THROUGH a committed symlink — it would clobber out-of-tree files
+  let st = null;
+  try { st = lstatSync(abs); } catch { /* ENOENT: fresh marker */ }
+  if (st?.isSymbolicLink()) throw new Error(`refusing to write marker through symlink: ${abs}`);
   writeFileSync(abs, `${JSON.stringify(fields, null, 2)}\n`, 'utf8');
 }
 

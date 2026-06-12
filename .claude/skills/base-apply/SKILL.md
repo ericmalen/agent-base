@@ -17,6 +17,9 @@ Preconditions: `.setup/manifest.json` parses, and
 
 1. Apply:
    `node .claude/agent-base-setup/scripts/apply.mjs --root . --templates .claude/agent-base-setup/templates`
+   First apply snapshots jsonMerge sources into `.setup/merge-sources.json` —
+   commit it with the other `.setup/` artifacts (the repro gate merges from
+   the snapshot, never the live file).
 2. Read the generated files end to end. Judge coherence: section order,
    seams between verbatim blocks, orphaned references. Fix by reordering
    manifest entries, adjusting slots, or (sparingly, justified) a merge
@@ -33,7 +36,10 @@ Preconditions: `.setup/manifest.json` parses, and
    hook stays live for normal development.)
 3. Converge the mechanical gates — loop until BOTH exit 0:
    - `node .claude/agent-base-setup/scripts/check.mjs --root . --templates .claude/agent-base-setup/templates`
-   - `node .claude/agent-base-setup/scripts/audit.mjs --root .`
+   - `node .claude/agent-base-setup/scripts/audit.mjs --root . --strict`
+     (`--strict` fails on ANY finding — same threshold as the project's
+     installed `audit-strict` CI gate; converging non-strict ships a repo
+     that fails its own day-one CI)
    Audit findings carry rule IDs; fix via manifest/literal edits and
    re-apply. If an audit finding and repo content genuinely conflict,
    surface it to the user rather than silently dropping content.

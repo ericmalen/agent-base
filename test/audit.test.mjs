@@ -451,6 +451,176 @@ test('R-23: a path-shaped link LABEL is not flagged as a bare sibling path', () 
   }
 });
 
+// ── R-44: missing/unparseable settings.json is NOT safer than an empty deny ──
+
+test('R-44: fires when .claude/settings.json is missing or invalid JSON', () => {
+  const { ['.claude/settings.json']: _omit, ...rest } = CONFORMANT;
+  const missing = makeRepo(rest);
+  const invalid = makeRepo({ ...CONFORMANT, '.claude/settings.json': '{ not json\n' });
+  try {
+    const m = audit({ root: missing });
+    assert.equal(of(m, 'R-44').length, 2, JSON.stringify(m.findings));
+    assert.equal(of(m, 'R-43').length, 1); // info still present alongside
+
+    const i = audit({ root: invalid });
+    assert.equal(of(i, 'R-44').length, 2, JSON.stringify(i.findings));
+    assert.equal(of(i, 'R-43').length, 1);
+  } finally {
+    rmSync(missing, { recursive: true, force: true });
+    rmSync(invalid, { recursive: true, force: true });
+  }
+});
+
+// ── R-52: block-style paths list is the natural valid form ──────────────────
+
+test('R-52: rules file with a block-style paths list does not fire', () => {
+  const repo = makeRepo({
+    ...CONFORMANT,
+    '.claude/rules/README.md': '# Rules\n',
+    '.claude/rules/tests.md': '---\npaths:\n  - "**/*.test.ts"\n  - "**/*.spec.ts"\n---\nKeep tests deterministic.\n',
+  });
+  try {
+    assert.deepEqual(of(audit({ root: repo }), 'R-52'), []);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+// ── R-19/R-21: folded block-scalar descriptions parse to their full value ────
+
+test('R-19: folded description (>) exceeding the cap fires; valid folded one is quiet', () => {
+  const fold = (chunks) => `---\nname: folded-skill\ndescription: >-\n${chunks.map((c) => `  ${c}`).join('\n')}\n---\n\n# folded-skill\n\nbody\n`;
+  const longRepo = makeRepo({
+    ...CONFORMANT,
+    '.claude/skills/folded-skill/SKILL.md': fold(Array.from({ length: 12 }, () => 'x'.repeat(100))),
+  });
+  const okRepo = makeRepo({
+    ...CONFORMANT,
+    '.claude/skills/folded-skill/SKILL.md': fold(['Does folded things across lines.', 'Use when testing folded descriptions.']),
+  });
+  try {
+    const long = audit({ root: longRepo });
+    assert.equal(of(long, 'R-19').length, 1, JSON.stringify(long.findings));
+    assert.match(of(long, 'R-19')[0].message, /1,024/);
+
+    const ok = audit({ root: okRepo });
+    assert.deepEqual(of(ok, 'R-19'), []);
+    assert.deepEqual(of(ok, 'R-21'), [], 'folded description with a when clause must not draw R-21 noise');
+  } finally {
+    rmSync(longRepo, { recursive: true, force: true });
+    rmSync(okRepo, { recursive: true, force: true });
+  }
+});
+
+// ── R-07: skill links resolve relative-only (no repo-root masking) ───────────
+
+test('R-07: missing sibling references/ file fires even when a same-named root file exists', () => {
+  const skill = `---\nname: demo\ndescription: Does demo work when demoing.\n---\n\n# demo\n\nSee [arch](references/architecture.md).\n`;
+  const masked = makeRepo({
+    ...CONFORMANT,
+    'references/architecture.md': '# top-level, NOT the sibling\n',
+    '.claude/skills/demo/SKILL.md': skill,
+  });
+  const sibling = makeRepo({
+    ...CONFORMANT,
+    '.claude/skills/demo/SKILL.md': skill,
+    '.claude/skills/demo/references/architecture.md': '# Arch\n',
+  });
+  try {
+    const r07 = of(audit({ root: masked }), 'R-07');
+    assert.equal(r07.length, 1, JSON.stringify(r07));
+    assert.match(r07[0].message, /references\/architecture\.md/);
+    assert.deepEqual(of(audit({ root: sibling }), 'R-07'), []);
+  } finally {
+    rmSync(masked, { recursive: true, force: true });
+    rmSync(sibling, { recursive: true, force: true });
+  }
+});
+
+// ── R-07: bulleted ## Documents entries are checked, not exempted ────────────
+
+test('R-07: bulleted Documents entry with a broken path fires', () => {
+  const repo = makeRepo({
+    ...CONFORMANT,
+    '.claude/agents/README.md': '# Agents\n',
+    '.claude/agents/lister.md': `---
+name: lister
+description: Lists things. Use when listing is needed.
+tools: Read
+---
+
+Lists things; never edits files.
+
+## Procedures
+
+1. Read the docs.
+
+## Never
+
+- Never edit files.
+
+## Documents
+
+- AGENTS.md
+- docs/gone-forever.md
+`,
+  });
+  try {
+    const r07 = of(audit({ root: repo }), 'R-07');
+    assert.equal(r07.length, 1, JSON.stringify(r07));
+    assert.match(r07[0].message, /docs\/gone-forever\.md/);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+// ── R-31: a "## Never" inside a code fence does not satisfy the rule ─────────
+
+test('R-31: heading only inside a fenced example still fires; real heading clears it', () => {
+  const agent = (neverSection) => ({
+    ...CONFORMANT,
+    '.claude/agents/README.md': '# Agents\n',
+    '.claude/agents/fency.md': `---
+name: fency
+description: Demonstrates fences. Use when testing fences.
+tools: Read
+---
+
+Demonstrates fences; never edits files.
+
+## Procedures
+
+1. Read.
+
+${neverSection}
+`,
+  });
+  const fenced = makeRepo(agent('```md\n## Never\n\n- example only\n```'));
+  const real = makeRepo(agent('## Never\n\n- Never edit files.'));
+  try {
+    const r31 = of(audit({ root: fenced }), 'R-31');
+    assert.equal(r31.length, 1, 'fenced ## Never must not satisfy R-31');
+    assert.deepEqual(of(audit({ root: real }), 'R-31'), []);
+  } finally {
+    rmSync(fenced, { recursive: true, force: true });
+    rmSync(real, { recursive: true, force: true });
+  }
+});
+
+// ── R-11: BOM/leading whitespace before the shim import fires ────────────────
+
+test('R-11: BOM-prefixed or indented @AGENTS.md shim fires (byte 0 required)', () => {
+  const bom = makeRepo({ ...CONFORMANT, 'CLAUDE.md': '﻿@AGENTS.md\n' });
+  const indented = makeRepo({ ...CONFORMANT, 'CLAUDE.md': ' @AGENTS.md\n' });
+  try {
+    assert.equal(of(audit({ root: bom }), 'R-11').length, 1, 'BOM must fire');
+    assert.equal(of(audit({ root: indented }), 'R-11').length, 1, 'leading space must fire');
+  } finally {
+    rmSync(bom, { recursive: true, force: true });
+    rmSync(indented, { recursive: true, force: true });
+  }
+});
+
 // ── R-45 (A4): a gitignored .vscode/settings.json passes on disk but won't ship ─
 
 test('R-45: gitignored .vscode/settings.json fires; only a ".vscode/*"+negation clears it', () => {

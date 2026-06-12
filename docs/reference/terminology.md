@@ -26,7 +26,7 @@ consistently; do not rotate synonyms.
 | **standard layout** | Post-setup tree defined in [`spec/target-layout.md`](../../spec/target-layout.md). |
 | **baseline skills** | Permanent skills copied into every project (`base-check`, `docs`, …). |
 | **orchestration** | Optional generated multi-agent layer (`base-orchestrate` entry). |
-| **`.setup/`** | Working directory during setup (`manifest.json`, `nodes/`, `literals/`). |
+| **`.setup/`** | Working directory during setup (`manifest.json`, `nodes/`, `literals/`, `merge-sources.json`). |
 | **`.claude/agent-base-setup/`** | Temporary tooling copied into a project during setup. |
 | **`.claude/agent-base.json`** | Marker: `standard`, `toolRepo`, `pin`, `lastSyncedAt`, `setupAt`, `githubCodeReview`. |
 

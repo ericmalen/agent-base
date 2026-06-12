@@ -1,6 +1,37 @@
 // release.mjs — semver helpers and remote tag discovery (zero-dep).
 
 import { spawnSync } from 'node:child_process';
+import { isAbsolute } from 'node:path';
+
+// toolRepo allowlist: https / git+https / ssh / git+ssh URLs, scp-style
+// git@host:path, file:// URLs, and absolute filesystem paths (tests/dev flows).
+const TOOL_REPO_URL_FORMS = [
+  /^(?:git\+)?https:\/\/\S+$/,
+  /^(?:git\+)?ssh:\/\/\S+$/,
+  /^[\w.-]+@[\w.-]+:\S+$/, // scp-style, e.g. git@github.com:owner/repo.git
+  /^file:\/\/\S+$/,
+];
+
+/**
+ * Validate a marker toolRepo before it reaches git. The value comes from the
+ * target repo's user-editable .claude/agent-base.json, so reject anything that
+ * git could interpret as an option (leading '-') or a transport helper
+ * (`ext::sh -c ...` and friends), plus control characters.
+ */
+export function validateToolRepo(url) {
+  const fail = (why) => {
+    throw new Error(`invalid "toolRepo" in .claude/agent-base.json: ${why}`);
+  };
+  if (typeof url !== 'string' || !url.trim()) fail('must be a non-empty string URL');
+  const repo = url.trim();
+  // eslint-disable-next-line no-control-regex
+  if (/[\x00-\x1f\x7f]/.test(repo)) fail('contains control characters');
+  if (repo.startsWith('-')) fail(`leading "-" would be parsed as a git option (${repo})`);
+  if (/^[^/\s]*::/.test(repo)) fail(`transport-helper syntax is not allowed (${repo})`);
+  if (TOOL_REPO_URL_FORMS.some((re) => re.test(repo))) return repo;
+  if (isAbsolute(repo)) return repo;
+  fail(`unsupported form (${repo}); use https://, ssh://, git@host:path, file://, or an absolute path`);
+}
 
 const SEMVER_RE = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/;
 
@@ -37,7 +68,8 @@ export function compareSemver(a, b) {
 
 /** List vX.Y.Z tags from a remote, newest first. Stable releases only (no prerelease). */
 export function listRemoteTags(toolRepo) {
-  const r = spawnSync('git', ['ls-remote', '--tags', toolRepo], { encoding: 'utf8' });
+  const repo = validateToolRepo(toolRepo);
+  const r = spawnSync('git', ['ls-remote', '--tags', '--', repo], { encoding: 'utf8' });
   if (r.status !== 0) {
     throw new Error(`git ls-remote failed: ${(r.stderr || r.stdout).trim()}`);
   }
@@ -76,7 +108,8 @@ export function npxSpecFromToolRepo(toolRepo, pin) {
 }
 
 export function shallowCloneAt(toolRepo, ref, dest) {
-  const r = spawnSync('git', ['clone', '--depth', '1', '--branch', ref, toolRepo, dest], {
+  const repo = validateToolRepo(toolRepo);
+  const r = spawnSync('git', ['clone', '--depth', '1', '--branch', ref, '--', repo, dest], {
     encoding: 'utf8',
   });
   if (r.status !== 0) {

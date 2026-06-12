@@ -9,8 +9,9 @@ Independent judgment over the converged result, then the final human gate.
 You orchestrate; the verification itself runs in the setup-verifier agent
 with FRESH context each invocation — never verify in this session yourself.
 
-Preconditions: `check.mjs` and `audit.mjs` both exit 0 (re-run to confirm);
-`.setup/report.md` is current.
+Preconditions: `check.mjs` and `audit.mjs --strict` both exit 0 (re-run to
+confirm — `--strict` matches the installed CI gate, which fails on ANY
+finding); `.setup/report.md` is current.
 
 ## Procedure
 
@@ -30,11 +31,14 @@ Preconditions: `check.mjs` and `audit.mjs` both exit 0 (re-run to confirm);
    re-converge gates → re-verify (fresh invocations) until clean.
 5. **Prepare the merge state:** remove setup-time tooling in a final
    commit — `git rm -r .setup`, remove `.claude/agent-base-setup/`,
-   `.claude/skills/base-*`, and `.claude/agents/setup-verifier.md`.
+   `.claude/skills/base-inventory/`, `.claude/skills/base-plan/`,
+   `.claude/skills/base-apply/`, `.claude/skills/base-verify/`, and
+   `.claude/agents/setup-verifier.md` (the authoritative list is
+   `SETUP_WINDOW_COPIES` in `.claude/agent-base-setup/scripts/lib/baseline.mjs`).
    KEEP the permanent baseline — the `base-check`, `docs`,
-   `git-conventions`, `skill-creator`, and `agent-creator` skills; the
-   orchestration lifecycle skills `retro`, `log-report`, and `eval-runner`;
-   the `docs-auditor` agent; and the Agent Base marker.
+   `git-conventions`, `skill-creator`, `agent-creator`, and `tracker-sync`
+   skills; the orchestration lifecycle skills `retro`, `log-report`, and
+   `eval-runner`; the `docs-auditor` agent; and the Agent Base marker.
 6. **USER GATE 2:** present `.setup/report.md` content (from the last
    pre-removal commit), the verifier matrices, and review instructions:
    `git diff main...agent-base-setup --color-moved=zebra --find-copies-harder`

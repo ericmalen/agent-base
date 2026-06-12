@@ -62,6 +62,19 @@ test('fence-aware: # inside code fence is not a heading', () => {
   assert.equal(tile(doc), doc);
 });
 
+test('closing fence must be at least as long as the opener (CommonMark)', () => {
+  const doc = '# Real\n````md\n```\n# inside outer fence, not a heading\n```\n## still inside\n````\n# After\nend\n';
+  const blocks = parseMarkdownBlocks(doc);
+  const headings = blocks.filter((b) => b.kind === 'section').map((b) => b.heading);
+  assert.deepEqual(headings, ['Real', 'After']);
+  assert.equal(tile(doc), doc);
+  // longer closer than opener still closes
+  const doc2 = '```\n# hidden\n`````\n# Visible\nx\n';
+  const headings2 = parseMarkdownBlocks(doc2).filter((b) => b.kind === 'section').map((b) => b.heading);
+  assert.deepEqual(headings2, ['Visible']);
+  assert.equal(tile(doc2), doc2);
+});
+
 test('tilde fences and unclosed fences', () => {
   const doc = '# A\n~~~\n# hidden\n~~~\n# B\n```\n# trailing unclosed\n';
   const headings = parseMarkdownBlocks(doc).filter((b) => b.kind === 'section').map((b) => b.heading);
@@ -146,6 +159,9 @@ test('surface classification', () => {
   assert.equal(classifySurface('.claude/skills/x/SKILL.md'), 'claude-assets');
   assert.equal(classifySurface('.claude/settings.json'), 'claude-settings');
   assert.equal(classifySurface('.vscode/settings.json'), 'vscode-settings');
+  assert.equal(classifySurface('.mcp.json'), 'claude-mcp');
+  assert.equal(classifySurface('.vscode/mcp.json'), 'vscode-mcp');
+  assert.equal(classifySurface('sub/dir/.mcp.json'), null); // root-only surface
   assert.equal(classifySurface('.cursorrules'), 'other-tool');
   assert.equal(classifySurface('.cursor/rules/style.mdc'), 'other-tool');
   assert.equal(classifySurface('GEMINI.md'), 'other-tool');
@@ -258,6 +274,95 @@ test('integration: dirty tree fails precondition, --allow-dirty bypasses', () =>
     ], { encoding: 'utf8' });
     assert.equal(r2.status, 0, r2.stderr);
     assert.ok(existsSync(join(repo, '.setup', 'inventory.json')));
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test('integration: non-UTF-8 surface file is skipped, not corrupted', () => {
+  const latin1 = Buffer.from('# Caf\xe9\nr\xe8gles ici\n', 'latin1'); // 0xE9/0xE8: invalid UTF-8
+  const repo = makeRepo({
+    'AGENTS.md': latin1,
+    'CLAUDE.md': '# Ok\nutf-8 fine\n',
+  });
+  try {
+    const inv = runInventory({ root: repo, outDir: '.setup', allowDirty: false });
+
+    // skipped with the encoding reason; no surface entry, no node bytes anywhere
+    const skip = inv.skipped.find((s) => s.file === 'AGENTS.md');
+    assert.ok(skip, JSON.stringify(inv.skipped));
+    assert.match(skip.reason, /non-UTF-8/);
+    assert.equal(inv.files.find((f) => f.path === 'AGENTS.md'), undefined);
+    for (const id of Object.keys(inv.nodes)) {
+      assert.notEqual(inv.nodes[id].file, 'AGENTS.md');
+      const bytes = readFileSync(join(repo, '.setup', 'nodes', id));
+      assert.equal(bytes.includes(Buffer.from([0xef, 0xbf, 0xbd])), false, `U+FFFD in node ${id}`);
+    }
+
+    // source file untouched, byte for byte
+    assert.deepEqual(readFileSync(join(repo, 'AGENTS.md')), latin1);
+    // the clean file still extracts normally
+    assert.ok(inv.files.find((f) => f.path === 'CLAUDE.md'));
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test('integration: forced-include of a binary file lands in skipped, not dropped', () => {
+  const repo = makeRepo({
+    'AGENTS.md': '# X\nrules\n',
+    'assets/logo.bin': Buffer.from([0x89, 0x00, 0x01, 0x02]),
+  });
+  try {
+    // without --include: binary non-surface file vanishes silently (by design)
+    const inv0 = runInventory({ root: repo, outDir: '.setup', allowDirty: false });
+    assert.equal(inv0.skipped.find((s) => s.file === 'assets/logo.bin'), undefined);
+
+    // with --include: the skip must be surfaced
+    const inv = runInventory({ root: repo, outDir: '.setup', allowDirty: true, include: ['assets/logo.bin'] });
+    const skip = inv.skipped.find((s) => s.file === 'assets/logo.bin');
+    assert.ok(skip, JSON.stringify(inv.skipped));
+    assert.match(skip.reason, /binary/);
+    assert.equal(inv.files.find((f) => f.path === 'assets/logo.bin'), undefined);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test('integration: nested fences — headings inside 4-backtick fence are not split points', () => {
+  const doc = 'intro\n````md\n```\n# not a split\n```\n## also not\n````\n# After Fence\nbody\n';
+  const repo = makeRepo({ 'CLAUDE.md': doc });
+  try {
+    const inv = runInventory({ root: repo, outDir: '.setup', allowDirty: false });
+    const f = inv.files.find((x) => x.path === 'CLAUDE.md');
+    const headings = f.nodes.map((id) => inv.nodes[id]).filter((n) => n.kind === 'section').map((n) => n.heading);
+    assert.deepEqual(headings, ['After Fence']);
+    const joined = f.nodes.map((id) => readFileSync(join(repo, '.setup', 'nodes', id), 'utf8')).join('');
+    assert.equal(joined, doc);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test('integration: .mcp.json and .vscode/mcp.json are surfaces with nodes', () => {
+  const repo = makeRepo({
+    '.mcp.json': '{\n  "mcpServers": {\n    "fetch": { "command": "uvx" }\n  }\n}\n',
+    '.vscode/mcp.json': '{\n  "servers": {\n    "fetch": { "command": "uvx" }\n  }\n}\n',
+  });
+  try {
+    const inv = runInventory({ root: repo, outDir: '.setup', allowDirty: false });
+    const claude = inv.files.find((f) => f.path === '.mcp.json');
+    const vscode = inv.files.find((f) => f.path === '.vscode/mcp.json');
+    assert.ok(claude, 'root .mcp.json missing from surfaces');
+    assert.ok(vscode, '.vscode/mcp.json missing from surfaces');
+    assert.equal(claude.surface, 'claude-mcp');
+    assert.equal(vscode.surface, 'vscode-mcp');
+    assert.deepEqual(claude.jsonKeys, ['mcpServers']);
+    for (const f of [claude, vscode]) {
+      assert.equal(f.nodes.length, 1);
+      const bytes = readFileSync(join(repo, '.setup', 'nodes', f.nodes[0]), 'utf8');
+      assert.equal(bytes, readFileSync(join(repo, f.path), 'utf8'));
+    }
   } finally {
     rmSync(repo, { recursive: true, force: true });
   }

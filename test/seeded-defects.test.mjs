@@ -66,12 +66,13 @@ test('defect: dilution of the env-deny rule is caught (R-44)', () => {
 
 // ── check.mjs defects (Phase 1 gates — the gates must FAIL these) ───────────
 
-import { writeFileSync as wf, mkdtempSync as mkdtemp, readFileSync } from 'node:fs';
+import { writeFileSync as wf, mkdtempSync as mkdtemp, readFileSync, existsSync, symlinkSync } from 'node:fs';
 import { runInventory as runInv } from '../scripts/inventory-extract.mjs';
 import { apply } from '../scripts/apply.mjs';
 import { check } from '../scripts/check.mjs';
 
 const EMPTY_TPL = mkdtemp(join(tmpdir(), 'aikit-sd-tpl-'));
+const KIT_TPL = join(process.cwd(), 'templates');
 
 function setupContext(fixture = 'claude-only') {
   const repo = buildFixture(fixture);
@@ -158,6 +159,138 @@ test('defect: target outside AI-config surfaces → scope fails', () => {
     filtered.push({ node: id, op: 'move', target: 'src/index.js' });
     saveManifest(repo, filtered);
     assert.ok(gates(repo).includes('scope'));
+  } finally { rmSync(repo, { recursive: true, force: true }); }
+});
+
+// keep-file manifest for every inventoried file (works under kit templates:
+// nothing is assembled, so structured-target slot rules never engage).
+function keepAllEntries(inv) {
+  const entries = inv.files.map((f) => ({ file: f.path, op: 'keep-file' }));
+  for (const c of inv.sweepCandidates) entries.push({ file: c.file, op: 'out-of-scope', reason: 'test' });
+  return entries;
+}
+
+test('defect: hand-edited jsonMerged output → reproducibility fails (F1 sabotage)', () => {
+  const repo = buildFixture('claude-only');
+  try {
+    const inv = runInv({ root: repo, outDir: '.setup', allowDirty: false });
+    saveManifest(repo, keepAllEntries(inv), {
+      jsonMerges: [{ file: '.vscode/settings.json', base: 'settings/vscode/settings.json' }],
+    });
+    apply({ root: repo, templatesDir: KIT_TPL });
+    const g = () => [...new Set(check({ root: repo, templatesDir: KIT_TPL }).violations.map((x) => x.gate))];
+    assert.deepEqual(g(), []); // clean before sabotage
+    // sabotage: add a key the template does NOT own, byte-formatted exactly
+    // like apply output — pre-snapshot, this fed back in as "source" and passed
+    const target = join(repo, '.vscode', 'settings.json');
+    const vs = JSON.parse(readFileSync(target, 'utf8'));
+    vs['editor.fontSize'] = 99;
+    wf(target, JSON.stringify(vs, null, 2) + '\n');
+    assert.ok(g().includes('reproducibility'),
+      'hand-edit to a jsonMerged output must fail the repro gate');
+  } finally { rmSync(repo, { recursive: true, force: true }); }
+});
+
+test('defect: manifest flipped keep-file→drop without re-apply → reproducibility fails', () => {
+  const repo = buildFixture('claude-only');
+  try {
+    const inv = runInv({ root: repo, outDir: '.setup', allowDirty: false });
+    saveManifest(repo, keepAllEntries(inv));
+    apply({ root: repo, templatesDir: EMPTY_TPL });
+    assert.deepEqual(gates(repo), []); // clean before sabotage
+    // edit the manifest only: CLAUDE.md's keep-file becomes per-node drops
+    const claude = inv.files.find((f) => f.path === 'CLAUDE.md');
+    const edited = keepAllEntries(inv).filter((e) => e.file !== 'CLAUDE.md');
+    for (const id of claude.nodes) edited.push({ node: id, op: 'drop', reason: 'test: flipped after apply' });
+    saveManifest(repo, edited);
+    const { violations } = check({ root: repo, templatesDir: EMPTY_TPL });
+    assert.ok(violations.some((x) => x.gate === 'reproducibility' && x.message.includes('CLAUDE.md')),
+      'file the edited manifest would delete still exists — must be flagged');
+  } finally { rmSync(repo, { recursive: true, force: true }); }
+});
+
+test('defect: unsafe inventory file path → apply refuses before deleting anything', () => {
+  const repo = buildFixture('claude-only');
+  try {
+    const inv = runInv({ root: repo, outDir: '.setup', allowDirty: false });
+    const entries = [];
+    for (const f of inv.files) {
+      // CLAUDE.md fully dropped → deletion candidate on apply
+      if (f.path === 'CLAUDE.md') for (const id of f.nodes) entries.push({ node: id, op: 'drop', reason: 'test' });
+      else entries.push({ file: f.path, op: 'keep-file' });
+    }
+    for (const c of inv.sweepCandidates) entries.push({ file: c.file, op: 'out-of-scope', reason: 'test' });
+    saveManifest(repo, entries);
+    const invJson = JSON.parse(readFileSync(join(repo, '.setup', 'inventory.json'), 'utf8'));
+    invJson.files.push({ path: '../../escape.md', nodes: [] });
+    wf(join(repo, '.setup', 'inventory.json'), JSON.stringify(invJson, null, 2));
+    assert.throws(() => apply({ root: repo, templatesDir: EMPTY_TPL }), /unsafe file path/);
+    assert.ok(existsSync(join(repo, 'CLAUDE.md')), 'apply must refuse before any deletion');
+  } finally { rmSync(repo, { recursive: true, force: true }); }
+});
+
+test('defect: duplicate jsonMerges or collision with an install → apply throws', () => {
+  const repo = buildFixture('claude-only');
+  try {
+    const inv = runInv({ root: repo, outDir: '.setup', allowDirty: false });
+    const entries = keepAllEntries(inv);
+    const jm = { file: '.vscode/settings.json', base: 'settings/vscode/settings.json' };
+    saveManifest(repo, entries, { jsonMerges: [jm, jm] });
+    assert.throws(() => apply({ root: repo, templatesDir: KIT_TPL }), /duplicate jsonMerges/);
+    mkdirSync(join(repo, '.setup', 'literals'), { recursive: true });
+    wf(join(repo, '.setup', 'literals', 'vs.json'), '{}\n');
+    saveManifest(repo, entries, {
+      jsonMerges: [jm],
+      installs: [{ file: '.vscode/settings.json', literal: 'literals/vs.json' }],
+    });
+    assert.throws(() => apply({ root: repo, templatesDir: KIT_TPL }), /already written/);
+  } finally { rmSync(repo, { recursive: true, force: true }); }
+});
+
+test('defect: supersede pointing at a nonexistent catalog skill → completeness fails', () => {
+  const { repo, inv, entries } = setupContext();
+  try {
+    const f = inv.files.find((x) => x.path === 'CLAUDE.md');
+    const id = f.nodes[0];
+    const filtered = entries.filter((e) => e.node !== id);
+    filtered.push({ node: id, op: 'supersede', catalogSkill: 'ghost-skill' });
+    saveManifest(repo, filtered);
+    const { violations } = check({ root: repo, templatesDir: EMPTY_TPL });
+    assert.ok(violations.some((x) => x.gate === 'completeness' && x.message.includes('ghost-skill')),
+      'content must never be deleted against a fictional replacement');
+    // control: an installed catalog skill satisfies the same check
+    filtered[filtered.length - 1] = { node: id, op: 'supersede', catalogSkill: 'deploy-helper' };
+    saveManifest(repo, filtered);
+    const ok = check({ root: repo, templatesDir: EMPTY_TPL }).violations;
+    assert.ok(!ok.some((x) => x.message.includes('deploy-helper')));
+  } finally { rmSync(repo, { recursive: true, force: true }); }
+});
+
+test('defect: symlink at a generated target path → apply throws, link target untouched', () => {
+  const { repo, inv, entries } = setupContext();
+  try {
+    const f = inv.files.find((x) => x.path === 'CLAUDE.md');
+    const id = f.nodes[0];
+    const filtered = entries.filter((e) => e.node !== id);
+    filtered.push({ node: id, op: 'move', target: 'AGENTS.md' });
+    saveManifest(repo, filtered);
+    wf(join(repo, 'victim.txt'), 'out-of-band bytes\n');
+    symlinkSync(join(repo, 'victim.txt'), join(repo, 'AGENTS.md'));
+    assert.throws(() => apply({ root: repo, templatesDir: EMPTY_TPL }), /symlink/);
+    assert.equal(readFileSync(join(repo, 'victim.txt'), 'utf8'), 'out-of-band bytes\n',
+      'bytes behind the symlink must never be clobbered');
+  } finally { rmSync(repo, { recursive: true, force: true }); }
+});
+
+test('defect: split range past node end → apply throws instead of silently truncating', () => {
+  const { repo, inv, entries } = setupContext();
+  try {
+    const f = inv.files.find((x) => x.path === 'CLAUDE.md');
+    const id = f.nodes[0];
+    const filtered = entries.filter((e) => e.node !== id);
+    filtered.push({ node: id, op: 'split', ranges: [{ lines: [1, 9999], target: 'docs/ai/x.md' }] });
+    saveManifest(repo, filtered);
+    assert.throws(() => apply({ root: repo, templatesDir: EMPTY_TPL }), /exceeds node length/);
   } finally { rmSync(repo, { recursive: true, force: true }); }
 });
 
