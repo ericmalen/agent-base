@@ -31,6 +31,17 @@ if (existsSync(target)) {
   }
 }
 
+// F5 guard: a dev clone may carry a package.json version with no matching git
+// tag yet — the emitted marker pin would dangle until the release is tagged.
+// Best-effort: staged releases have no .git (the staging path itself proves a
+// published version), and a failed git spawn must never block the build.
+if (existsSync(join(baseRoot, '.git'))) {
+  const r = spawnSync('git', ['-C', baseRoot, 'tag', '--list', `v${baseVersion}`], { encoding: 'utf8' });
+  if (!r.error && r.status === 0 && r.stdout.trim() === '') {
+    console.warn(`warning: tag v${baseVersion} not found in base clone — marker pin will dangle until the release is tagged`);
+  }
+}
+
 const tpl = (rel) => readFileSync(join(baseRoot, 'templates', rel), 'utf8');
 // starter: no slot is filled → optional sections drop out, mandatory slots
 // instantiate empty (shared with apply so the two stay byte-identical).

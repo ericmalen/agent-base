@@ -56,7 +56,8 @@ Both pipelines (`.github/workflows/ci.yml`, `.azuredevops/azure-pipelines.yml`)
 run a tag gate on `refs/tags/v*`: the tag must equal `v<package.json version>`
 or the build fails. The full CI suite (tests, audits, starter build + strict
 audit) also runs against the tag, so a published release is always
-starter-clean.
+starter-clean. Starter artifacts from non-tag CI builds may pin an untagged
+version — `build-starter` warns when the clone has no matching tag.
 
 ## After release
 

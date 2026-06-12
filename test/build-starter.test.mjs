@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -133,6 +133,44 @@ test('starter build: fresh starter is repair-complete (sync-baseline no-op)', ()
     assert.match(res.message, /already at latest/);
   } finally {
     rmSync(target, { recursive: true, force: true });
+  }
+});
+
+// Minimal fake Agent Base root: enough for build-starter to run (its baseRoot
+// is derived from its own file location, so the script must be copied too).
+function seedFakeBase(version, { git = false } = {}) {
+  const base = mkdtempSync(join(tmpdir(), 'ab-fakebase-'));
+  const SRC = join(import.meta.dirname, '..');
+  for (const d of ['scripts', 'templates', '.claude/skills', '.claude/agents']) {
+    cpSync(join(SRC, d), join(base, d), { recursive: true });
+  }
+  writeFileSync(join(base, 'package.json'), JSON.stringify({ version }));
+  if (git) spawnSync('git', ['init', '-q', join(base)], { encoding: 'utf8' });
+  return base;
+}
+
+test('starter build: untagged dev clone → dangling-pin warning, exit 0', () => {
+  const base = seedFakeBase('9.9.9', { git: true });
+  const target = mkdtempSync(join(tmpdir(), 'ab-starter-'));
+  try {
+    const r = spawnSync(process.execPath, [join(base, 'scripts/build-starter.mjs'), target], { encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stderr, /warning: tag v9\.9\.9 not found/);
+    assert.ok(existsSync(join(target, 'AGENTS.md')), 'warning is non-fatal');
+  } finally {
+    for (const d of [base, target]) rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test('starter build: staged release (no .git) → no pin warning', () => {
+  const base = seedFakeBase('9.9.9');
+  const target = mkdtempSync(join(tmpdir(), 'ab-starter-'));
+  try {
+    const r = spawnSync(process.execPath, [join(base, 'scripts/build-starter.mjs'), target], { encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.doesNotMatch(r.stderr, /warning/);
+  } finally {
+    for (const d of [base, target]) rmSync(d, { recursive: true, force: true });
   }
 });
 
