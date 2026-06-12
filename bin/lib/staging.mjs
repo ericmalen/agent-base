@@ -13,7 +13,7 @@
 // CLI-only module: lives under bin/lib/, NOT scripts/lib/ (which ships
 // wholesale into projects via the installer allowlist).
 
-import { cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -78,12 +78,27 @@ export function listStaged(home = homedir()) {
     .map(({ tag, path }) => ({ tag, path, partial: !existsSync(join(path, SENTINEL)) }));
 }
 
+// Temp dirs from a crashed stage are swept by prune only after this grace
+// period, so a concurrent in-flight stage is never yanked mid-copy.
+const PARTIAL_STALE_MS = 60 * 60 * 1000;
+
 /** Remove all but the newest `keep` staged releases. Returns removed tags. */
-export function pruneStaged({ keep = 2, home = homedir() } = {}) {
+export function pruneStaged({ keep = 2, home = homedir(), now = Date.now() } = {}) {
   const removed = [];
   for (const e of listStaged(home).slice(Math.max(0, keep))) {
     rmSync(e.path, { recursive: true, force: true });
     removed.push(e.tag);
+  }
+  const dir = versionsDir(home);
+  if (existsSync(dir)) {
+    for (const name of readdirSync(dir)) {
+      if (!/\.partial-\d+$/.test(name)) continue;
+      const p = join(dir, name);
+      if (now - statSync(p).mtimeMs > PARTIAL_STALE_MS) {
+        rmSync(p, { recursive: true, force: true });
+        removed.push(name);
+      }
+    }
   }
   return removed;
 }

@@ -6,6 +6,16 @@
   "bin": {
     "agent-base": "bin/agent-base.mjs"
   },
+  "files": [
+    "bin",
+    "scripts",
+    "templates",
+    ".claude",
+    "spec",
+    "docs",
+    "AGENTS.md",
+    "CLAUDE.md"
+  ],
   "engines": {
     "node": ">=20.0.0"
   },

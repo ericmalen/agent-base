@@ -15,12 +15,13 @@ import { spawnSync } from 'node:child_process';
 
 export function findClaude({ cmd = 'claude', platform = process.platform } = {}) {
   if (platform === 'win32') return null;
-  const r = spawnSync(cmd, ['--version'], { stdio: 'ignore' });
+  const r = spawnSync(cmd, ['--version'], { stdio: 'ignore', timeout: 5000 });
   return r.status === 0 ? cmd : null;
 }
 
 /** Spawn the CLI interactively in the target; returns its exit code. */
 export function launchClaude({ cmd = 'claude', prompt, cwd }) {
   const r = spawnSync(cmd, [prompt], { stdio: 'inherit', cwd });
+  if (r.error) console.error(`agent-base: failed to launch ${cmd}: ${r.error.message}`);
   return r.status ?? 1;
 }
