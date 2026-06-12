@@ -84,8 +84,9 @@ At a **current pin** (repair) there is no old → new delta: missing files are
 restored, and locally edited files are left untouched and reported as drift —
 they never block, and `--upgrade` exits 0 (policing content drift is
 `base-check`'s job, not sync's). A pin **ahead** of the target — stale
-`--base-root` checkout, deleted remote tags — is refused with exit 2, never a
-silent downgrade.
+`--base-root` checkout, deleted remote tags — is refused by
+`--report`/`--upgrade` with exit 2, never a silent downgrade (`--check` only
+detects *behind*, so an ahead pin still reads as "current" there).
 
 ## CI templates
 

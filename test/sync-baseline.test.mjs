@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, cpSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, cpSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -214,6 +214,29 @@ test('sync-baseline --upgrade refuses when pin is ahead of target: exit 2, no wr
     assert.ok(!existsSync(join(root, '.claude/skills/docs')));
   } finally {
     for (const d of [root, stale]) rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test('sync-baseline --upgrade refuses symlinked baseline path: exit 2, nothing written', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sync-lnk-'));
+  const victim = mkdtempSync(join(tmpdir(), 'sync-victim-'));
+  try {
+    seedProject(root);
+    // Committed symlink at a baseline dst: updates would land out-of-tree.
+    symlinkSync(victim, join(root, '.claude/skills/docs'));
+
+    const res = runSyncBaseline({ root, baseRoot: BASE_ROOT, upgrade: true, json: true });
+    assert.equal(res.exitCode, 2);
+    assert.match(res.error, /symlink/);
+
+    // Refusal is total: out-of-tree target untouched, no other file restored,
+    // marker untouched.
+    assert.ok(!existsSync(join(victim, 'SKILL.md')));
+    assert.ok(!existsSync(join(root, '.claude/skills/retro')));
+    const marker = readMarker(root);
+    assert.equal(marker.lastSyncedAt, '2026-01-01');
+  } finally {
+    for (const d of [root, victim]) rmSync(d, { recursive: true, force: true });
   }
 });
 

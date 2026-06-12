@@ -21,7 +21,7 @@
 //
 // Exit: 0 ok · 1 pin behind or upgrade had conflicts · 2 usage/internal error (incl. pin ahead of target)
 
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -79,7 +79,25 @@ function checkoutBase(toolRepo, pin, baseRootOverride) {
   return { path: tmp, cleanup: () => rmSync(tmp, { recursive: true, force: true }) };
 }
 
+// Never write THROUGH a committed symlink — a symlinked baseline path would
+// redirect updates outside the project tree (same guard as writeMarker).
+// Checked for every path BEFORE any copy, so a refusal writes nothing.
+function assertNoSymlinkComponents(projectRoot, relPaths) {
+  for (const rel of relPaths) {
+    let cur = projectRoot;
+    for (const part of rel.split('/')) {
+      cur = join(cur, part);
+      let st = null;
+      try { st = lstatSync(cur); } catch { break; } // ENOENT: rest is created fresh
+      if (st.isSymbolicLink()) {
+        throw new Error(`refusing to write through symlink: ${rel}`);
+      }
+    }
+  }
+}
+
 function applyFileUpdates(projectRoot, baseRoot, relPaths) {
+  assertNoSymlinkComponents(projectRoot, relPaths);
   for (const rel of relPaths) {
     const from = join(baseRoot, rel);
     const to = join(projectRoot, rel);
@@ -218,7 +236,16 @@ export function runSyncBaseline(opt) {
       };
     }
 
-    applyFileUpdates(root, newCo.path, plan.updates);
+    try {
+      applyFileUpdates(root, newCo.path, plan.updates);
+    } catch (e) {
+      return {
+        ok: false,
+        exitCode: 2,
+        payload: { ...payload, applied: false, error: e.message },
+        error: e.message,
+      };
+    }
 
     const today = new Date().toISOString().slice(0, 10);
     // Spread the existing marker first: fields a project added beyond the six
