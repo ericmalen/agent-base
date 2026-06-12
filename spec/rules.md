@@ -294,7 +294,7 @@ review-enforced. Not enforced in consumer repos.
 ## Audit exemptions (implementation)
 
 Besides the vendored-UPSTREAM exemption above, the audit implementation carries
-two narrow exemptions the rules would otherwise flag:
+three narrow exemptions the rules would otherwise flag:
 
 - **Setup-window tooling.** `.claude/agent-base-setup/`,
   `.claude/skills/base-{inventory,plan,apply,verify}/`, and
@@ -305,6 +305,9 @@ two narrow exemptions the rules would otherwise flag:
 - **Payload skeletons.** Files containing `<!-- agent-base:slot:` markers are
   template payload, not live configuration, and are excluded from live-config
   checks.
+- **Session worktrees.** `.claude/worktrees/` (Claude Code's transient session
+  worktrees — full repo copies) is never walked; its contents are not live
+  configuration of the audited repo.
 
 ## Retired IDs
 

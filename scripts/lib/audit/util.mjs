@@ -1,7 +1,7 @@
 // Shared helpers for the v2 audit. Zero-dep, pure where possible.
 
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, basename } from 'node:path';
 import { stripJsonComments } from '../extract.mjs';
 
 export function readSafe(p) {
@@ -61,6 +61,9 @@ export function* walk(dir) {
   try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
   for (const e of entries) {
     if (SKIP_DIRS.has(e.name)) continue;
+    // Claude Code session worktrees (.claude/worktrees/<branch>) hold full
+    // transient repo copies — never live config.
+    if (e.name === 'worktrees' && basename(dir) === '.claude') continue;
     const full = join(dir, e.name);
     if (e.isDirectory()) yield* walk(full);
     else if (e.isFile()) yield full;

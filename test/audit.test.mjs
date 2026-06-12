@@ -569,3 +569,19 @@ test('R-21: a "whenever" description carries a when clause', () => {
     rmSync(repo, { recursive: true, force: true });
   }
 });
+
+// ── Session worktrees (.claude/worktrees/) are transient copies, never config ─
+
+test('.claude/worktrees contents are not audited (no compat, no findings)', () => {
+  const long = Array.from({ length: 70 }, (_, i) => `line ${i}`).join('\n') + '\n';
+  const repo = makeRepo({
+    ...CONFORMANT,
+    '.claude/worktrees/erm+fix+thing/AGENTS.md': long, // would fire R-13/R-15 + flip compat
+    '.claude/worktrees/erm+fix+thing/.claude/skills/x/SKILL.md': '---\nname: wrong\n---\nbody\n',
+  });
+  try {
+    assert.deepEqual(audit({ root: repo }).findings, []);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
