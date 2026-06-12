@@ -53,7 +53,9 @@ From the project:
 npx github:ericmalen/agent-base#v1.2.0 orchestrate
 ```
 
-then paste the printed prompt into your AI session. Or, from a clone
+which launches Claude Code with the flow started (without the `claude`
+CLI: type `/agent-base-bootstrap` in your AI session, or paste the
+printed prompt). Or, from a clone
 (one-time: `git clone <url> ~/tools/agent-base`), open the **base
 clone** in Claude Code (or Copilot agent mode) and run:
 

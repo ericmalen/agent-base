@@ -12,7 +12,7 @@ consistently; do not rotate synonyms.
 | **staged release** | Immutable copy of a tagged release at `~/.agent-base/versions/<tag>/`, created by the bootstrap commands. Never pulled; replaced by staging a newer tag. ("npx-staged release" only at first mention in a doc.) |
 | **stage** (verb) | Copy-once placement of a release into the release store (sentinel-guarded, idempotent). |
 | **release store** | `~/.agent-base/versions/`; managed by `agent-base cache list\|prune`. |
-| **bootstrap commands** | `agent-base setup`/`orchestrate`/`refresh` — stage the release and print the bootstrap prompt. |
+| **bootstrap commands** | `agent-base setup`/`orchestrate`/`refresh` — stage the release, then hand off down the launch chain: spawn `claude` in the target → drop the one-shot `/agent-base-bootstrap` launcher skill → print the bootstrap prompt. |
 | **bootstrap prompt** | The printed paste-able prompt for an AI session opened in the project. |
 | **delegated commands** | `agent-base install`/`audit`/`sync`/`tracker-sync`/`starter`/`headless-guard` — passthroughs to `scripts/*.mjs`. |
 | **npx spec** | `github:owner/repo#tag` or `git+<url>#tag`, computed from the marker (`npxSpecFromToolRepo`). |

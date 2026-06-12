@@ -5,7 +5,7 @@ project. You learn the five-session flow without touching a real codebase.
 
 ## What you need
 
-- This base checkout open in Claude Code or Copilot agent mode (a clone, or the staged release `npx agent-base orchestrate` prints)
+- This base checkout open in Claude Code or Copilot agent mode (a clone, or the release `npx agent-base orchestrate` stages — it opens the session for you when the `claude` CLI is on PATH)
 - Node ≥ 20
 - Familiarity with [setup](../how-to/setup-guide.md) (target must be
   adopted first — fixtures below are pre-built for orchestration tests)
@@ -44,7 +44,7 @@ Check `specialists[]` (one engineer per layer + reviewers), `dispatch_rules`
 From the Agent Base root:
 
 ```sh
-node -e "
+node --input-type=module -e "
 import { readFileSync } from 'node:fs';
 import { planGeneration } from './scripts/lib/orchestration/scaffold.mjs';
 const registry = JSON.parse(readFileSync('templates/orchestration/template-registry.json','utf8'));

@@ -4,7 +4,7 @@
 every `mechanical` rule; the verifier rubric applies every `judgment` rule; docs
 reference rules by ID and never restate them (R-51).
 
-Version: 1.0-draft (June 2026) · Distilled from a pre-repo working draft (not
+Version: 1.0 (June 2026) · Distilled from a pre-repo working draft (not
 retained; decisions D-1..D-5 resolved)
 
 **Conventions.**

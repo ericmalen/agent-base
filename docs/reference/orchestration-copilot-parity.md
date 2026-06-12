@@ -39,9 +39,13 @@ setup.
 
 ### Headless pipeline tier
 
-`dispatch_rules.pipeline_when` (`scheduled`, `multi_day`) is reserved for a
-future headless tier. Until it ships, both tools run the subagent path for
-scheduled work.
+The headless tier ships as cron-driven CI pipelines (`claude -p` via
+`templates/ci/orchestrator-run.{github,ado}.yml`, gated by
+`headless-guard`) — see
+[headless-orchestration](../how-to/headless-orchestration.md).
+`dispatch_rules.pipeline_when` (`scheduled`, `multi_day`) is
+schema-validated but not yet consumed by the guard; runs are selected by
+the cron schedule, not per-task routing.
 
 ### Claude-only agent frontmatter
 

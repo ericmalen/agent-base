@@ -33,8 +33,10 @@ From your project, no clone needed:
 npx github:ericmalen/agent-base#v1.2.0 setup
 ```
 
-This stages the release and prints the exact prompt to paste into Claude Code
-(or Copilot agent mode) opened in your project. Setup asks two questions
+This stages the release, then launches Claude Code in your project with
+setup already started (without the `claude` CLI it drops a one-shot
+`/agent-base-bootstrap` launcher skill and prints the prompt to paste —
+Copilot agent mode works through that path). Setup asks two questions
 (GitHub code review? path-scoping mechanism?), runs the four phases in fresh
 contexts, and stops at two human approval gates. Details:
 [`docs/how-to/setup-guide.md`](./docs/how-to/setup-guide.md);
@@ -70,7 +72,8 @@ team and a `tasks.md` backlog:
 npx github:ericmalen/agent-base#v1.2.0 orchestrate
 ```
 
-then paste the printed prompt into your AI session. (Clone path: open the
+which launches Claude Code with the flow started — without the `claude`
+CLI, type `/agent-base-bootstrap` in your AI session. (Clone path: open the
 base checkout in Claude Code or Copilot agent mode and run
 `/base-orchestrate /path/to/project`.) The project must already be set up and
 have a clean git working tree. Discovery and generation run in fresh contexts

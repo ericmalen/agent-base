@@ -113,7 +113,7 @@ your repo is untouched until YOU merge.
   `sync-baseline --check` flags a stale pin; `--report` shows the plan;
   `--upgrade` applies it — see [baseline-sync](./baseline-sync.md). The
   `base-refresh` skill (run from a base checkout, like `base-setup` —
-  `npx github:ericmalen/agent-base#<new-tag> refresh` prints the prompt)
+  `npx github:ericmalen/agent-base#<new-tag> refresh` starts it)
   walks the full loop for you. Re-run the full setup flow only for
   major/breaking changes to routing or layout; your current state is just
   new existing-project input, protected by the same machinery.
