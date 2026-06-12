@@ -57,3 +57,6 @@ jobs:
         with:
           name: starter
           path: ${{ runner.temp }}/starter
+          # v4.4+ drops hidden files by default — without this the artifact
+          # loses .claude/, .vscode/, .gitignore: the entire starter payload
+          include-hidden-files: true
