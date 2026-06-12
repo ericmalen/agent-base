@@ -5,6 +5,7 @@
 //   node sync-baseline.mjs --check              # exit 1 if pin < latest compatible
 //   node sync-baseline.mjs --report             # JSON plan for bots / Renovate
 //   node sync-baseline.mjs --upgrade            # apply safe updates, bump pin
+//                                               # (at a current pin: restores missing baseline files)
 //   node sync-baseline.mjs --upgrade --dry-run  # show plan only
 //
 // Options:
@@ -126,14 +127,6 @@ export function runSyncBaseline(opt) {
   }
 
   const targetPin = latest;
-  if (opt.upgrade && !behind) {
-    return {
-      ok: true,
-      exitCode: 0,
-      payload: { pin, latest: targetPin, behind: false, applied: false },
-      message: 'already at latest compatible pin',
-    };
-  }
 
   let oldCo = null;
   let newCo = null;
@@ -141,6 +134,11 @@ export function runSyncBaseline(opt) {
     if (opt.oldBaseRoot && opt.baseRoot) {
       oldCo = { path: opt.oldBaseRoot, cleanup: null };
       newCo = { path: opt.baseRoot, cleanup: null };
+    } else if (!behind) {
+      // Pin current: old and new baselines are identical, so one checkout
+      // serves both sides and the plan reduces to missing-file repair.
+      newCo = checkoutBase(marker.toolRepo, targetPin, opt.baseRoot);
+      oldCo = newCo;
     } else {
       oldCo = checkoutBase(marker.toolRepo, pin, null);
       newCo = checkoutBase(marker.toolRepo, targetPin, opt.baseRoot);
@@ -178,6 +176,15 @@ export function runSyncBaseline(opt) {
       };
     }
 
+    if (!behind && plan.updates.length === 0) {
+      return {
+        ok: true,
+        exitCode: 0,
+        payload: { ...payload, applied: false },
+        message: 'already at latest compatible pin',
+      };
+    }
+
     if (opt.dryRun) {
       return {
         ok: true,
@@ -209,7 +216,9 @@ export function runSyncBaseline(opt) {
       ok: true,
       exitCode: 0,
       payload: { ...payload, applied: true, pin: targetPin, lastSyncedAt: today },
-      message: `upgraded baseline ${pin} → ${targetPin} (${plan.updates.length} file(s))`,
+      message: behind
+        ? `upgraded baseline ${pin} → ${targetPin} (${plan.updates.length} file(s))`
+        : `restored ${plan.updates.length} missing baseline file(s) at ${pin}`,
     };
   } finally {
     oldCo?.cleanup?.();

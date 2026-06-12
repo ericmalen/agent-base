@@ -42,7 +42,8 @@ npx github:ericmalen/agent-base#v1.2.0 sync --check
 # Bot-friendly JSON plan (files to update, conflicts)
 npx github:ericmalen/agent-base#v1.2.0 sync --report --json
 
-# Apply safe updates (skips files with local edits vs the old release)
+# Apply safe updates (skips files with local edits vs the old release).
+# Also works at a current pin: restores missing baseline files (repair).
 npx github:ericmalen/agent-base#v1.2.0 sync --upgrade
 
 # Preview only

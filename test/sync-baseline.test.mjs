@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 
 import { runSyncBaseline } from '../scripts/sync-baseline.mjs';
 import { buildMarker, readMarker, writeMarker } from '../scripts/lib/marker.mjs';
+import { BASELINE_COPIES } from '../scripts/lib/baseline.mjs';
 
 const BASE_ROOT = join(import.meta.dirname, '..');
 // "current" must track the live package version or every release bump breaks this suite
@@ -105,6 +106,45 @@ test('sync-baseline --upgrade applies updates and bumps marker pin', () => {
     assert.equal(marker.customField, 'keep-me');
   } finally {
     for (const d of [root, oldBase]) rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test('sync-baseline --upgrade restores missing baseline files at current pin', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sync-fix-'));
+  try {
+    // Current pin, but only base-check present — rest of the baseline missing.
+    seedProject(root);
+    const res = runSyncBaseline({ root, baseRoot: BASE_ROOT, upgrade: true, json: true });
+    assert.equal(res.exitCode, 0);
+    assert.equal(res.payload.applied, true);
+    assert.ok(res.payload.updateCount >= 1);
+    assert.equal(res.payload.conflictCount, 0);
+    assert.match(res.message, /restored .* at v/);
+
+    assert.equal(
+      readFileSync(join(root, '.claude/skills/docs/SKILL.md'), 'utf8'),
+      readFileSync(join(BASE_ROOT, '.claude/skills/docs/SKILL.md'), 'utf8'));
+
+    const marker = readMarker(root);
+    assert.equal(marker.pin, `v${BASE_VERSION}`);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('sync-baseline --upgrade no-op at current pin with complete baseline', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sync-noop-'));
+  try {
+    seedProject(root);
+    for (const [src, dst] of BASELINE_COPIES) {
+      cpSync(join(BASE_ROOT, src), join(root, dst), { recursive: true });
+    }
+    const res = runSyncBaseline({ root, baseRoot: BASE_ROOT, upgrade: true, json: true });
+    assert.equal(res.exitCode, 0);
+    assert.equal(res.payload.applied, false);
+    assert.match(res.message, /already at latest/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });
 

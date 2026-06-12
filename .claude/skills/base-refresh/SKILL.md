@@ -32,16 +32,21 @@ files by hand.
    node <checkout>/scripts/sync-baseline.mjs --root <project> --check --json
    ```
 
-   Exit 0 (current) → report "already at latest compatible release" and stop.
-4. Plan the upgrade:
+   Exit 0 means the pin is current — do NOT stop; the baseline can still be
+   incomplete (deleted skills, partial install). Continue to the report.
+4. Plan the sync:
 
    ```sh
    node <checkout>/scripts/sync-baseline.mjs --root <project> --report --json
    ```
 
-   If `conflicts` is non-empty: list each conflicting path and stop — the
-   user resolves local edits (keep theirs or revert to baseline), then
-   re-invokes this skill. Never resolve conflicts for them.
+   - If `conflicts` is non-empty: list each conflicting path and stop — the
+     user resolves local edits (keep theirs or revert to baseline), then
+     re-invokes this skill. Never resolve conflicts for them.
+   - If pin current AND `updates` is empty: report "already at latest
+     compatible release, baseline complete" and stop.
+   - If pin current with `updates` non-empty: these are missing baseline
+     files; proceed as a repair.
 5. Apply on a branch in the project:
 
    ```sh
@@ -49,6 +54,10 @@ files by hand.
    node <checkout>/scripts/sync-baseline.mjs --root <project> --upgrade
    git -C <project> add -A && git -C <project> commit -m "chore(agent-base): baseline <pin> -> <targetPin>"
    ```
+
+   Repair case (pin already current): branch
+   `chore/agent-base-baseline-repair`, commit message
+   `chore(agent-base): restore missing baseline files (<pin>)`.
 
 6. Verify: run the project's `base-check` audit loop at the NEW pin (a
    freshened clone is already at it; from a staged release, audit via the
