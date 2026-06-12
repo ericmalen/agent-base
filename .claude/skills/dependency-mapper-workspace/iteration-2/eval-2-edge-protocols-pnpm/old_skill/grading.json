@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "internalEdges contains svc→core (workspace:* protocol) and web→core (file:../core link) — both recognized despite the different protocols",
+      "passed": true,
+      "evidence": "internalEdges=[\"svc→core\",\"svc→test-kit\",\"web→core\"]"
+    },
+    {
+      "text": "the svc→test-kit devDependencies edge is present and flagged as dev-only (it must not be presented as an ordinary runtime edge)",
+      "passed": true,
+      "evidence": "edge={\"from\":\"svc\",\"to\":\"test-kit\",\"devOnly\":true,\"via\":\"workspace:* (@edge/test-kit, devDependencies)\"}"
+    },
+    {
+      "text": "edges use layer names from the provided list (core, svc, web, test-kit), not the scoped package names (@edge/core etc.)",
+      "passed": true,
+      "evidence": "all edges use layer names: [\"svc→core\",\"svc→test-kit\",\"web→core\"]"
+    },
+    {
+      "text": "the legacy layer (no package.json) appears in gaps as having no recognizable manifest — not silently skipped, and no edges invented for it",
+      "passed": true,
+      "evidence": "legacy gaps=[\"legacy (packages/legacy) has no recognizable manifest (no package.json); internal and external dependencies for this layer cannot be mapped.\"], legacy edges=[]"
+    },
+    {
+      "text": "externalDeps name the defining deps: fastify for svc, react for web, zod for core, vitest for test-kit",
+      "passed": true,
+      "evidence": "svc=[{\"name\":\"fastify\",\"role\":\"HTTP framework\"},{\"name\":\"typescript\",\"role\":\"build tool (tsc)\",\"devOnly\":true}], web=[{\"name\":\"react\",\"role\":\"UI framework\"},{\"name\":\"react-dom\",\"role\":\"UI framework (DOM renderer)\"},{\"name\":\"vite\",\"role\":\"build tool\",\"devOnly\":true}], core=[{\"name\":\"zod\",\"role\":\"schema library\"}], test-kit=[{\"name\":\"vitest\",\"role\":\"test framework\"}]"
+    },
+    {
+      "text": "ordering identifies core as the provider consumed by svc and web (changes first); test-kit's provider role, if mentioned, is qualified as dev-only",
+      "passed": true,
+      "evidence": "ordering={\"providers\":[\"core\"],\"consumers\":[\"svc\",\"web\"],\"signal\":\"core is the sole runtime provider, consumed by both svc and web; when a task spans layers, change core first, then svc and web in either order. test-kit is consumed only as a devDependency of svc, so it carries little ordering weight. legacy participates in no internal edges.\",\"suggestedDispatchOrder\":[\"core\",\"svc\",\"web\"]}"
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1
+  }
+}

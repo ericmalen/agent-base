@@ -1,0 +1,13 @@
+{
+  "eval_id": 2,
+  "eval_name": "edge-protocols-pnpm",
+  "prompt": "Map the dependencies of the repo at /Users/ericmalen/Projects/dnd-caf/ai-kit-agent-orchestration/.claude/skills/dependency-mapper-workspace/fixtures/edge-repo for an orchestration repo profile. Structure detection found these layers: core (packages/core), svc (packages/svc), web (packages/web), test-kit (packages/test-kit), legacy (packages/legacy). I need internal edges between the repo's own packages ({from, to} by layer name, flagging dev-only edges), the key external dependencies defining each layer, stack refinements, the dispatch-ordering signal, and gaps. Save it as dependency-report.json with fields internalEdges, externalDeps, stackRefinements, ordering, gaps.",
+  "assertions": [
+    "internalEdges contains svc→core (workspace:* protocol) and web→core (file:../core link) — both recognized despite the different protocols",
+    "the svc→test-kit devDependencies edge is present and flagged as dev-only (it must not be presented as an ordinary runtime edge)",
+    "edges use layer names from the provided list (core, svc, web, test-kit), not the scoped package names (@edge/core etc.)",
+    "the legacy layer (no package.json) appears in gaps as having no recognizable manifest — not silently skipped, and no edges invented for it",
+    "externalDeps name the defining deps: fastify for svc, react for web, zod for core, vitest for test-kit",
+    "ordering identifies core as the provider consumed by svc and web (changes first); test-kit's provider role, if mentioned, is qualified as dev-only"
+  ]
+}

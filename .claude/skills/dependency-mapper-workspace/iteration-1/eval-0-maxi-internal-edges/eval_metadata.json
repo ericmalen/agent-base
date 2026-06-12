@@ -1,0 +1,12 @@
+{
+  "eval_id": 0,
+  "eval_name": "maxi-internal-edges",
+  "prompt": "I'm assembling an orchestration repo profile for the repository at /Users/ericmalen/Projects/dnd-caf/ai-kit-agent-orchestration/test/fixtures/maxi-repo. Structure detection already ran and found these layers: ui (apps/ui), api (apps/api), db (packages/db), shared (packages/shared). Now map its dependencies: internal edges between the repo's own packages (as {from: consumer, to: provider} using the layer names), the key external dependencies that define each layer (not the full list), any refinements to the layer stacks, the dispatch-ordering signal (which layers are providers and should change first in cross-layer tasks), and any gaps. Write the result as dependency-report.json with fields internalEdges, externalDeps, stackRefinements, ordering, gaps.",
+  "assertions": [
+    "internalEdges contains exactly ui→shared and api→shared as {from, to} objects using layer names — no duplicates, no self-edges",
+    "no invented edges: nothing into or out of db (api does not depend on db in this fixture) and no shared→ui/api reversals",
+    "externalDeps per layer name the defining deps only: ui includes react, api includes express, db includes prisma (@prisma/client), shared includes zod — and stays a handful, not a dump of every devDependency",
+    "ordering identifies shared as a provider consumed by ui and api, stating it changes first in cross-layer tasks",
+    "report validates structurally: internalEdges entries pass the profile schema rules (from/to are known layer names) and gaps is an empty array"
+  ]
+}

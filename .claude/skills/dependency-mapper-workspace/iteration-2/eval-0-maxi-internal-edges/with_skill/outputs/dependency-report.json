@@ -1,0 +1,24 @@
+{
+  "internalEdges": [
+    { "from": "ui", "to": "shared" },
+    { "from": "api", "to": "shared" }
+  ],
+  "externalDeps": {
+    "ui": ["react", "react-dom", "vite", "typescript"],
+    "api": ["express", "typescript"],
+    "db": ["@prisma/client", "prisma"],
+    "shared": ["zod", "typescript"]
+  },
+  "stackRefinements": {
+    "ui": "React 18 SPA built with Vite, TypeScript",
+    "api": "Express 4 server, TypeScript",
+    "db": "Prisma 5 data layer (@prisma/client runtime, prisma CLI for schema/migrations)",
+    "shared": "Zod schema/validation library, TypeScript"
+  },
+  "ordering": {
+    "providers": ["shared"],
+    "description": "shared is the sole provider, consumed by both ui and api (runtime dependencies, not dev-only) — in cross-layer tasks shared changes first, then ui/api. db is an island: no layer declares a dependency on it and it consumes no internal package, so db-touching tasks have no manifest-derived ordering constraint relative to other layers. ui and api are leaf consumers with no edges between them; neither orders before the other.",
+    "dispatchOrder": ["shared", "db", "api", "ui"]
+  },
+  "gaps": []
+}

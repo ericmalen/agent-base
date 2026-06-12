@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "internalEdges contains svc→core (workspace:* protocol) and web→core (file:../core link) — both recognized despite the different protocols",
+      "passed": true,
+      "evidence": "internalEdges=[\"svc→core\",\"svc→test-kit\",\"web→core\"]"
+    },
+    {
+      "text": "the svc→test-kit devDependencies edge is present and flagged as dev-only (it must not be presented as an ordinary runtime edge)",
+      "passed": true,
+      "evidence": "edge={\"from\":\"svc\",\"to\":\"test-kit\",\"devOnly\":true,\"protocol\":\"workspace:*\",\"via\":\"@edge/test-kit\"}"
+    },
+    {
+      "text": "edges use layer names from the provided list (core, svc, web, test-kit), not the scoped package names (@edge/core etc.)",
+      "passed": true,
+      "evidence": "all edges use layer names: [\"svc→core\",\"svc→test-kit\",\"web→core\"]"
+    },
+    {
+      "text": "the legacy layer (no package.json) appears in gaps as having no recognizable manifest — not silently skipped, and no edges invented for it",
+      "passed": true,
+      "evidence": "legacy gaps=[\"packages/legacy has no package.json — internal/external dependencies for the legacy layer cannot be mapped from manifests; src/index.js explicitly notes it was checked in without a manifest\"], legacy edges=[]"
+    },
+    {
+      "text": "externalDeps name the defining deps: fastify for svc, react for web, zod for core, vitest for test-kit",
+      "passed": true,
+      "evidence": "svc={\"runtime\":[\"fastify@^4.28.0\"],\"dev\":[\"typescript@^5.5.0\"]}, web={\"runtime\":[\"react@^18.3.0\",\"react-dom@^18.3.0\"],\"dev\":[\"vite@^5.4.0\"]}, core={\"runtime\":[\"zod@^3.23.0\"],\"dev\":[]}, test-kit={\"runtime\":[\"vitest@^2.0.0\"],\"dev\":[]}"
+    },
+    {
+      "text": "ordering identifies core as the provider consumed by svc and web (changes first); test-kit's provider role, if mentioned, is qualified as dev-only",
+      "passed": true,
+      "evidence": "ordering={\"signal\":\"core is the only shared runtime foundation (fan-in from svc and web); test-kit is a dev-time leaf feeding svc; svc and web are independent of each other; legacy is fully disconnected\",\"dispatchOrder\":[[\"core\",\"test-kit\"],[\"svc\",\"web\"],[\"legacy\"]],\"notes\":\"Stages are parallelizable within each tier. core and test-kit have no internal deps and can run first in parallel. svc (needs core runtime + test-kit dev) and web (needs core runtime) follow in parallel. legacy has no detected edges in either direction, so its position is unconstrained — placed last only because it is unmappable, not because of a known dependency.\"}"
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1
+  }
+}

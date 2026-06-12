@@ -1,0 +1,47 @@
+{
+  "skill_name": "dependency-mapper",
+  "evals": [
+    {
+      "id": 0,
+      "eval_name": "maxi-internal-edges",
+      "prompt": "I'm assembling an orchestration repo profile for the repository at /Users/ericmalen/Projects/dnd-caf/ai-kit-agent-orchestration/test/fixtures/maxi-repo. Structure detection already ran and found these layers: ui (apps/ui), api (apps/api), db (packages/db), shared (packages/shared). Now map its dependencies: internal edges between the repo's own packages (as {from: consumer, to: provider} using the layer names), the key external dependencies that define each layer (not the full list), any refinements to the layer stacks, the dispatch-ordering signal (which layers are providers and should change first in cross-layer tasks), and any gaps. Write the result as dependency-report.json with fields internalEdges, externalDeps, stackRefinements, ordering, gaps.",
+      "expected_output": "JSON: internalEdges exactly [{ui→shared},{api→shared}], key external deps per layer (react/vite for ui, express for api, prisma for db, zod for shared), ordering names shared as the provider to change first, no invented edges (no api→db), gaps empty",
+      "files": [],
+      "assertions": [
+        "internalEdges contains exactly ui→shared and api→shared as {from, to} objects using layer names — no duplicates, no self-edges",
+        "no invented edges: nothing into or out of db (api does not depend on db in this fixture) and no shared→ui/api reversals",
+        "externalDeps per layer name the defining deps only: ui includes react, api includes express, db includes prisma (@prisma/client), shared includes zod — and stays a handful, not a dump of every devDependency",
+        "ordering identifies shared as a provider consumed by ui and api, stating it changes first in cross-layer tasks",
+        "report validates structurally: internalEdges entries pass the profile schema rules (from/to are known layer names) and gaps is an empty array"
+      ]
+    },
+    {
+      "id": 1,
+      "eval_name": "mini-zero-edges",
+      "prompt": "Map the dependencies of the repo at /Users/ericmalen/Projects/dnd-caf/ai-kit-agent-orchestration/test/fixtures/mini-repo for an orchestration repo profile. Structure detection found a single layer: cli (path '.'). I need the internal dependency edges between the repo's own packages ({from, to} by layer name), the key external dependencies defining each layer, stack refinements if any, the dispatch-ordering signal, and gaps. Save it as dependency-report.json with fields internalEdges, externalDeps, stackRefinements, ordering, gaps.",
+      "expected_output": "JSON: internalEdges is exactly [] presented as a recorded fact (single package, nothing to map is the normal result), externalDeps for cli is empty/none (zero-dependency package — nothing invented), no gap complaining about the absence of dependencies",
+      "files": [],
+      "assertions": [
+        "internalEdges is exactly [] — present in the report as a recorded fact, not omitted and not an error",
+        "externalDeps for the cli layer is empty or explicitly 'none' — the package has zero dependencies and none are invented",
+        "no gaps entry treats the absence of internal edges or external deps as a problem (zero-dependency single package is a normal result)",
+        "the report does not invent stack refinements contradicting the zero-dependency Node CLI reality (refinements absent, or consistent with a zero-dependency Node.js CLI)"
+      ]
+    },
+    {
+      "id": 2,
+      "eval_name": "edge-protocols-pnpm",
+      "prompt": "Map the dependencies of the repo at /Users/ericmalen/Projects/dnd-caf/ai-kit-agent-orchestration/.claude/skills/dependency-mapper-workspace/fixtures/edge-repo for an orchestration repo profile. Structure detection found these layers: core (packages/core), svc (packages/svc), web (packages/web), test-kit (packages/test-kit), legacy (packages/legacy). I need internal edges between the repo's own packages ({from, to} by layer name, flagging dev-only edges), the key external dependencies defining each layer, stack refinements, the dispatch-ordering signal, and gaps. Save it as dependency-report.json with fields internalEdges, externalDeps, stackRefinements, ordering, gaps.",
+      "expected_output": "JSON: internalEdges = svc→core (workspace:* protocol), web→core (file: link), svc→test-kit flagged dev-only; edges named by layer names (core), not package names (@edge/core); legacy reported in gaps as having no manifest, not silently skipped; ordering names core as the provider to change first",
+      "files": [],
+      "assertions": [
+        "internalEdges contains svc→core (workspace:* protocol) and web→core (file:../core link) — both recognized despite the different protocols",
+        "the svc→test-kit devDependencies edge is present and flagged as dev-only (it must not be presented as an ordinary runtime edge)",
+        "edges use layer names from the provided list (core, svc, web, test-kit), not the scoped package names (@edge/core etc.)",
+        "the legacy layer (no package.json) appears in gaps as having no recognizable manifest — not silently skipped, and no edges invented for it",
+        "externalDeps name the defining deps: fastify for svc, react for web, zod for core, vitest for test-kit",
+        "ordering identifies core as the provider consumed by svc and web (changes first); test-kit's provider role, if mentioned, is qualified as dev-only"
+      ]
+    }
+  ]
+}

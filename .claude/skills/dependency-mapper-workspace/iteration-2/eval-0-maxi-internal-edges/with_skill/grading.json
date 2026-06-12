@@ -1,0 +1,35 @@
+{
+  "expectations": [
+    {
+      "text": "internalEdges contains exactly ui→shared and api→shared as {from, to} objects using layer names — no duplicates, no self-edges",
+      "passed": true,
+      "evidence": "internalEdges=[\"api→shared\",\"ui→shared\"]"
+    },
+    {
+      "text": "no invented edges: nothing into or out of db (api does not depend on db in this fixture) and no shared→ui/api reversals",
+      "passed": true,
+      "evidence": "no db edges, no reversals"
+    },
+    {
+      "text": "externalDeps per layer name the defining deps only: ui includes react, api includes express, db includes prisma (@prisma/client), shared includes zod — and stays a handful, not a dump of every devDependency",
+      "passed": true,
+      "evidence": "ui=[\"react\",\"react-dom\",\"vite\",\"typescript\"], api=[\"express\",\"typescript\"], db=[\"@prisma/client\",\"prisma\"], shared=[\"zod\",\"typescript\"]"
+    },
+    {
+      "text": "ordering identifies shared as a provider consumed by ui and api, stating it changes first in cross-layer tasks",
+      "passed": true,
+      "evidence": "ordering={\"providers\":[\"shared\"],\"description\":\"shared is the sole provider, consumed by both ui and api (runtime dependencies, not dev-only) — in cross-layer tasks shared changes first, then ui/api. db is an island: no layer declares a dependency on it and it consumes no internal package, so db-touching tasks have no manifest-derived ordering constraint relative to other layers. ui and api are leaf consumers with no edges between them; neither orders before the other.\",\"dispatchOrder\":[\"shared\",\"db\",\"api\",\"ui\"]}"
+    },
+    {
+      "text": "report validates structurally: internalEdges entries pass the profile schema rules (from/to are known layer names) and gaps is an empty array",
+      "passed": true,
+      "evidence": "non-layer-name edges=[], gaps=[]"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  }
+}
