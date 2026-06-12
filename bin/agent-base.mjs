@@ -78,7 +78,7 @@ if (command === '--version' || command === 'version') {
   process.exit(0);
 }
 
-if (DELEGATED[command]) {
+if (Object.hasOwn(DELEGATED, command)) {
   const r = spawnSync(process.execPath, [join(pkgRoot, 'scripts', DELEGATED[command]), ...rest], {
     stdio: 'inherit',
   });

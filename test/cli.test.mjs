@@ -43,6 +43,14 @@ test('cli: unknown command exits 2', () => {
   assert.match(r.stderr, /unknown command frobnicate/);
 });
 
+test('cli: Object.prototype keys are unknown commands, not delegations', () => {
+  for (const cmd of ['toString', '__proto__', 'hasOwnProperty']) {
+    const r = run([cmd]);
+    assert.equal(r.status, 2, `${cmd} exits 2`);
+    assert.match(r.stderr, new RegExp(`unknown command ${cmd}`));
+  }
+});
+
 test('cli: delegated command propagates underlying exit code (audit usage error → 2)', () => {
   const r = run(['audit', '--bogus-flag']);
   assert.equal(r.status, 2);
@@ -117,6 +125,9 @@ test('cli: packaging guard — zero deps and staging-critical paths in the files
   for (const p of ['test', 'notes']) {
     assert.ok(!pkg.files.includes(p), `files whitelist excludes ${p}`);
   }
+  // a files-listed dir overrides .gitignore for its contents, so the local
+  // settings file needs an explicit negation or `npm pack` leaks it
+  assert.ok(pkg.files.includes('!.claude/settings.local.json'));
 });
 
 test('cli: cache prune rejects bad --keep', () => {
