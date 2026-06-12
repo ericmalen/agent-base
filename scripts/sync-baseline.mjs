@@ -8,10 +8,14 @@
 //   node sync-baseline.mjs --upgrade --dry-run  # show plan only
 //
 // Options:
-//   --root <dir>       project root (default cwd)
-//   --base-root <dir>   use local base clone (skip network; for dev/tests)
-//   --allow-major      consider latest tag across major versions
-//   --json             machine-readable stdout
+//   --root <dir>           project root (default cwd)
+//   --base-root <dir>      local base checkout as the NEW (target) version.
+//                          NOTE: --report/--upgrade still shallow-clone the
+//                          CURRENT pin unless --old-base-root is also given;
+//                          pass both to run fully offline.
+//   --old-base-root <dir>  local checkout of the CURRENT pin (with --base-root)
+//   --allow-major          consider latest tag across major versions
+//   --json                 machine-readable stdout
 //
 // Exit: 0 ok · 1 pin behind or upgrade had conflicts · 2 usage/internal error
 
@@ -186,14 +190,20 @@ export function runSyncBaseline(opt) {
     applyFileUpdates(root, newCo.path, plan.updates);
 
     const today = new Date().toISOString().slice(0, 10);
-    writeMarker(root, buildMarker({
-      standard: tagToSemver(targetPin)?.raw ?? String(marker.standard),
-      toolRepo: marker.toolRepo,
-      pin: targetPin,
-      setupAt: marker.setupAt,
-      lastSyncedAt: today,
-      githubCodeReview: marker.githubCodeReview,
-    }));
+    // Spread the existing marker first: fields a project added beyond the six
+    // canonical ones survive the upgrade (buildMarker emits only its own).
+    const { present, invalid, ...markerRest } = marker;
+    writeMarker(root, {
+      ...markerRest,
+      ...buildMarker({
+        standard: tagToSemver(targetPin)?.raw ?? String(marker.standard),
+        toolRepo: marker.toolRepo,
+        pin: targetPin,
+        setupAt: marker.setupAt,
+        lastSyncedAt: today,
+        githubCodeReview: marker.githubCodeReview,
+      }),
+    });
 
     return {
       ok: true,

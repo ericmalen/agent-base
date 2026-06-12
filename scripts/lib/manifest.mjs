@@ -38,7 +38,17 @@ const ALLOWED_TARGET_PATTERNS = [
   /^docs\/ai\//,
 ];
 
+// Path-shape safety: every manifest path (target, literal, template, merge
+// file/base) must stay inside its root once joined — no absolute paths, no
+// drive letters, no ".." segments, no backslash separators.
+export function isSafeRelPath(path) {
+  if (typeof path !== 'string' || path === '') return false;
+  if (path.startsWith('/') || /^[A-Za-z]:/.test(path) || path.includes('\\')) return false;
+  return !path.split('/').includes('..');
+}
+
 export function isAllowedTarget(path, inventoriedPaths = null) {
+  if (!isSafeRelPath(path)) return false;
   // Any Agent Base-canonical target location, or any recognized AI-config surface
   // (the scope invariant is "no writes outside AI-config surfaces" — whether a
   // given surface SHOULD exist after setup is the audit's layer, not check's).
@@ -63,6 +73,9 @@ export function loadInventory(adoptionDir) {
 export function validateShape(manifest) {
   const errors = [];
   const e = (m) => errors.push(m);
+  const ePath = (where, field, p) => {
+    if (p != null && !isSafeRelPath(p)) e(`${where}: ${field} must be a relative path without ".." (got "${p}")`);
+  };
 
   if (manifest.schemaVersion !== 1) e(`schemaVersion must be 1 (got ${manifest.schemaVersion})`);
   if (!Array.isArray(manifest.entries)) { e('entries must be an array'); return errors; }
@@ -81,6 +94,7 @@ export function validateShape(manifest) {
     switch (op) {
       case 'move':
         if (!entry.target) e(`${where}: move requires "target"`);
+        ePath(where, 'target', entry.target);
         break;
       case 'split':
         if (!Array.isArray(entry.ranges) || entry.ranges.length === 0) {
@@ -98,6 +112,8 @@ export function validateShape(manifest) {
             if (!r.reason) e(`${w}: drop range requires "reason"`);
           } else if (!r.target) {
             e(`${w}: range requires "target" (or op:"drop" with reason)`);
+          } else {
+            ePath(w, 'target', r.target);
           }
         });
         break;
@@ -107,6 +123,8 @@ export function validateShape(manifest) {
       case 'merge':
         if (!entry.literal) e(`${where}: merge requires "literal"`);
         if (!entry.target) e(`${where}: merge requires "target"`);
+        ePath(where, 'literal', entry.literal);
+        ePath(where, 'target', entry.target);
         break;
       case 'supersede':
         if (!entry.catalogSkill) e(`${where}: supersede requires "catalogSkill"`);
@@ -120,12 +138,17 @@ export function validateShape(manifest) {
   for (const [i, jm] of (manifest.jsonMerges ?? []).entries()) {
     if (!jm.file) errors.push(`jsonMerges[${i}]: requires "file"`);
     if (!jm.base) errors.push(`jsonMerges[${i}]: requires "base" (Agent Base template path)`);
+    ePath(`jsonMerges[${i}]`, 'file', jm.file);
+    ePath(`jsonMerges[${i}]`, 'base', jm.base);
   }
 
   for (const [i, ins] of (manifest.installs ?? []).entries()) {
     if (!ins.file) errors.push(`installs[${i}]: requires "file"`);
     if (!ins.template && !ins.literal) errors.push(`installs[${i}]: requires "template" or "literal"`);
     if (ins.template && ins.literal) errors.push(`installs[${i}]: "template" and "literal" are mutually exclusive`);
+    ePath(`installs[${i}]`, 'file', ins.file);
+    ePath(`installs[${i}]`, 'template', ins.template);
+    ePath(`installs[${i}]`, 'literal', ins.literal);
   }
 
   return errors;

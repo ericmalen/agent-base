@@ -81,6 +81,10 @@ test('sync-baseline --upgrade applies updates and bumps marker pin', () => {
     seedProject(root, { standard: '0.9.0', pin: 'v0.9.0' });
     // Project file matches the old release exactly → safe update, no conflict.
     writeFileSync(join(root, '.claude/skills/base-check/SKILL.md'), 'old-version\n');
+    // Non-canonical marker field must survive the upgrade rewrite.
+    const markerPath = join(root, '.claude/agent-base.json');
+    const seeded = JSON.parse(readFileSync(markerPath, 'utf8'));
+    writeFileSync(markerPath, JSON.stringify({ ...seeded, customField: 'keep-me' }, null, 2) + '\n');
 
     const res = runSyncBaseline({
       root, baseRoot: BASE_ROOT, oldBaseRoot: oldBase, upgrade: true, json: true,
@@ -98,6 +102,7 @@ test('sync-baseline --upgrade applies updates and bumps marker pin', () => {
     assert.equal(marker.standard, baseVersion);
     assert.equal(marker.setupAt, '2026-01-01');
     assert.equal(marker.lastSyncedAt, new Date().toISOString().slice(0, 10));
+    assert.equal(marker.customField, 'keep-me');
   } finally {
     for (const d of [root, oldBase]) rmSync(d, { recursive: true, force: true });
   }

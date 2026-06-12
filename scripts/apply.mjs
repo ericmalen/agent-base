@@ -46,6 +46,7 @@ function deepMerge(base, override) {
   // override wins; objects merge recursively. Arrays replace.
   const out = { ...base };
   for (const [k, v] of Object.entries(override)) {
+    if (k === '__proto__') continue; // plain assignment would mutate the prototype, not set a key
     if (v && typeof v === 'object' && !Array.isArray(v)
         && out[k] && typeof out[k] === 'object' && !Array.isArray(out[k])) {
       out[k] = deepMerge(out[k], v);

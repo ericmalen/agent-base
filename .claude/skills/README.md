@@ -24,22 +24,24 @@ Skills load in three stages — this is the whole point.
 
 ## Single-file vs. multi-file
 
-- **Single-file** when the workflow fits in ~200 lines: one `SKILL.md`, no
-  sibling files.
+- **Single-file** when the workflow fits in ~200 lines (R-20): one `SKILL.md`,
+  no sibling files.
 - **Multi-file** when the skill has detailed references, worked examples, or
   executable scripts: `SKILL.md` is the lean router; `references/`,
   `examples/`, and `scripts/` hold the detail.
 
-If your `SKILL.md` body runs past ~200 lines, it probably needs decomposition.
+If your `SKILL.md` body runs past ~200 lines (R-20), it probably needs
+decomposition.
 
 ## What lives in this folder
 
 Two groups, both loaded here because both are wanted while developing Agent Base:
 
 **Agent Base tooling** — the setup engine and self-checks. The four `base-*`
-setup phase skills and `base-check` are installed into every project by
-`scripts/install-setup.mjs`; FOUR skills are deliberately Agent Base-side only and
-never installed (installer allowlist): `base-setup`, `base-refresh`,
+setup phase skills and `base-check` are installed into every project per the
+allowlist in `scripts/lib/baseline.mjs` (consumed by
+`scripts/install-setup.mjs`); FOUR skills are deliberately Agent Base-side only
+and never installed (installer allowlist): `base-setup`, `base-refresh`,
 `base-orchestrate`, and `validate-setup`.
 
 - [`base-setup`](./base-setup/SKILL.md) — the setup entry point and

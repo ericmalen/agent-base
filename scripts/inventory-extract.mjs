@@ -3,13 +3,15 @@
 // Pure mechanics, no classification beyond the enumerated surface
 // list; everything else is sweep-candidate triage for the AI plan phase.
 //
-// Usage: node scripts/inventory-extract.mjs [--root <dir>] [--out <dir>]
-//                                           [--allow-dirty] [--json]
+// Usage: node scripts/inventory-extract.mjs [--root <dir>] [--allow-dirty]
+//                                           [--include <paths>] [--json]
+// Output always lands in <root>/.setup/ — apply/check/report hardcode that
+// path, so it is not configurable here either.
 // Exit codes: 0 ok · 1 precondition failed · 2 internal error
 
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extractFile, sweepFile, isBinary, classifySurface } from './lib/extract.mjs';
 
@@ -62,7 +64,13 @@ export function runInventory({ root, outDir, allowDirty = false, include = [] })
   const skipped = [];
   let nodeSeq = 0;
 
+  // The out dir is wiped wholesale below — refuse anything that is not a
+  // strict subdirectory of root (outDir "." would delete the repo, ".git"
+  // included; ".." or an absolute path, worse).
   const outAbs = resolve(root, outDir);
+  if (outAbs === root || !outAbs.startsWith(root + sep)) {
+    throw new Error(`outDir must resolve to a subdirectory of the repo root (got "${outDir}")`);
+  }
   rmSync(outAbs, { recursive: true, force: true });
   mkdirSync(join(outAbs, 'nodes'), { recursive: true });
 
@@ -141,7 +149,6 @@ if (isMain) {
   const opt = { root: process.cwd(), out: '.setup', allowDirty: false, json: false, include: [] };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--root') opt.root = args[++i];
-    else if (args[i] === '--out') opt.out = args[++i];
     else if (args[i] === '--allow-dirty') opt.allowDirty = true;
     else if (args[i] === '--json') opt.json = true;
     else if (args[i] === '--include') opt.include.push(...(args[++i] ?? '').split(',').filter(Boolean));

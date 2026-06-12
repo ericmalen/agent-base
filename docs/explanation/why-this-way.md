@@ -101,7 +101,9 @@ calls every specialist directly. Reasons:
 - Harder to accidentally make recursive — flat agents can't chain into a
   five-deep loop.
 
-agent-base does not ship an orchestration layer. When you add one,
-review loops and human gates go in the orchestrator, not between specialists.
+agent-base does not install an orchestration layer at setup — it is generated
+on demand from a base checkout (`base-orchestrate`). In a generated (or
+hand-added) layer, review loops and human gates go in the orchestrator, not
+between specialists.
 Nesting is available when a specialist legitimately needs its own helpers —
 treat it as a deliberate choice, not the default.

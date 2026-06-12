@@ -70,11 +70,12 @@ New skills and agents for agent-base follow the conventions in
 [`.claude/skills/README.md`](../../.claude/skills/README.md) and the "Adding
 agents" section of [`.claude/agents/README.md`](../../.claude/agents/README.md).
 What ships into set-up projects is decided by the installer allowlist in
-`scripts/install-setup.mjs` — there is no separate distribution step.
+`scripts/lib/baseline.mjs` (consumed by `scripts/install-setup.mjs`) — there
+is no separate distribution step.
 Every setup installs the baseline skills (`base-check`, `docs`,
 `git-conventions`, `skill-creator`, `agent-creator`) plus the orchestration
-lifecycle skills (`retro`, `log-report`, `eval-runner`) and the `docs-auditor`
-agent. The lifecycle skills are dormant until orchestration generation creates
+lifecycle skills (`retro`, `log-report`, `eval-runner`, `tracker-sync`) and
+the `docs-auditor` agent. The lifecycle skills are dormant until orchestration generation creates
 their surfaces (`docs/orchestration/`, generated agents). Orchestration
 discovery/generation meta-assets stay Agent Base-side and run from a base checkout against
 a target path — see [`spec/target-layout.md`](../../spec/target-layout.md).

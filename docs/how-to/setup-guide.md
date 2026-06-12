@@ -54,9 +54,9 @@ Either way that's the whole setup. The AI installs the tooling, commits it,
 and starts the four-phase flow below. The setup-time tooling is removed again
 before merge; what stays is the permanent baseline — the `base-check`, `docs`,
 `git-conventions`, `skill-creator`, and `agent-creator` skills; the
-orchestration lifecycle skills `retro`, `log-report`, and `eval-runner`
-(dormant until orchestration generation creates their surfaces); and the
-`docs-auditor` agent.
+orchestration lifecycle skills `retro`, `log-report`, `eval-runner`, and
+`tracker-sync` (dormant until orchestration generation creates their
+surfaces); and the `docs-auditor` agent.
 
 **Working from a clone (Agent Base development, or fallback):** keep a clone
 (`git clone <url> ~/tools/agent-base`), open it in your tool, and say
@@ -98,8 +98,8 @@ your repo is untouched until YOU merge.
 - `base-check` (installed skill) is your drift checker — run it any time.
   It stays after merge alongside the rest of the permanent baseline: the
   `docs`, `git-conventions`, `skill-creator`, and `agent-creator` skills;
-  the orchestration lifecycle skills `retro`, `log-report`, and `eval-runner`;
-  and the `docs-auditor` agent.
+  the orchestration lifecycle skills `retro`, `log-report`, `eval-runner`,
+  and `tracker-sync`; and the `docs-auditor` agent.
 - Updating to a newer Agent Base release: use baseline sync, not a re-setup.
   `sync-baseline --check` flags a stale pin; `--report` shows the plan;
   `--upgrade` applies it — see [baseline-sync](./baseline-sync.md). The

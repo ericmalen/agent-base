@@ -64,7 +64,7 @@ node ~/tools/agent-base/scripts/sync-baseline.mjs --check --base-root ~/tools/ag
 Only **permanent baseline** assets (same set as post-merge install):
 
 - `base-check`, `docs`, `git-conventions`, `skill-creator`, `agent-creator`
-- `docs-auditor`, `retro`, `log-report`, `eval-runner`
+- `docs-auditor`, `retro`, `log-report`, `eval-runner`, `tracker-sync`
 
 Setup-window skills (`.claude/agent-base-setup/`, `base-inventory` …) are
 never touched.

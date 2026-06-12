@@ -23,7 +23,7 @@ Run from an open base checkout. Entry skill: `base-orchestrate`.
 | --- | --- |
 | Discovery | `structure-detector`, `dependency-mapper`, `convention-detector`, `interview-guide`, `blueprint-generator`, `handoff-validator` |
 | Generation | `agent-instantiator`, `skill-instantiator` |
-| Quality | `eval-runner`, `drift-checker` |
+| Quality | `drift-checker` (`eval-runner` is installed at setup — see below) |
 
 ### Entry skills (Agent Base-only)
 
@@ -36,7 +36,8 @@ Run from an open base checkout. Entry skill: `base-orchestrate`.
 
 ## Installed at setup (every target)
 
-Shipped by `scripts/install-setup.mjs` allowlist.
+Shipped per the allowlist in `scripts/lib/baseline.mjs` (consumed by
+`scripts/install-setup.mjs`).
 
 ### Agents
 

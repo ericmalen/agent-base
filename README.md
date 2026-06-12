@@ -13,7 +13,7 @@ dispatch) generated from a base checkout when a team needs it.
 No stack-specific or domain-specific content — you add those on top.
 
 > **This repo is the setup tool, not your application repo.** Nobody starts a
-> project by cloning Agent Base. Setup runs *from your project* against an
+> project by cloning Agent Base. Setup runs *from your project* against a
 > base checkout — resolved via `npx`, or a shared clone — and installs
 > only what belongs in your project
 > (see [`spec/target-layout.md`](./spec/target-layout.md) for what you end up with).
@@ -93,9 +93,10 @@ bin/             the agent-base npx entry point (never ships into projects;
                  see docs/reference/agent-base-cli.md)
 .claude/         this repo's own live config; the base-* setup skills, baseline
                  skills (base-check, docs, git-conventions, skill-creator,
-                 agent-creator, retro, log-report, eval-runner) and agents are
-                 dual-role (used here AND installed into projects — see
-                 scripts/install-setup.mjs). Orchestration
+                 agent-creator, retro, log-report, eval-runner, tracker-sync)
+                 and agents are dual-role (used here AND installed into
+                 projects — see the allowlist in scripts/lib/baseline.mjs,
+                 consumed by scripts/install-setup.mjs). Orchestration
                  discovery/generation meta-assets stay Agent Base-side only.
                  base-setup is the setup entry point: run from a
                  checkout (clone or npx-staged release, or followed directly

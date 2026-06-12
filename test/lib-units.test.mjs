@@ -39,6 +39,30 @@ test('validateShape: top-level shape errors', () => {
     ['schemaVersion must be 1 (got undefined)', 'entries must be an array']);
 });
 
+test('validateShape: path-bearing fields reject traversal and absolute paths', () => {
+  assert.deepEqual(
+    validateShape({ schemaVersion: 1, entries: [
+      { node: 'A#1', op: 'move', target: '.claude/../../etc/passwd' },
+      { node: 'A#2', op: 'merge', literal: '../outside.md', target: 'AGENTS.md' },
+    ] }),
+    [
+      'entries[0]: target must be a relative path without ".." (got ".claude/../../etc/passwd")',
+      'entries[1]: literal must be a relative path without ".." (got "../outside.md")',
+    ]);
+  assert.deepEqual(
+    validateShape({ schemaVersion: 1, entries: [], installs: [
+      { file: '/etc/passwd', literal: 'x' },
+    ] }),
+    ['installs[0]: file must be a relative path without ".." (got "/etc/passwd")']);
+});
+
+test('isAllowedTarget: rejects traversal even when the pattern would match', () => {
+  assert.equal(isAllowedTarget('.claude/../../etc/foo'), false);
+  assert.equal(isAllowedTarget('/AGENTS.md'), false);
+  assert.equal(isAllowedTarget('.claude\\settings.json'), false);
+  assert.equal(isAllowedTarget('.claude/settings.json'), true);
+});
+
 test('validateShape: unknown op is rejected', () => {
   assert.deepEqual(
     validateShape({ schemaVersion: 1, entries: [{ node: 'A#1', op: 'rename' }] }),

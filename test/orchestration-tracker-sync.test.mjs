@@ -216,6 +216,7 @@ test('buildGhUpdateArgs: per-state argv sequences, comment appended', () => {
   assert.deepEqual(buildGhListArgs(), [
     'issue', 'list', '--json', 'number,title,state,labels,url', '--state', 'all', '--limit', '200',
   ]);
+  assert.deepEqual(buildGhListArgs(1000).slice(-2), ['--limit', '1000']);
   assert.equal(issueNumberFromRef('#45'), 45);
   assert.equal(issueNumberFromRef('owner/repo#45'), 45);
   assert.equal(issueNumberFromRef('AB#45'), null);

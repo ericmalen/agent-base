@@ -10,7 +10,7 @@ Tag when consumers should be able to pull the change:
 - Permanent-baseline asset changes (`BASELINE_COPIES` in
   `scripts/lib/baseline.mjs`: `base-check`, `docs`, `git-conventions`,
   `skill-creator`, `agent-creator`, `docs-auditor`, `retro`, `log-report`,
-  `eval-runner`).
+  `eval-runner`, `tracker-sync`).
 - Audit rule changes (`spec/rules.md` + `scripts/audit.mjs`).
 - CI template changes (`templates/ci/`).
 

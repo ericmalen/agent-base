@@ -25,7 +25,7 @@ unit-tested, shell-agnostic.
 |---|---|
 | `templates/` | Payload copied into every project: `instructions/` (AGENTS.md/CLAUDE.md skeletons + slot bases), `settings/`, `readmes/`, `ci/`, `gitignore`. |
 | `scripts/` + `test/` | The engine. Dev tooling here; setup copies ONLY the five setup scripts (inventory-extract, apply, check, report, audit) + `scripts/lib/` + `templates/` into projects as `.claude/agent-base-setup/` — `test/` never ships. |
-| `.claude/` | This repo's live config AND the baseline shipped to every project. The `base-*` setup skills, `setup-verifier` agent, and the baseline `base-check`, `docs`, `git-conventions`, `skill-creator`, `agent-creator`, `retro`, `log-report`, `eval-runner` skills + `docs-auditor` agent are dual-role: loaded here AND installed path-for-path into projects (see `scripts/install-setup.mjs`, the allowlist that decides what ships). Orchestration discovery/generation meta-assets (`repo-analyst`, `scaffolder`, `evaluator`, and their paired skills) stay Agent Base-side — run from a base checkout (clone or staged release) against a project path, same pattern as `base-setup`. `base-setup` is the setup entry point — run from a checkout against a project path; deliberately NOT installed into projects. |
+| `.claude/` | This repo's live config AND the baseline shipped to every project. The `base-*` setup skills, `setup-verifier` agent, and the baseline `base-check`, `docs`, `git-conventions`, `skill-creator`, `agent-creator`, `retro`, `log-report`, `eval-runner`, `tracker-sync` skills + `docs-auditor` agent are dual-role: loaded here AND installed path-for-path into projects (see the allowlist in `scripts/lib/baseline.mjs`, consumed by `scripts/install-setup.mjs` — it decides what ships). Orchestration discovery/generation meta-assets (`repo-analyst`, `scaffolder`, `evaluator`, and their paired skills) stay Agent Base-side — run from a base checkout (clone or staged release) against a project path, same pattern as `base-setup`. `base-setup` is the setup entry point — run from a checkout against a project path; deliberately NOT installed into projects. |
 | `docs/` | Consumer-facing guides. |
 | `reports/` | Generated outputs (validation/audit reports). Gitignored. |
 
@@ -37,8 +37,9 @@ unit-tested, shell-agnostic.
   `.claude/agent-base.json`).
 - Generated reports go to `reports/`, never committed.
 - v1/v2 are internal generations; released artifacts version from 1.0.
-- Agent Base CI gates beyond tests: `docs-consistency` (doc link resolution)
-  and `rule-check-map` (spec-rule ⇄ audit-check coverage).
+- Agent Base CI gates beyond tests: `docs-consistency` (doc link resolution),
+  `rule-check-map` (spec-rule ⇄ audit-check coverage), self-audit `--strict`,
+  and starter build + audit.
 
 ## Documentation
 
@@ -56,7 +57,8 @@ notes.
 
 - Do not add payload to `.claude/` unless it is also wanted while developing
   Agent Base — everything there auto-loads here (v1's mistake; see dropped rules
-  in spec). The installer allowlist (`scripts/install-setup.mjs`) decides
+  in spec). The installer allowlist (`scripts/lib/baseline.mjs`, consumed by
+  `scripts/install-setup.mjs`) decides
   what ships to projects; `base-setup` stays Agent Base-side only.
 - Do not move `.claude/skills/base-setup/` or rename `scripts/`,
   `templates/`, or `bin/` — paths are load-bearing (one-prompt flow in

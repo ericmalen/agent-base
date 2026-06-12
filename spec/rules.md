@@ -280,8 +280,11 @@ set-up projects.
 
 **R-51 · Rule-ID indirection** · mechanical · Agent Base CI
 Agent Base docs, templates, and check metadata reference rules by R-ID only — never by
-file line numbers, never restating thresholds. (Enforced in the Agent Base repo's CI, not
-in consumer repos.)
+file line numbers. Thresholds are never restated without the R-ID alongside
+(shipped templates may carry the operative value, since consumer repos have no
+`spec/rules.md`, but must cite the R-ID). CI mechanically enforces the doc-link
+and rule ⇄ audit-check halves (`docs-consistency`, `rule-check-map`); the
+no-restatement clause is review-enforced. Not enforced in consumer repos.
 
 ---
 

@@ -8,8 +8,8 @@
 
 import { spawnSync } from 'node:child_process';
 
-export function buildGhListArgs() {
-  return ['issue', 'list', '--json', 'number,title,state,labels,url', '--state', 'all', '--limit', '200'];
+export function buildGhListArgs(limit = 200) {
+  return ['issue', 'list', '--json', 'number,title,state,labels,url', '--state', 'all', '--limit', String(limit)];
 }
 
 // One `gh issue list --json` element → normalization contract.
@@ -57,7 +57,16 @@ function runGh(args, cwd) {
 }
 
 export function listItems({ cwd }) {
-  return JSON.parse(runGh(buildGhListArgs(), cwd)).map(normalizeGhIssue);
+  // gh truncates at --limit with no indicator (closed issues count too, so a
+  // busy repo silently loses intake items and trips false missing-tracker-item
+  // conflicts) — grow the limit until the page comes back not-full.
+  let limit = 200;
+  for (;;) {
+    const items = JSON.parse(runGh(buildGhListArgs(limit), cwd));
+    if (items.length < limit) return items.map(normalizeGhIssue);
+    if (limit >= 25000) throw new Error(`gh issue list still full at --limit ${limit}; repo too large for tracker-sync`);
+    limit *= 5;
+  }
 }
 
 export function pushUpdate({ cwd }, update) {

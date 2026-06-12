@@ -228,6 +228,20 @@ test('integration: inventory over a small existing project repo', () => {
   }
 });
 
+test('runInventory: outDir outside (or equal to) root is refused before the wipe', () => {
+  const repo = makeRepo({ 'AGENTS.md': '# X\nrules\n' });
+  try {
+    for (const outDir of ['.', '..', '/tmp/abs-out', 'a/../..']) {
+      assert.throws(
+        () => runInventory({ root: repo, outDir, allowDirty: true }),
+        /outDir must resolve to a subdirectory/);
+    }
+    assert.ok(runInventory({ root: repo, outDir: '.setup', allowDirty: true }));
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
 test('integration: dirty tree fails precondition, --allow-dirty bypasses', () => {
   const repo = makeRepo({ 'AGENTS.md': '# X\nrules\n' });
   try {

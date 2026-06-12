@@ -2,9 +2,10 @@
 // npx delivers the package into a prunable cache (~/.npm/_npx); the AI-tool
 // sessions that base-setup/base-orchestrate dispatch need the checkout at a
 // stable path across sessions. So the CLI copies the whole package to
-// ~/.agent-base/versions/<tag>/ exactly once per tag (sentinel written last;
-// a partial stage without the sentinel is wiped and re-copied). Staged
-// releases are immutable — never `git pull`ed (npm strips .git anyway).
+// ~/.agent-base/versions/<tag>/ exactly once per tag (staged into a temp
+// sibling, sentinel included, then renamed into place atomically; a partial
+// stage without the sentinel is wiped and re-copied). Staged releases are
+// immutable — never `git pull`ed (npm strips .git anyway).
 //
 // Dev escape hatch: running from a clone (pkgRoot/.git present) skips staging
 // and points the prompt at the clone itself.
@@ -12,7 +13,7 @@
 // CLI-only module: lives under bin/lib/, NOT scripts/lib/ (which ships
 // wholesale into projects via the installer allowlist).
 
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -46,9 +47,23 @@ export function stageRelease({ pkgRoot = pkgRootFromHere(), home = homedir() } =
   if (existsSync(sentinel)) return { path: dest, tag, dev: false, copied: false };
   if (existsSync(dest)) rmSync(dest, { recursive: true, force: true }); // partial stage — redo
 
+  // Copy into a pid-suffixed temp sibling and rename into place: a concurrent
+  // invocation can never observe — or sentinel-pin — a half-written stage.
+  // (A temp dir orphaned by a crash is ignored: it never parses as a semver
+  // tag, so listStaged/pruneStaged skip it.)
   mkdirSync(dirname(dest), { recursive: true });
-  cpSync(pkgRoot, dest, { recursive: true });
-  writeFileSync(sentinel, `${new Date().toISOString()}\n`);
+  const tmp = `${dest}.partial-${process.pid}`;
+  rmSync(tmp, { recursive: true, force: true });
+  cpSync(pkgRoot, tmp, { recursive: true });
+  writeFileSync(join(tmp, SENTINEL), `${new Date().toISOString()}\n`);
+  try {
+    renameSync(tmp, dest);
+  } catch (err) {
+    rmSync(tmp, { recursive: true, force: true });
+    // dest appeared between our rm and rename — another invocation won; use theirs
+    if (existsSync(sentinel)) return { path: dest, tag, dev: false, copied: false };
+    throw err;
+  }
   return { path: dest, tag, dev: false, copied: true };
 }
 

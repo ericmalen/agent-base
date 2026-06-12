@@ -26,7 +26,7 @@ optional.
 - Target in **git** with a **clean working tree**
 - **Node ≥ 20** on the machine (the AI runs scripts — you never will)
 - Claude Code or Copilot in **agent mode**
-- An **base checkout** (staged release or open clone — same pattern
+- A **base checkout** (staged release or open clone — same pattern
   as `/base-setup`)
 
 Orchestration discovery and generation meta-assets stay **Agent Base-side** — they

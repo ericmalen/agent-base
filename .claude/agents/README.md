@@ -107,7 +107,8 @@ New agents live in this same folder. The steps mirror the skills workflow:
 
 In the Agent Base repo itself, `setup-verifier` and `docs-auditor` are dual-role:
 loaded while developing Agent Base AND installed path-for-path into adopted
-repos by `scripts/install-setup.mjs` (the installer allowlist decides what
+repos per the allowlist in `scripts/lib/baseline.mjs`, consumed by
+`scripts/install-setup.mjs` (the allowlist decides what
 ships; `example-reviewer` stays Agent Base-side).
 
 ## Filename convention
