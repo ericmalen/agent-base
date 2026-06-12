@@ -28,8 +28,10 @@ npx github:ericmalen/agent-base#v1.2.0 starter /path/to/new-repo --git
 node ~/tools/agent-base/scripts/build-starter.mjs /path/to/new-repo --git
 ```
 
-Fill in AGENTS.md and you're done. No AI session required. (Agent Base's CI
-publishes the same output as a build artifact named `starter`, if you'd
+Fill in AGENTS.md and you're done. No AI session required. The starter ships
+the same permanent baseline as a full setup — all baseline skills plus the
+docs-auditor agent — so it is born current for `sync-baseline`. (Agent Base's
+CI publishes the same output as a build artifact named `starter`, if you'd
 rather download than run the script.)
 
 ## Setting up an EXISTING repo (or a new one, equivalently)

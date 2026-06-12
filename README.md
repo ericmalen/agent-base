@@ -55,6 +55,9 @@ npx github:ericmalen/agent-base#v1.2.0 starter /path/to/new-repo --git
 # or from a clone: node ~/tools/agent-base/scripts/build-starter.mjs /path/to/new-repo --git
 ```
 
+The starter includes the same permanent baseline (skills + docs-auditor agent)
+as a full setup.
+
 ### Check for drift later
 
 Set-up projects get a permanent `base-check` skill — run it any time to audit

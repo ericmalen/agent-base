@@ -19,7 +19,7 @@ consistently; do not rotate synonyms.
 | **pin** | Git tag in the marker (`pin`, falling back to `v`+`standard`); what npx and CI resolve. |
 | **refresh / sync / upgrade** | `refresh` = guided baseline-upgrade skill loop · `sync` = the deterministic engine (`sync-baseline.mjs`) · `--upgrade` = the sync mode that applies changes. |
 | **project** | Any repo receiving the standard layout. |
-| **starter** | New project emitted via `build-starter.mjs` (skips inventory). |
+| **starter** | New project emitted via `build-starter.mjs` (skips inventory; ships the full permanent baseline). |
 | **existing project** | Project with prior AI config; inventory-first setup path. |
 | **setup** | Four-phase pipeline: inventory → plan → apply → verify. |
 | **setup window** | Temporary skills and tooling removed before merge (`base-inventory` … `base-verify`). |

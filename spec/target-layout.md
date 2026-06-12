@@ -37,8 +37,8 @@ setup; every entry names the rules that govern it. Conditional entries are marke
 │   │       └── scripts/
 │   │
 │   └── agents/                    CONDITIONAL — created with the
-│       │                          first agent (setup installs
-│       │                          docs-auditor; the starter none)
+│       │                          first agent (setup and the starter
+│       │                          both install docs-auditor)
 │       ├── README.md                                                 R-48
 │       └── <agent-name>.md        kebab-case, tools: declared,
 │                                  Never + Procedures + Documents     R-27..R-37
