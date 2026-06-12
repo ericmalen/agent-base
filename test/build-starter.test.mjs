@@ -50,6 +50,35 @@ test('starter build: non-empty dir → exit 1, refusing message, untouched', () 
   }
 });
 
+test('starter build: file as target → exit 1, refusing message, no stack trace', () => {
+  const parent = mkdtempSync(join(tmpdir(), 'ab-starter-'));
+  try {
+    const file = join(parent, 'somefile');
+    writeFileSync(file, 'x\n');
+    const r = run([file]);
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /refusing/);
+    assert.doesNotMatch(r.stderr, /ENOTDIR|at .*node:/, 'friendly refusal, not a crash');
+    assert.equal(readFileSync(file, 'utf8'), 'x\n', 'target file untouched');
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});
+
+test('starter build: --git with git unavailable → exit 1, loud failure', () => {
+  const target = mkdtempSync(join(tmpdir(), 'ab-starter-'));
+  try {
+    // empty PATH → spawnSync('git') hits ENOENT (r.error, status null) —
+    // exactly the path the old fail-open code swallowed
+    const r = run([target, '--git'], { env: { ...process.env, PATH: '' } });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /git step failed/);
+    assert.ok(!existsSync(join(target, '.git')), 'no half-made repo reported as success');
+  } finally {
+    rmSync(target, { recursive: true, force: true });
+  }
+});
+
 test('starter build: no dir argument → exit 1, usage', () => {
   const r = run([]);
   assert.equal(r.status, 1);

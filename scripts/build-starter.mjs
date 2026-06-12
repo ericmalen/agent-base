@@ -5,7 +5,7 @@
 
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { instantiate as instantiateTemplate } from './lib/template.mjs';
 import { buildMarker } from './lib/marker.mjs';
@@ -19,9 +19,15 @@ if (!dir) {
   process.exit(1);
 }
 const target = resolve(dir);
-if (existsSync(target) && readdirSync(target).length > 0) {
-  console.error(`refusing to write into non-empty directory: ${target}`);
-  process.exit(1);
+if (existsSync(target)) {
+  if (!statSync(target).isDirectory()) {
+    console.error(`refusing to write: target exists and is not a directory: ${target}`);
+    process.exit(1);
+  }
+  if (readdirSync(target).length > 0) {
+    console.error(`refusing to write into non-empty directory: ${target}`);
+    process.exit(1);
+  }
 }
 
 const tpl = (rel) => readFileSync(join(baseRoot, 'templates', rel), 'utf8');
@@ -68,9 +74,17 @@ for (const [rel, content] of Object.entries(files)) {
 }
 
 if (flags.includes('--git')) {
-  const g = (args) => spawnSync('git', args, { cwd: target, encoding: 'utf8' });
+  const g = (args) => {
+    const r = spawnSync('git', args, { cwd: target, encoding: 'utf8' });
+    if (r.error || r.status !== 0) {
+      if (r.stderr) process.stderr.write(r.stderr);
+      console.error(`git step failed: git ${args.join(' ')}${r.error ? ` (${r.error.message})` : ''}`);
+      process.exit(1);
+    }
+    return r;
+  };
   g(['init', '-q', '-b', 'main']);
   g(['add', '-A']);
-  g(['-c', 'user.email=starter@agent-base', '-c', 'user.name=agent-base', 'commit', '-qm', `chore: agent-base starter (v${baseVersion})`]);
+  g(['-c', 'user.email=starter@agent-base', '-c', 'user.name=agent-base', '-c', 'commit.gpgsign=false', 'commit', '-qm', `chore: agent-base starter (v${baseVersion})`]);
 }
 console.log(`starter → ${target} (v${baseVersion})`);
