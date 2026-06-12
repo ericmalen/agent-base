@@ -33,7 +33,8 @@ export function validateToolRepo(url) {
   fail(`unsupported form (${repo}); use https://, ssh://, git@host:path, file://, or an absolute path`);
 }
 
-const SEMVER_RE = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/;
+// 0|[1-9]\d*: the spec forbids leading zeros in the version core
+const SEMVER_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/;
 
 export function parseSemver(s) {
   if (typeof s !== 'string') return null;
@@ -53,6 +54,27 @@ export function tagToSemver(tag) {
   return parseSemver(String(tag).replace(/^v/, ''));
 }
 
+// SemVer §11: dot-separated identifiers; numeric ones compare numerically and
+// sort below alphanumeric ones; a longer identifier set wins over its prefix.
+function comparePrerelease(a, b) {
+  if (a === b) return 0;
+  if (!a) return 1; // release > any prerelease
+  if (!b) return -1;
+  const as = a.split('.');
+  const bs = b.split('.');
+  for (let i = 0; i < Math.min(as.length, bs.length); i++) {
+    const x = as[i];
+    const y = bs[i];
+    if (x === y) continue;
+    const xn = /^\d+$/.test(x);
+    const yn = /^\d+$/.test(y);
+    if (xn && yn) return Number(x) < Number(y) ? -1 : 1;
+    if (xn !== yn) return xn ? -1 : 1;
+    return x < y ? -1 : 1;
+  }
+  return as.length < bs.length ? -1 : 1;
+}
+
 export function compareSemver(a, b) {
   const pa = typeof a === 'string' ? parseSemver(a.replace(/^v/, '')) : a;
   const pb = typeof b === 'string' ? parseSemver(b.replace(/^v/, '')) : b;
@@ -60,10 +82,7 @@ export function compareSemver(a, b) {
   if (pa.major !== pb.major) return pa.major < pb.major ? -1 : 1;
   if (pa.minor !== pb.minor) return pa.minor < pb.minor ? -1 : 1;
   if (pa.patch !== pb.patch) return pa.patch < pb.patch ? -1 : 1;
-  if (pa.prerelease === pb.prerelease) return 0;
-  if (!pa.prerelease) return 1;
-  if (!pb.prerelease) return -1;
-  return pa.prerelease < pb.prerelease ? -1 : pa.prerelease > pb.prerelease ? 1 : 0;
+  return comparePrerelease(pa.prerelease, pb.prerelease);
 }
 
 /** List vX.Y.Z tags from a remote, newest first. Stable releases only (no prerelease). */

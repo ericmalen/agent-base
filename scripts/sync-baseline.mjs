@@ -75,7 +75,12 @@ function parseArgs(argv) {
 function checkoutBase(toolRepo, pin, baseRootOverride) {
   if (baseRootOverride) return { path: baseRootOverride, cleanup: null };
   const tmp = mkdtempSync(join(tmpdir(), 'agent-base-sync-'));
-  shallowCloneAt(toolRepo, pin, tmp);
+  try {
+    shallowCloneAt(toolRepo, pin, tmp);
+  } catch (e) {
+    rmSync(tmp, { recursive: true, force: true }); // never leak a half-made checkout
+    throw e;
+  }
   return { path: tmp, cleanup: () => rmSync(tmp, { recursive: true, force: true }) };
 }
 
@@ -160,17 +165,21 @@ export function runSyncBaseline(opt) {
   let oldCo = null;
   let newCo = null;
   try {
-    if (opt.oldBaseRoot && opt.baseRoot) {
-      oldCo = { path: opt.oldBaseRoot, cleanup: null };
-      newCo = { path: opt.baseRoot, cleanup: null };
-    } else if (!behind) {
-      // Pin current: old and new baselines are identical, so one checkout
-      // serves both sides and the plan reduces to missing-file repair.
-      newCo = checkoutBase(marker.toolRepo, targetPin, opt.baseRoot);
-      oldCo = newCo;
-    } else {
-      oldCo = checkoutBase(marker.toolRepo, pin, null);
-      newCo = checkoutBase(marker.toolRepo, targetPin, opt.baseRoot);
+    try {
+      if (opt.oldBaseRoot && opt.baseRoot) {
+        oldCo = { path: opt.oldBaseRoot, cleanup: null };
+        newCo = { path: opt.baseRoot, cleanup: null };
+      } else if (!behind) {
+        // Pin current: old and new baselines are identical, so one checkout
+        // serves both sides and the plan reduces to missing-file repair.
+        newCo = checkoutBase(marker.toolRepo, targetPin, opt.baseRoot);
+        oldCo = newCo;
+      } else {
+        oldCo = checkoutBase(marker.toolRepo, pin, null);
+        newCo = checkoutBase(marker.toolRepo, targetPin, opt.baseRoot);
+      }
+    } catch (e) {
+      return { ok: false, exitCode: 2, error: `baseline checkout failed: ${e.message}` };
     }
 
     const plan = planBaselineSync(root, oldCo.path, newCo.path);
@@ -183,6 +192,7 @@ export function runSyncBaseline(opt) {
       ...plan.summary,
       updates: plan.updates,
       conflicts: plan.conflicts,
+      removed: plan.removed,
     };
 
     // Local edits only block an upgrade (the old → new delta could overwrite

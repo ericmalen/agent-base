@@ -122,3 +122,20 @@ test('latestCompatibleTag stays on same major by default', () => {
   assert.equal(latestCompatibleTag(tags, 'v1.3.0'), 'v1.4.0');
   assert.equal(latestCompatibleTag(tags, 'v1.3.0', { allowMajor: true }), 'v2.0.0');
 });
+
+test('compareSemver orders prerelease identifiers per SemVer §11', () => {
+  assert.equal(compareSemver('1.0.0-rc.9', '1.0.0-rc.10'), -1);
+  assert.equal(compareSemver('1.0.0-2', '1.0.0-11'), -1);
+  assert.equal(compareSemver('1.0.0-alpha', '1.0.0-alpha.1'), -1);
+  assert.equal(compareSemver('1.0.0-1', '1.0.0-alpha'), -1); // numeric < alphanumeric
+  assert.equal(compareSemver('1.0.0-rc.1', '1.0.0'), -1);
+  assert.equal(compareSemver('1.0.0-rc.2', '1.0.0-rc.2'), 0);
+});
+
+test('parseSemver rejects leading zeros in the version core', () => {
+  assert.equal(parseSemver('01.2.3'), null);
+  assert.equal(parseSemver('1.02.3'), null);
+  assert.equal(parseSemver('1.2.03'), null);
+  assert.equal(parseSemver('0.2.3')?.raw, '0.2.3');
+  assert.equal(parseSemver('10.20.30')?.raw, '10.20.30');
+});

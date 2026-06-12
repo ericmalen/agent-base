@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, cpSync, symlinkSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, readdirSync, cpSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
 
 import { runSyncBaseline } from '../scripts/sync-baseline.mjs';
 import { buildMarker, readMarker, writeMarker } from '../scripts/lib/marker.mjs';
@@ -217,7 +218,7 @@ test('sync-baseline --upgrade refuses when pin is ahead of target: exit 2, no wr
   }
 });
 
-test('sync-baseline --upgrade refuses symlinked baseline path: exit 2, nothing written', () => {
+test('sync-baseline --upgrade: symlinked baseline path is a conflict, never written through', () => {
   const root = mkdtempSync(join(tmpdir(), 'sync-lnk-'));
   const victim = mkdtempSync(join(tmpdir(), 'sync-victim-'));
   try {
@@ -226,15 +227,16 @@ test('sync-baseline --upgrade refuses symlinked baseline path: exit 2, nothing w
     symlinkSync(victim, join(root, '.claude/skills/docs'));
 
     const res = runSyncBaseline({ root, baseRoot: BASE_ROOT, upgrade: true, json: true });
-    assert.equal(res.exitCode, 2);
-    assert.match(res.error, /symlink/);
+    // Plan classifies the symlinked paths as conflicts (drift at a current
+    // pin); the rest of the baseline is still repaired around them.
+    assert.equal(res.exitCode, 0, res.error ?? res.message);
+    assert.ok(res.payload.conflicts.some((c) => /symlink/.test(c.reason)));
+    assert.ok(res.payload.conflicts.every((c) => !/docs\/SKILL\.md$/.test(c.path)
+      || /symlink/.test(c.reason)));
 
-    // Refusal is total: out-of-tree target untouched, no other file restored,
-    // marker untouched.
+    // Nothing crosses the link; sibling skills restored normally.
     assert.ok(!existsSync(join(victim, 'SKILL.md')));
-    assert.ok(!existsSync(join(root, '.claude/skills/retro')));
-    const marker = readMarker(root);
-    assert.equal(marker.lastSyncedAt, '2026-01-01');
+    assert.ok(existsSync(join(root, '.claude/skills/retro/SKILL.md')));
   } finally {
     for (const d of [root, victim]) rmSync(d, { recursive: true, force: true });
   }
@@ -278,5 +280,52 @@ test('sync-baseline --upgrade blocked by local edit: exit 1, no writes', () => {
     assert.equal(marker.standard, '0.9.0');
   } finally {
     for (const d of [root, oldBase]) rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test('sync-baseline --upgrade at current pin: file-where-dir-expected is drift, repair survives', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sync-type-'));
+  try {
+    seedProject(root);
+    // A regular FILE squats where the baseline ships the docs skill DIR.
+    writeFileSync(join(root, '.claude/skills/docs'), 'i am a file\n');
+
+    const res = runSyncBaseline({ root, baseRoot: BASE_ROOT, upgrade: true, json: true });
+    assert.equal(res.exitCode, 0, res.error ?? res.message);
+    assert.equal(res.payload.applied, true);
+    assert.ok(res.payload.conflictCount >= 1);
+    assert.ok(res.payload.conflicts.every((c) => /file where the baseline needs a directory/.test(c.reason)
+      || /local edit/.test(c.reason)));
+
+    // Squatting file untouched; the rest of the baseline restored around it.
+    assert.equal(readFileSync(join(root, '.claude/skills/docs'), 'utf8'), 'i am a file\n');
+    assert.ok(existsSync(join(root, '.claude/skills/retro/SKILL.md')));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('sync-baseline checkout failure: exit 2 result (no throw), no temp-dir leak', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sync-clone-'));
+  const repo = mkdtempSync(join(tmpdir(), 'sync-repo-'));
+  try {
+    const git = (...args) => {
+      const r = spawnSync('git', args, { cwd: repo, encoding: 'utf8' });
+      assert.equal(r.status, 0, r.stderr);
+    };
+    git('init', '-q');
+    git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '--allow-empty', '-q', '-m', 'x');
+    git('tag', 'v0.2.0'); // pin v0.1.0 exists in the marker only — clone at it must fail
+    seedProject(root, { standard: '0.1.0', pin: 'v0.1.0', toolRepo: repo });
+
+    const before = new Set(readdirSync(tmpdir()).filter((d) => d.startsWith('agent-base-sync-')));
+    const res = runSyncBaseline({ root, upgrade: true, json: true });
+    assert.equal(res.exitCode, 2);
+    assert.match(res.error, /baseline checkout failed/);
+    const leaked = readdirSync(tmpdir())
+      .filter((d) => d.startsWith('agent-base-sync-') && !before.has(d));
+    assert.deepEqual(leaked, []);
+  } finally {
+    for (const d of [root, repo]) rmSync(d, { recursive: true, force: true });
   }
 });

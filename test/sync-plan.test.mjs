@@ -54,3 +54,51 @@ test('baselineFileHashes: symlinks under a baseline dir are skipped, never follo
     for (const d of [project, outside]) rmSync(d, { recursive: true, force: true });
   }
 });
+
+test('planBaselineSync: type mismatches and symlinked paths are conflicts, not updates', () => {
+  const project = mkdtempSync(join(tmpdir(), 'sync-type-proj-'));
+  const base = mkdtempSync(join(tmpdir(), 'sync-type-base-'));
+  const outside = mkdtempSync(join(tmpdir(), 'sync-type-out-'));
+  try {
+    write(base, '.claude/skills/docs/SKILL.md', 'shipped\n');
+    write(base, '.claude/skills/retro/SKILL.md', 'shipped\n');
+    write(base, '.claude/agents/docs-auditor.md', 'shipped\n');
+    // File where the baseline needs a directory.
+    write(project, '.claude/skills/docs', 'i am a file\n');
+    // Directory where the baseline ships a file.
+    mkdirSync(join(project, '.claude/agents/docs-auditor.md'), { recursive: true });
+    // Symlink in the path of a missing file.
+    mkdirSync(join(project, '.claude/skills'), { recursive: true });
+    symlinkSync(outside, join(project, '.claude/skills/retro'));
+
+    const plan = planBaselineSync(project, base, base);
+    assert.deepEqual(plan.updates, []);
+    const reasons = new Map(plan.conflicts.map((c) => [c.path, c.reason]));
+    assert.match(reasons.get('.claude/skills/docs/SKILL.md'), /file where the baseline needs a directory/);
+    assert.match(reasons.get('.claude/agents/docs-auditor.md'), /directory where the baseline ships a file/);
+    assert.match(reasons.get('.claude/skills/retro/SKILL.md'), /symlink/);
+  } finally {
+    for (const d of [project, base, outside]) rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test('planBaselineSync: files dropped from the new baseline land in removed, untouched', () => {
+  const project = mkdtempSync(join(tmpdir(), 'sync-rm-proj-'));
+  const oldBase = mkdtempSync(join(tmpdir(), 'sync-rm-old-'));
+  const newBase = mkdtempSync(join(tmpdir(), 'sync-rm-new-'));
+  try {
+    write(oldBase, '.claude/skills/docs/SKILL.md', 'v1\n');
+    write(oldBase, '.claude/skills/docs/dropped.md', 'v1\n');
+    write(newBase, '.claude/skills/docs/SKILL.md', 'v2\n');
+    write(project, '.claude/skills/docs/SKILL.md', 'v1\n');
+    write(project, '.claude/skills/docs/dropped.md', 'v1\n');
+
+    const plan = planBaselineSync(project, oldBase, newBase);
+    assert.deepEqual(plan.removed, ['.claude/skills/docs/dropped.md']);
+    assert.equal(plan.summary.removedCount, 1);
+    assert.ok(!plan.updates.includes('.claude/skills/docs/dropped.md'));
+    assert.ok(!plan.conflicts.some((c) => c.path === '.claude/skills/docs/dropped.md'));
+  } finally {
+    for (const d of [project, oldBase, newBase]) rmSync(d, { recursive: true, force: true });
+  }
+});
