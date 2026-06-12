@@ -29,7 +29,17 @@ scope gate.
 
 `{ file: ".vscode/settings.json", base: "settings/vscode/settings.json" }` — key-level
 merge: source-only keys preserved, Agent Base template keys win. Bases live in
-`.claude/agent-base-setup/templates/`.
+`.claude/agent-base-setup/templates/`. One jsonMerge per file, and the file must
+not also be an assembled target or install (apply throws). On first apply the
+pre-merge source is snapshotted into `.setup/merge-sources.json`; commit it with
+the other `.setup/` artifacts — the reproducibility gate merges from the
+snapshot, never the live file.
+
+## Validation notes
+
+Node ids are bare generated tokens (`n0001` — no slashes or dots);
+`catalogSkill` is a bare skill name (must exist as
+`.claude/skills/<name>/SKILL.md` — check.mjs verifies).
 
 ## installs (static wiring)
 
@@ -48,9 +58,9 @@ merge: source-only keys preserved, Agent Base template keys win. Bases live in
 ```
 
 Note: `base-check`, `docs`, `git-conventions`, `skill-creator`,
-`agent-creator`, `retro`, `log-report`, `eval-runner`, and `docs-auditor` are
-NOT manifest installs — they are permanent baseline assets copied verbatim by
-`install-setup.mjs`.
+`agent-creator`, `retro`, `log-report`, `eval-runner`, `tracker-sync`, and
+`docs-auditor` are NOT manifest installs — they are permanent baseline assets
+copied verbatim by `install-setup.mjs`.
 
 ## CI gate templates (optional file copies, not manifest installs)
 
@@ -72,8 +82,11 @@ gate — copy the matching Agent Base template, do not route it through the mani
   `docs/orchestration/generation-manifest.json` exists; needs the
   `ANTHROPIC_API_KEY` secret. See `docs/how-to/headless-orchestration.md`.
 
-Marker literal content:
-`{ "standard": "1.4.0", "toolRepo": "https://github.com/…/agent-base", "pin": "v1.4.0", "lastSyncedAt": "2026-06-11", "setupAt": "2026-03-01", "githubCodeReview": false }`
+Marker literal content — COPY `standard`, `toolRepo`, and `pin` from the
+seeded `.claude/agent-base.json` (written by `install-setup.mjs`), NEVER from
+an example: a hardcoded version pins a nonexistent tag and the project's CI
+fails. Shape (placeholders, not values):
+`{ "standard": "<from seeded marker>", "toolRepo": "<from seeded marker>", "pin": "<from seeded marker>", "lastSyncedAt": "<today YYYY-MM-DD>", "setupAt": "<today YYYY-MM-DD>", "githubCodeReview": <setup answer> }`
 `pin` tracks the release tag; `sync-baseline --upgrade` bumps it after review.
 
 ## AGENTS.md slots

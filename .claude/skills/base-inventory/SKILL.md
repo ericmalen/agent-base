@@ -25,7 +25,9 @@ installer from their base checkout first.
 2. Run the extractor:
    `node .claude/agent-base-setup/scripts/inventory-extract.mjs --root .`
 3. Commit the artifacts:
-   `git add .setup && git commit -m "chore(setup): inventory"`
+   `git add .setup && git commit --no-verify -m "chore(setup): inventory"`
+   (`--no-verify` on every setup commit: format-on-commit hooks would
+   rewrite node bytes and break the byte-exact repro gate)
 4. Report to the user: universe size, surfaces extracted → node count, sweep
    candidates needing triage, anything in `skipped[]` (skips must be surfaced,
    never glossed over).

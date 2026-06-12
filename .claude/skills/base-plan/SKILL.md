@@ -22,6 +22,9 @@ for schema and worked examples before authoring.
      copilot-instructions.md handling, rule R-09)
    - Path-scoping: `.claude/rules/` (default) or nested AGENTS.md compat
      (only if they need other AGENTS.md-ecosystem tools)?
+   For the marker literal's `standard`, `toolRepo`, and `pin`: copy them from
+   the seeded `.claude/agent-base.json` (written by install-setup) — never
+   from an example.
 2. **Triage sweep candidates FIRST.** For each `sweepCandidates` entry: read
    the file; rule it `out-of-scope` (entry with a true, specific reason) or IN
    scope. For in-scope files, commit `.setup`, then re-extract:
@@ -55,6 +58,14 @@ for schema and worked examples before authoring.
 7. **USER GATE 1:** present the report headline + risk sections (drops,
    out-of-scope, merges) and a short prose plan. Do not proceed without
    explicit approval; fold feedback in via manifest edits, re-run 5-6.
-8. Commit: `git add .setup && git commit -m "chore(setup): plan approved"`.
+   **WARNING — re-extraction wipes your work:** a new `--include`
+   re-extraction rewrites ALL of `.setup/` (manifest.json and literals/
+   included) and renumbers node IDs. If feedback needs one: copy
+   `.setup/manifest.json` and `.setup/literals/` outside `.setup/` first,
+   re-extract, restore them, then re-verify EVERY node reference against the
+   new inventory (IDs may shift).
+8. Commit: `git add .setup && git commit --no-verify -m "chore(setup): plan approved"`
+   (`--no-verify` on every setup commit: format-on-commit hooks would
+   rewrite node bytes and break the byte-exact repro gate).
    Tell the user: fresh session → `base-apply` (or, with subagents enabled, the
    `base-setup` orchestrator dispatches the next phase automatically).

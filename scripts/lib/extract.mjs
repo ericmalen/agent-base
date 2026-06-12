@@ -99,6 +99,7 @@ export function parseMarkdownBlocks(text) {
   const headingAt = new Map();
   let inFence = false;
   let fenceMark = '';
+  let fenceLen = 0;
   let prevNonBlankIsPlain = false; // candidate line for setext underline
 
   for (let i = cursor; i < lines.length; i++) {
@@ -108,7 +109,10 @@ export function parseMarkdownBlocks(text) {
       if (!inFence) {
         inFence = true;
         fenceMark = fm[1][0];
-      } else if (fm[1][0] === fenceMark && raw.trim().length >= 3 && /^[`~]+$/.test(raw.trim())) {
+        fenceLen = fm[1].length;
+      } else if (fm[1][0] === fenceMark && fm[1].length >= fenceLen && /^[`~]+$/.test(raw.trim())) {
+        // CommonMark: closer must use the same marker, at least as long as the
+        // opener, with no info string (a shorter run is content, not a closer).
         inFence = false;
       }
       prevNonBlankIsPlain = false;
@@ -232,7 +236,9 @@ export function classifySurface(path) {
     if (path === '.claude/settings.json' || path === '.claude/settings.local.json') return 'claude-settings';
     return 'claude-assets';
   }
+  if (path === '.mcp.json') return 'claude-mcp';
   if (path === '.vscode/settings.json') return 'vscode-settings';
+  if (path === '.vscode/mcp.json') return 'vscode-mcp';
   if (base === '.cursorrules' || base === '.windsurfrules' || base === '.clinerules') return 'other-tool';
   if (path.startsWith('.cursor/rules/')) return 'other-tool';
   if (path === 'GEMINI.md' || base === '.aider.conf.yml') return 'other-tool';

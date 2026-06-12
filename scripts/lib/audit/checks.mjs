@@ -74,9 +74,12 @@ export function checkShim(ctx) {
     out.push(F('R-10', 'warning', 'CLAUDE.md', 'Root CLAUDE.md missing — Claude Code reads only CLAUDE.md (no AGENTS.md fallback).'));
     return out;
   }
-  const firstLine = text.split('\n', 1)[0].trim();
+  // trimEnd only: the import must start at byte 0 — a BOM or leading
+  // whitespace breaks @AGENTS.md resolution, so it must NOT be tolerated.
+  const firstLine = text.split('\n', 1)[0].trimEnd();
   if (firstLine !== '@AGENTS.md') {
-    out.push(F('R-11', 'warning', 'CLAUDE.md', `First line must be exactly "@AGENTS.md" (found: "${firstLine.slice(0, 60)}").`, { line: 1 }));
+    const shown = firstLine.replace(/^\uFEFF/, '\\uFEFF').slice(0, 60);
+    out.push(F('R-11', 'warning', 'CLAUDE.md', `First line must be exactly "@AGENTS.md" starting at byte 0 (found: "${shown}").`, { line: 1 }));
   }
   return out;
 }
@@ -136,7 +139,7 @@ export function checkPathScoping(ctx) {
     const sibRel = relative(root, sibling).replace(/\\/g, '/');
     if (sibText == null) {
       out.push(F('R-15', 'warning', sibRel, 'Nested AGENTS.md needs a sibling CLAUDE.md shim (Claude Code loads CLAUDE.md per-directory).'));
-    } else if (sibText.split('\n', 1)[0].trim() !== '@AGENTS.md') {
+    } else if (sibText.split('\n', 1)[0].trimEnd() !== '@AGENTS.md') {
       out.push(F('R-15', 'warning', sibRel, 'Sibling CLAUDE.md first line must be exactly "@AGENTS.md".', { line: 1 }));
     }
   }
@@ -225,7 +228,9 @@ export function checkSkills(ctx) {
         out.push(F('R-25', 'warning', rel, `Unknown frontmatter field "${key}" — not in the portable core or known tool-specific set.`));
       }
     }
-    if (/^\s*(user-invocable|disable-model-invocation)\s*:\s*infer\s*$/m.test(text)) {
+    // Scoped to parsed frontmatter — body/fenced lines documenting the
+    // deprecated value must not trip this.
+    if (['user-invocable', 'disable-model-invocation'].some((k) => frontmatter[k] === 'infer')) {
       out.push(F('R-25', 'warning', rel, '"infer" is deprecated — use explicit user-invocable / disable-model-invocation booleans.'));
     }
   }
@@ -269,10 +274,12 @@ export function checkAgents(ctx) {
         '## Documents uses Markdown links — use plain repo-root-relative paths (lazy-load convention).',
         { line: lineOf(text, /##\s+documents?\b/i) }));
     }
-    if (!/##\s+never\b/i.test(text)) {
+    // Fence-stripped (like R-03): a heading inside a code example doesn't count.
+    const strippedText = stripFences(text);
+    if (!/##\s+never\b/i.test(strippedText)) {
       out.push(F('R-31', 'warning', rel, 'Missing "## Never" section.'));
     }
-    if (!/##\s+procedures?\b/i.test(text)) {
+    if (!/##\s+procedures?\b/i.test(strippedText)) {
       out.push(F('R-32', 'warning', rel, 'Missing "## Procedures" section.'));
     }
     const firstContent = body.split('\n').map((l) => l.trim()).filter(Boolean).find((l) => !l.startsWith('#'));
@@ -323,8 +330,13 @@ export function checkReferences(ctx) {
     if (!text) continue;
     const stripped = stripInlineCode(stripFences(text));
     const seen = new Set();
+    // Links in skills/agents resolve relative to the file ONLY — a same-named
+    // file at repo root must not mask a missing sibling (e.g. references/a.md).
+    // Root/nested AGENTS.md and rules files keep the root fallback (their
+    // links are conventionally repo-root-relative).
+    const relativeOnly = rel.startsWith('.claude/skills/') || rel.startsWith('.claude/agents/');
 
-    const emit = (rawTarget, line) => {
+    const emit = (rawTarget, line, { rootOnly = false } = {}) => {
       let t = rawTarget.trim().replace(/\s+["'(].*$/, '');
       if (!t || t.startsWith('#') || /^[a-z][a-z0-9+.-]*:/i.test(t) || (t.startsWith('<') && t.endsWith('>'))) return;
       t = t.split('#')[0].split('?')[0];
@@ -332,9 +344,12 @@ export function checkReferences(ctx) {
       const key = `${line}:${t}`;
       if (seen.has(key)) return;
       seen.add(key);
-      const relResolved = join(dirname(abs), t);
-      const rootResolved = join(root, t.replace(/^\.?\//, ''));
-      if (exists(relResolved) || exists(rootResolved)) return;
+      const candidates = rootOnly
+        ? [join(root, t.replace(/^\.?\//, ''))]
+        : relativeOnly
+          ? [join(dirname(abs), t)]
+          : [join(dirname(abs), t), join(root, t.replace(/^\.?\//, ''))];
+      if (candidates.some((c) => exists(c))) return;
       out.push(F('R-07', 'warning', rel, `Reference "${t}" does not resolve to a file.`, { line }));
     };
 
@@ -354,10 +369,12 @@ export function checkReferences(ctx) {
         const start = text.slice(0, dm.index).split('\n').length;
         const dlines = dm[1].split('\n');
         for (let i = 0; i < dlines.length; i++) {
-          const line = dlines[i].trim();
-          if (!line || line.startsWith('#') || /^[-*]\s/.test(line)) continue;
+          // Bulleted entries carry paths too — strip the marker, check the rest.
+          const line = dlines[i].trim().replace(/^[-*]\s+/, '');
+          if (!line || line.startsWith('#')) continue;
           if (/^\[.+?\]\(.+?\)$/.test(line) || !/[./]/.test(line) || /\s/.test(line)) continue;
-          emit(line, start + i);
+          // ## Documents entries are plain repo-root-relative paths (R-30).
+          emit(line, start + i, { rootOnly: true });
         }
       }
     }
@@ -374,16 +391,15 @@ export function checkClaudeSettings(ctx) {
   const out = [];
   const rel = '.claude/settings.json';
   const text = readSafe(join(root, rel));
+  const parsed = text == null ? null : parseJsonc(text);
   if (text == null) {
     out.push(F('R-43', 'info', rel, 'Missing .claude/settings.json.'));
-    return out;
-  }
-  const parsed = parseJsonc(text);
-  if (!parsed) {
+  } else if (!parsed) {
     out.push(F('R-43', 'info', rel, 'Not valid JSON.'));
-    return out;
   }
-  const deny = parsed.permissions?.deny ?? [];
+  // R-44 applies even when the file is missing/unparseable — .env reads are
+  // then maximally unprotected (strictly less safe than an empty deny list).
+  const deny = parsed?.permissions?.deny ?? [];
   for (const rule of REQUIRED_DENY) {
     if (!deny.includes(rule)) {
       out.push(F('R-44', 'warning', rel, `permissions.deny must include "${rule}".`));

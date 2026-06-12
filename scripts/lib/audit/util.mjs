@@ -70,7 +70,10 @@ export function* walk(dir) {
   }
 }
 
-// Minimal frontmatter parser (scalar key: value). Never throws.
+// Minimal frontmatter parser. Handles scalar `key: value`, block lists
+// (`key:` + indented `- item` lines → array), and folded/literal block scalars
+// (`key: >` / `key: |`, optional +/- chomping → continuation lines joined with
+// spaces). Nested maps still collapse to '' (skipped). Not general YAML. Never throws.
 export function parseFrontmatter(text) {
   if (!text.startsWith('---')) return { frontmatter: {}, body: text, hasFrontmatter: false };
   const rest = text.slice(3);
@@ -79,14 +82,34 @@ export function parseFrontmatter(text) {
   const fmText = rest.slice(0, end);
   const body = rest.slice(end + 4).replace(/^[^\n]*\n?/, '');
   const frontmatter = {};
-  for (const line of fmText.split('\n')) {
+  const unquote = (v) => (
+    (v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))
+      ? v.slice(1, -1) : v);
+  const lines = fmText.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^\s/.test(line)) continue; // continuation lines are consumed by their key below
     const colon = line.indexOf(':');
     if (colon === -1) continue;
     const key = line.slice(0, colon).trim();
-    if (!key || /^\s/.test(line)) continue; // skip nested/indented yaml
+    if (!key) continue;
     let val = line.slice(colon + 1).trim();
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
+    if (/^[>|][+-]?$/.test(val)) {
+      // Folded/literal block scalar: join the indented continuation block.
+      const block = [];
+      while (i + 1 < lines.length && (lines[i + 1].trim() === '' || /^\s/.test(lines[i + 1]))) {
+        block.push(lines[++i].trim());
+      }
+      val = block.filter(Boolean).join(' ');
+    } else if (val === '') {
+      // Block list: collect indented `- item` entries as an array.
+      const items = [];
+      while (i + 1 < lines.length && /^\s+-\s/.test(lines[i + 1])) {
+        items.push(unquote(lines[++i].replace(/^\s+-\s*/, '').trim()));
+      }
+      if (items.length > 0) val = items;
+    } else {
+      val = unquote(val);
     }
     frontmatter[key] = val;
   }

@@ -27,6 +27,10 @@ import { classifySurface } from './extract.mjs';
 const NODE_OPS = new Set(['move', 'split', 'drop', 'merge', 'supersede']);
 const FILE_OPS = new Set(['keep-file', 'out-of-scope']);
 
+// Node ids are generated tokens (n0001, n0002, …). Anything looser (slashes,
+// dots) would traverse out of .setup/nodes/ when joined by the applier.
+const NODE_ID_RE = /^[A-Za-z0-9_-]+$/;
+
 // Targets the materializer may write (scope-constrained; check enforces).
 const ALLOWED_TARGET_PATTERNS = [
   /^AGENTS\.md$/, /^CLAUDE\.md$/, /^\.gitignore$/,
@@ -85,6 +89,9 @@ export function validateShape(manifest) {
     const op = entry.op;
     if (NODE_OPS.has(op)) {
       if (!entry.node) e(`${where}: op "${op}" requires "node"`);
+      else if (!NODE_ID_RE.test(entry.node)) {
+        e(`${where}: node id must match [A-Za-z0-9_-]+ (got "${entry.node}")`);
+      }
     } else if (FILE_OPS.has(op)) {
       if (!entry.file) e(`${where}: op "${op}" requires "file"`);
     } else {
@@ -128,6 +135,9 @@ export function validateShape(manifest) {
         break;
       case 'supersede':
         if (!entry.catalogSkill) e(`${where}: supersede requires "catalogSkill"`);
+        else if (/[\\/]/.test(entry.catalogSkill) || entry.catalogSkill === '.' || entry.catalogSkill === '..') {
+          e(`${where}: catalogSkill must be a bare skill name (got "${entry.catalogSkill}")`);
+        }
         break;
       case 'out-of-scope':
         if (!entry.reason) e(`${where}: out-of-scope requires "reason"`);

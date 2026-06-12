@@ -83,10 +83,16 @@ export function runInventory({ root, outDir, allowDirty = false, include = [] })
       continue;
     }
     if (isBinary(buf)) {
-      if (classifySurface(path)) skipped.push({ file: path, reason: 'binary AI-surface file (flagged for manual review)' });
+      if (classifySurface(path) || includeSet.has(path)) skipped.push({ file: path, reason: 'binary AI-surface file (flagged for manual review)' });
       continue;
     }
     const text = buf.toString('utf8');
+    // Lossy decode (e.g. latin-1 bytes → U+FFFD) would silently corrupt node
+    // bytes and break the byte-identical promise — surface it instead.
+    if (!Buffer.from(text, 'utf8').equals(buf)) {
+      skipped.push({ file: path, reason: 'non-UTF-8 encoding (lossy decode) — convert to UTF-8 or handle manually' });
+      continue;
+    }
     const surface = classifySurface(path) ?? (includeSet.has(path) ? 'forced-include' : null);
 
     if (surface) {

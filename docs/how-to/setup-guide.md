@@ -56,7 +56,7 @@ Non-GitHub hosting uses the `git+<https-url>#<tag>` spec form — see the
 
 Prefer zero terminal? Paste ONE prompt instead:
 
-> Clone https://dev.azure.com/&lt;org&gt;/agent-base/_git/agent-base into a temp folder
+> Clone https://github.com/ericmalen/agent-base into a temp folder
 > and follow its .claude/skills/base-setup/SKILL.md to set up this repository.
 
 Either way that's the whole setup. The AI installs the tooling, commits it,

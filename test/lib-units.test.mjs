@@ -10,15 +10,15 @@ test('validateShape: canonical manifest exercising every op validates clean', ()
   const manifest = {
     schemaVersion: 1,
     entries: [
-      { node: 'OLD.md#1', op: 'move', target: 'AGENTS.md', slot: 'conventions' },
-      { node: 'OLD.md#2', op: 'split', ranges: [
+      { node: 'n0001', op: 'move', target: 'AGENTS.md', slot: 'conventions' },
+      { node: 'n0002', op: 'split', ranges: [
         { lines: [1, 4], target: 'AGENTS.md' },
         { lines: [5, 9], op: 'drop', reason: 'stale tooling notes' },
       ] },
       { file: 'KEEP.md', op: 'keep-file' },
-      { node: 'OLD.md#3', op: 'drop', reason: 'duplicates AGENTS.md' },
-      { node: 'OLD.md#4', op: 'merge', literal: 'merged text', target: 'CLAUDE.md' },
-      { node: 'OLD.md#5', op: 'supersede', catalogSkill: 'docs' },
+      { node: 'n0003', op: 'drop', reason: 'duplicates AGENTS.md' },
+      { node: 'n0004', op: 'merge', literal: 'merged text', target: 'CLAUDE.md' },
+      { node: 'n0005', op: 'supersede', catalogSkill: 'docs' },
       { file: 'NOTES.txt', op: 'out-of-scope', reason: 'human-only notes' },
     ],
     jsonMerges: [{ file: '.vscode/settings.json', base: 'templates/settings/vscode.json' }],
@@ -42,8 +42,8 @@ test('validateShape: top-level shape errors', () => {
 test('validateShape: path-bearing fields reject traversal and absolute paths', () => {
   assert.deepEqual(
     validateShape({ schemaVersion: 1, entries: [
-      { node: 'A#1', op: 'move', target: '.claude/../../etc/passwd' },
-      { node: 'A#2', op: 'merge', literal: '../outside.md', target: 'AGENTS.md' },
+      { node: 'n1', op: 'move', target: '.claude/../../etc/passwd' },
+      { node: 'n2', op: 'merge', literal: '../outside.md', target: 'AGENTS.md' },
     ] }),
     [
       'entries[0]: target must be a relative path without ".." (got ".claude/../../etc/passwd")',
@@ -79,17 +79,42 @@ test('validateShape: move requires node and target', () => {
 test('validateShape: split requires non-empty ranges', () => {
   const msg = 'entries[0]: split requires non-empty "ranges"';
   assert.deepEqual(
-    validateShape({ schemaVersion: 1, entries: [{ node: 'A#1', op: 'split', ranges: [] }] }),
+    validateShape({ schemaVersion: 1, entries: [{ node: 'n1', op: 'split', ranges: [] }] }),
     [msg]);
   assert.deepEqual(
-    validateShape({ schemaVersion: 1, entries: [{ node: 'A#1', op: 'split' }] }),
+    validateShape({ schemaVersion: 1, entries: [{ node: 'n1', op: 'split' }] }),
     [msg]);
+});
+
+test('validateShape: node ids must be bare generated tokens (no traversal)', () => {
+  const idMsg = (i, id) => `entries[${i}]: node id must match [A-Za-z0-9_-]+ (got "${id}")`;
+  assert.deepEqual(
+    validateShape({ schemaVersion: 1, entries: [
+      { node: '../../secret', op: 'drop', reason: 'x' },
+      { node: 'nodes/n1', op: 'drop', reason: 'x' },
+      { node: 'OLD.md#1', op: 'drop', reason: 'x' },
+      { node: 'n0001', op: 'drop', reason: 'x' }, // valid
+    ] }),
+    [idMsg(0, '../../secret'), idMsg(1, 'nodes/n1'), idMsg(2, 'OLD.md#1')]);
+});
+
+test('validateShape: catalogSkill must be a bare skill name', () => {
+  const msg = (i, s) => `entries[${i}]: catalogSkill must be a bare skill name (got "${s}")`;
+  assert.deepEqual(
+    validateShape({ schemaVersion: 1, entries: [
+      { node: 'n1', op: 'supersede', catalogSkill: '../escape' },
+      { node: 'n2', op: 'supersede', catalogSkill: 'a/b' },
+      { node: 'n3', op: 'supersede', catalogSkill: 'a\\b' },
+      { node: 'n4', op: 'supersede', catalogSkill: '..' },
+      { node: 'n5', op: 'supersede', catalogSkill: 'docs' }, // valid
+    ] }),
+    [msg(0, '../escape'), msg(1, 'a/b'), msg(2, 'a\\b'), msg(3, '..')]);
 });
 
 test('validateShape: split range line bounds, targets, and drop reasons', () => {
   const manifest = {
     schemaVersion: 1,
-    entries: [{ node: 'A#1', op: 'split', ranges: [
+    entries: [{ node: 'n1', op: 'split', ranges: [
       { lines: [0, 2], target: 'AGENTS.md' },   // 1-based: start < 1
       { lines: [5, 2], target: 'AGENTS.md' },   // end < start
       { lines: [1.5, 3], target: 'AGENTS.md' }, // non-integer
@@ -112,9 +137,9 @@ test('validateShape: drop, merge, and supersede field requirements', () => {
   const manifest = {
     schemaVersion: 1,
     entries: [
-      { node: 'A#1', op: 'drop' },
-      { node: 'A#2', op: 'merge' },
-      { node: 'A#3', op: 'supersede' },
+      { node: 'n1', op: 'drop' },
+      { node: 'n2', op: 'merge' },
+      { node: 'n3', op: 'supersede' },
     ],
   };
   assert.deepEqual(validateShape(manifest), [

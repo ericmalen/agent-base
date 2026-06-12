@@ -17,6 +17,11 @@ import { splitLinesKeepEnds } from './lib/extract.mjs';
 
 const fence = (text) => '```\n' + text.replace(/```/g, '`​``') + (text.endsWith('\n') ? '' : '\n') + '```\n';
 
+function fail(msg) {
+  console.error(`report: ${msg}`);
+  process.exit(1);
+}
+
 export function generateReport({ root }) {
   root = resolve(root);
   const adoptionDir = join(root, '.setup');
@@ -56,8 +61,17 @@ export function generateReport({ root }) {
     else mergedBytes += nodeMeta(e.node).bytes ?? 0;
   }
   for (const e of groups.supersede) mergedBytes += nodeMeta(e.node).bytes ?? 0;
-  let droppedBytes = 0;
+  let droppedBytes = 0, splitDropRanges = 0;
   for (const e of groups.drop) droppedBytes += nodeMeta(e.node).bytes ?? 0;
+  // split drop-ranges are content loss too — count them in the dropped metric
+  for (const e of groups.split) {
+    for (const r of e.ranges) {
+      if (r.op !== 'drop') continue;
+      splitDropRanges += 1;
+      const ls = splitLinesKeepEnds(nodeText(e.node));
+      droppedBytes += Buffer.byteLength(ls.slice(r.lines[0] - 1, r.lines[1]).join(''));
+    }
+  }
   const pct = (n) => sourceBytes === 0 ? '0.0' : ((n / sourceBytes) * 100).toFixed(1);
 
   const L = [];
@@ -73,9 +87,9 @@ export function generateReport({ root }) {
   L.push(`| Source nodes | ${Object.keys(inventory.nodes).length} (${sourceBytes} bytes) |`);
   L.push(`| moved/split (conserved by construction) | ${groups.move.length} move, ${groups.split.length} split |`);
   L.push(`| kept in place | ${groups.keep.length} files |`);
-  L.push(`| **dropped** | ${groups.drop.length} (${pct(droppedBytes)}% of source bytes) |`);
+  L.push(`| **dropped** | ${groups.drop.length} node(s) + ${splitDropRanges} split drop-range(s) (${pct(droppedBytes)}% of source bytes) |`);
   L.push(`| **merged/superseded (REWRITTEN text — REVIEW)** | ${groups.merge.length + groups.supersede.length} (${pct(mergedBytes)}% of source bytes rewritten) |`);
-  L.push(`| verbatim-via-literal (cosmetic routing, byte-equivalent) | ${pct(verbatimLitBytes)}% of source bytes |`);
+  L.push(`| verbatim-via-literal (cosmetic routing, whitespace-normalized match) | ${pct(verbatimLitBytes)}% of source bytes |`);
   L.push(`| out-of-scope rulings | ${groups.oos.length} |`);
   L.push(`| installed (Agent Base templates/literals) | ${(manifest.installs ?? []).length} |`);
   L.push('');
@@ -183,8 +197,12 @@ if (isMain) {
     else if (args[i] === '--out') opt.out = args[++i];
     else { console.error(`report: unknown flag ${args[i]}`); process.exit(2); }
   }
-  const md = generateReport({ root: opt.root });
-  const outPath = opt.out ?? join(opt.root, '.setup', 'report.md');
-  writeFileSync(outPath, md, 'utf8');
-  console.log(`report: written → ${outPath}`);
+  try {
+    const md = generateReport({ root: opt.root });
+    const outPath = opt.out ?? join(opt.root, '.setup', 'report.md');
+    writeFileSync(outPath, md, 'utf8');
+    console.log(`report: written → ${outPath}`);
+  } catch (e) {
+    fail(e.message);
+  }
 }

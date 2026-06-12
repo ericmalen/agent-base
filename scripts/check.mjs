@@ -69,6 +69,15 @@ export function check({ root, templatesDir, skipRepro = false }) {
       v('completeness', `sweep candidate ${c.file} has no disposition (out-of-scope with reason, or re-extract with --include)`);
     }
   }
+  // supersede deletes content against a catalog replacement — the replacement
+  // must actually exist, or the disposition is a disguised drop
+  for (const entry of manifest.entries) {
+    if (entry.op !== 'supersede') continue;
+    const skillRel = join('.claude', 'skills', entry.catalogSkill, 'SKILL.md');
+    if (!existsSync(join(root, skillRel))) {
+      v('completeness', `supersede of ${entry.node}: catalog skill "${entry.catalogSkill}" not found (${skillRel} missing)`);
+    }
+  }
 
   // ── 2. Tiling ──────────────────────────────────────────────────────────────
   for (const entry of manifest.entries) {
@@ -141,7 +150,9 @@ export function check({ root, templatesDir, skipRepro = false }) {
             v('reproducibility', `${p}: working tree differs from re-applied output — route the change through manifest/literals, never edit generated files`);
           }
         }
-        for (const p of recorded.deleted ?? []) {
+        // the FRESH deletion set, not the recorded one: a manifest edited
+        // after apply must be judged against what apply would do NOW
+        for (const p of fresh.deleted ?? []) {
           if (existsSync(join(root, p))) v('reproducibility', `source file ${p} should have been removed by apply but exists`);
         }
       } catch (e) {
@@ -162,12 +173,19 @@ const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(imp
 if (isMain) {
   const args = process.argv.slice(2);
   const opt = { root: process.cwd(), templates: null, skipRepro: false, json: false };
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--root') opt.root = args[++i];
-    else if (args[i] === '--templates') opt.templates = args[++i];
+  const usage = (msg) => { console.error(`check: ${msg}`); process.exit(2); };
+  let i = 0;
+  const value = (flag) => {
+    const v = args[++i];
+    if (v === undefined || v.startsWith('--')) usage(`${flag} requires a value`);
+    return v;
+  };
+  for (; i < args.length; i++) {
+    if (args[i] === '--root') opt.root = value('--root');
+    else if (args[i] === '--templates') opt.templates = value('--templates');
     else if (args[i] === '--skip-repro') opt.skipRepro = true;
     else if (args[i] === '--json') opt.json = true;
-    else { console.error(`check: unknown flag ${args[i]}`); process.exit(2); }
+    else usage(`unknown flag ${args[i]}`);
   }
   if (!opt.templates) {
     opt.templates = join(dirname(fileURLToPath(import.meta.url)), '..', 'templates');

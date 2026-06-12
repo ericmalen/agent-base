@@ -18,11 +18,11 @@
 //                                     [--dry-run <outDir>]
 // Writes .setup/generated.json: { generated: {path: sha256}, deleted: [...] }
 
-import { readFileSync, writeFileSync, mkdirSync, rmSync, rmdirSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, rmSync, rmdirSync, existsSync, readdirSync, lstatSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import { loadManifest, loadInventory, validateShape, keepFiles } from './lib/manifest.mjs';
+import { loadManifest, loadInventory, validateShape, keepFiles, isSafeRelPath } from './lib/manifest.mjs';
 import { stripJsonComments, splitLinesKeepEnds } from './lib/extract.mjs';
 import { SLOT_RE, OPTIONAL_RE, stripEmptyOptionalSections } from './lib/template.mjs';
 
@@ -39,7 +39,20 @@ function nodeBytes(setupDir, nodeId, lines) {
   const text = readFileSync(join(setupDir, 'nodes', nodeId), 'utf8');
   if (!lines) return text;
   const ls = splitLinesKeepEnds(text);
+  if (lines[1] > ls.length) {
+    throw new Error(`node ${nodeId}: range ${lines[0]}-${lines[1]} exceeds node length (${ls.length} lines)`);
+  }
   return ls.slice(lines[0] - 1, lines[1]).join('');
+}
+
+// Write with the destination checked for a symlink first: writing THROUGH a
+// committed symlink would clobber out-of-tree files.
+function writeNoFollow(abs, text) {
+  mkdirSync(dirname(abs), { recursive: true });
+  let st = null;
+  try { st = lstatSync(abs); } catch { /* ENOENT: fresh file */ }
+  if (st?.isSymbolicLink()) throw new Error(`refusing to write through symlink: ${abs}`);
+  writeFileSync(abs, text, 'utf8');
 }
 
 function deepMerge(base, override) {
@@ -67,6 +80,14 @@ export function apply({ root, templatesDir, outRoot = null }) {
   const shapeErrors = validateShape(manifest);
   if (shapeErrors.length) {
     throw new Error(`manifest shape invalid:\n  ${shapeErrors.join('\n  ')}`);
+  }
+
+  // Inventory paths drive deletion (step 4) — an unsafe path would escape the
+  // root. Refuse the whole apply before any write or delete.
+  for (const f of inventory.files) {
+    if (!isSafeRelPath(f.path)) {
+      throw new Error(`inventory contains unsafe file path "${f.path}" — refusing to apply`);
+    }
   }
 
   // ── 1. Collect chunks per target, in manifest order ───────────────────────
@@ -153,9 +174,7 @@ export function apply({ root, templatesDir, outRoot = null }) {
       output = '';
       for (const c of targetChunks) output = append(output, c.text);
     }
-    const abs = join(writeRoot, target);
-    mkdirSync(dirname(abs), { recursive: true });
-    writeFileSync(abs, output, 'utf8');
+    writeNoFollow(join(writeRoot, target), output);
     generated[target] = sha(output);
   }
 
@@ -174,29 +193,54 @@ export function apply({ root, templatesDir, outRoot = null }) {
       if (!existsSync(p)) throw new Error(`install literal missing: ${ins.literal}`);
       text = readFileSync(p, 'utf8');
     }
-    if (generated[ins.file]) throw new Error(`install collides with assembled target: ${ins.file}`);
-    const abs = join(writeRoot, ins.file);
-    mkdirSync(dirname(abs), { recursive: true });
-    writeFileSync(abs, text, 'utf8');
+    if (generated[ins.file] !== undefined) {
+      throw new Error(`install target ${ins.file} already written by an earlier assembled target or install`);
+    }
+    writeNoFollow(join(writeRoot, ins.file), text);
     generated[ins.file] = sha(text);
   }
 
   // ── 3. JSON key-level merges ───────────────────────────────────────────────
+  // Merge sources are snapshotted into .setup/merge-sources.json on the first
+  // real apply (file → original source text, null if absent). Merging from the
+  // live file would let hand-edits to the merged OUTPUT feed back in as
+  // "source" and silently pass the reproducibility gate. A snapshot always
+  // wins; the live file is only a fallback for pre-snapshot setups. The
+  // repro re-apply (outRoot set) reads snapshots but never writes them.
+  const snapPath = join(setupDir, 'merge-sources.json');
+  const mergeSources = existsSync(snapPath)
+    ? JSON.parse(readFileSync(snapPath, 'utf8'))
+    : {};
+  let mergeSourcesDirty = false;
+  const mergedFiles = new Set();
   for (const jm of manifest.jsonMerges ?? []) {
+    if (mergedFiles.has(jm.file)) throw new Error(`duplicate jsonMerges entry for ${jm.file}`);
+    mergedFiles.add(jm.file);
+    if (generated[jm.file] !== undefined) {
+      throw new Error(`jsonMerges file ${jm.file} already written by an assembled target or install`);
+    }
     const basePath = join(templatesDir, jm.base);
     if (!existsSync(basePath)) throw new Error(`jsonMerges base template missing: ${jm.base}`);
     const baseObj = JSON.parse(stripJsonComments(readFileSync(basePath, 'utf8')));
-    const srcPath = join(root, jm.file);
-    const srcObj = existsSync(srcPath)
-      ? (JSON.parse(stripJsonComments(readFileSync(srcPath, 'utf8'))) ?? {})
+    let srcText;
+    if (Object.hasOwn(mergeSources, jm.file)) {
+      srcText = mergeSources[jm.file];
+    } else {
+      const srcPath = join(root, jm.file);
+      srcText = existsSync(srcPath) ? readFileSync(srcPath, 'utf8') : null;
+      if (outRoot == null) { mergeSources[jm.file] = srcText; mergeSourcesDirty = true; }
+    }
+    const srcObj = srcText != null
+      ? (JSON.parse(stripJsonComments(srcText)) ?? {})
       : {};
     // source keys preserved; Agent Base template wins on its own keys
     const merged = deepMerge(srcObj, baseObj);
     const output = JSON.stringify(merged, null, 2) + '\n';
-    const abs = join(writeRoot, jm.file);
-    mkdirSync(dirname(abs), { recursive: true });
-    writeFileSync(abs, output, 'utf8');
+    writeNoFollow(join(writeRoot, jm.file), output);
     generated[jm.file] = sha(output);
+  }
+  if (mergeSourcesDirty) {
+    writeNoFollow(snapPath, JSON.stringify(mergeSources, null, 2) + '\n');
   }
 
   // ── 3b. Guarantee R-47: .gitignore excludes personal settings ─────────────
@@ -217,8 +261,7 @@ export function apply({ root, templatesDir, outRoot = null }) {
     if (!covered) {
       const next = cur == null || cur === '' ? LOCAL + '\n'
         : cur + (cur.endsWith('\n') ? '' : '\n') + LOCAL + '\n';
-      mkdirSync(dirname(giOut), { recursive: true });
-      writeFileSync(giOut, next, 'utf8');
+      writeNoFollow(giOut, next);
     }
   }
 
@@ -253,9 +296,11 @@ export function apply({ root, templatesDir, outRoot = null }) {
     }
   }
 
-  const result = { schemaVersion: 1, generatedAt: new Date().toISOString(), generated, deleted };
+  // no timestamp field: generated.json is committed state and must not churn
+  // when a re-apply produces identical bytes
+  const result = { schemaVersion: 1, generated, deleted };
   if (outRoot == null) {
-    writeFileSync(join(setupDir, 'generated.json'), JSON.stringify(result, null, 2) + '\n', 'utf8');
+    writeNoFollow(join(setupDir, 'generated.json'), JSON.stringify(result, null, 2) + '\n');
   }
   return result;
 }
@@ -267,10 +312,18 @@ const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(imp
 if (isMain) {
   const args = process.argv.slice(2);
   const opt = { root: process.cwd(), templates: null, dryRun: null };
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--root') opt.root = args[++i];
-    else if (args[i] === '--templates') opt.templates = args[++i];
-    else if (args[i] === '--dry-run') opt.dryRun = args[++i];
+  let i = 0;
+  // a value flag with no value must hard-stop: a missing --dry-run dir would
+  // otherwise silently fall through to a real, destructive apply
+  const value = (flag) => {
+    const v = args[++i];
+    if (v === undefined || v.startsWith('--')) fail(`${flag} requires a value`);
+    return v;
+  };
+  for (; i < args.length; i++) {
+    if (args[i] === '--root') opt.root = value('--root');
+    else if (args[i] === '--templates') opt.templates = value('--templates');
+    else if (args[i] === '--dry-run') opt.dryRun = value('--dry-run');
     else fail(`unknown flag: ${args[i]}`);
   }
   if (!opt.templates) {

@@ -1,11 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
+import { buildFixture } from './fixtures/defs.mjs';
+import { runInventory } from '../scripts/inventory-extract.mjs';
+
 const BIN = join(import.meta.dirname, '..', 'bin', 'agent-base.mjs');
+const APPLY = join(import.meta.dirname, '..', 'scripts', 'apply.mjs');
+const CHECK = join(import.meta.dirname, '..', 'scripts', 'check.mjs');
 const FIXTURES = join(import.meta.dirname, 'fixtures', 'orchestration');
 
 const run = (args, opts = {}) =>
@@ -118,4 +123,35 @@ test('cli: cache prune rejects bad --keep', () => {
   const r = run(['cache', 'prune', '--keep', 'lots']);
   assert.equal(r.status, 2);
   assert.match(r.stderr, /--keep must be a non-negative integer/);
+});
+
+test('cli: apply --dry-run with no value exits nonzero WITHOUT applying', () => {
+  const repo = buildFixture('claude-only');
+  try {
+    const inv = runInventory({ root: repo, outDir: '.setup', allowDirty: false });
+    // a real apply under this manifest would DELETE CLAUDE.md
+    const entries = [];
+    for (const f of inv.files) {
+      if (f.path === 'CLAUDE.md') for (const id of f.nodes) entries.push({ node: id, op: 'drop', reason: 'test' });
+      else entries.push({ file: f.path, op: 'keep-file' });
+    }
+    for (const c of inv.sweepCandidates) entries.push({ file: c.file, op: 'out-of-scope', reason: 'test' });
+    writeFileSync(join(repo, '.setup', 'manifest.json'),
+      JSON.stringify({ schemaVersion: 1, entries, jsonMerges: [] }, null, 2));
+    const r = spawnSync(process.execPath, [APPLY, '--root', repo, '--dry-run'], { encoding: 'utf8' });
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /--dry-run requires a value/);
+    assert.ok(existsSync(join(repo, 'CLAUDE.md')), 'missing --dry-run value must never fall through to a real apply');
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test('cli: check value flags require values', () => {
+  const r = spawnSync(process.execPath, [CHECK, '--templates'], { encoding: 'utf8' });
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /--templates requires a value/);
+  const r2 = spawnSync(process.execPath, [CHECK, '--root', '--json'], { encoding: 'utf8' });
+  assert.equal(r2.status, 2);
+  assert.match(r2.stderr, /--root requires a value/);
 });
