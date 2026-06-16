@@ -113,6 +113,31 @@ if (LLM_ENTRIES.has(command)) {
     console.error(`agent-base ${command}: target is not an existing directory: ${targetPath}`);
     process.exit(2);
   }
+  // Pre-flight the hard preconditions here, at the terminal, instead of
+  // failing deep inside the launched AI session (base-inventory re-checks).
+  // --print is inspect-only (touches nothing), so it skips the repo gate.
+  const nodeMajor = Number(process.versions.node.split('.')[0]);
+  if (nodeMajor < 20) {
+    console.error(`agent-base ${command}: needs Node >= 20 — you have ${process.versions.node}`);
+    process.exit(2);
+  }
+  if (!flags.includes('--print')) {
+    const git = (a) => spawnSync('git', ['-C', targetPath, ...a], { encoding: 'utf8' });
+    const inside = git(['rev-parse', '--is-inside-work-tree']);
+    if (inside.status !== 0 || inside.stdout.trim() !== 'true') {
+      console.error(`agent-base ${command}: ${targetPath} is not a git repository — run \`git init\` and commit first (setup works on a branch).`);
+      process.exit(2);
+    }
+    const porcelain = git(['status', '--porcelain']);
+    if (porcelain.status !== 0) {
+      console.error(`agent-base ${command}: cannot read git status in ${targetPath}`);
+      process.exit(2);
+    }
+    if (porcelain.stdout.trim() !== '') {
+      console.error(`agent-base ${command}: working tree has uncommitted changes — commit or stash first so setup stays reviewable.`);
+      process.exit(2);
+    }
+  }
   const { path, dev, copied } = stageRelease({ pkgRoot });
   console.log(stagedNotice({ checkoutPath: path, dev, copied }));
 

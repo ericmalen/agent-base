@@ -26,16 +26,21 @@ export function bootstrapPrompt({ command, checkoutPath, targetPath = '.', dev =
 
 export function stagedNotice({ checkoutPath, dev, copied }) {
   if (dev) return `running from clone ${checkoutPath} — staging skipped`;
-  return copied ? `staged release at ${checkoutPath}` : `using staged release at ${checkoutPath}`;
+  const verb = copied ? 'staged release at' : 'using staged release at';
+  return `${verb} ${checkoutPath} (cached build — safe to delete)`;
 }
 
 export function launchNotice({ targetPath }) {
-  return `launching Claude Code in ${targetPath} — the flow continues in that session`;
+  return [
+    `Launching Claude Code in ${targetPath}.`,
+    'Setup runs on a dedicated branch — nothing merges into your main until you approve.',
+    "You'll answer two quick questions and pass two review gates. Ctrl-C to abort.",
+  ].join('\n');
 }
 
 /** Fallback output when nothing was launched. `skillDropped` toggles the /agent-base-bootstrap path. */
 export function fallbackInstructions({ command, checkoutPath, targetPath, dev, skillDropped }) {
-  const lines = ['', 'Nothing in your repo runs until an AI session picks this up.', ''];
+  const lines = ['', 'Setup is staged and ready — it starts when you open it in an AI session.', ''];
   if (skillDropped) {
     lines.push(
       'Added a one-shot launcher skill to the project (untracked, deletes itself).',

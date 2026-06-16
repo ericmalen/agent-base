@@ -69,6 +69,7 @@ test('cli: headless-guard delegation produces guard output lines', () => {
 
 test('cli: setup --no-launch drops the launcher skill and prints the prompt', () => {
   const target = mkdtempSync(join(tmpdir(), 'ab-cli-target-'));
+  spawnSync('git', ['-C', target, 'init', '-q']);
   const r = run(['setup', target, '--no-launch']);
   assert.equal(r.status, 0);
   // repo has .git → dev mode, no staging into the real home
@@ -146,6 +147,7 @@ test('cli: piped stdio never auto-launches — falls back to the skill drop', ()
   // no flags + claude possibly on PATH: the TTY gate must take the fallback
   // path; timeout turns a regression (hung interactive session) into a fail
   const target = mkdtempSync(join(tmpdir(), 'ab-cli-target-'));
+  spawnSync('git', ['-C', target, 'init', '-q']);
   const r = run(['setup', target], { timeout: 30000 });
   assert.equal(r.status, 0);
   assert.match(r.stdout, /\/agent-base-bootstrap/);
@@ -206,4 +208,20 @@ test('cli: check value flags require values', () => {
   const r2 = spawnSync(process.execPath, [CHECK, '--root', '--json'], { encoding: 'utf8' });
   assert.equal(r2.status, 2);
   assert.match(r2.stderr, /--root requires a value/);
+});
+
+test('cli: setup pre-flight rejects a non-git target', () => {
+  const target = mkdtempSync(join(tmpdir(), 'ab-cli-target-'));
+  const r = run(['setup', target, '--no-launch']);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /not a git repository/);
+});
+
+test('cli: setup pre-flight rejects a dirty working tree', () => {
+  const target = mkdtempSync(join(tmpdir(), 'ab-cli-target-'));
+  spawnSync('git', ['-C', target, 'init', '-q']);
+  writeFileSync(join(target, 'dirty.txt'), 'x\n');
+  const r = run(['setup', target, '--no-launch']);
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /uncommitted changes/);
 });
