@@ -57,6 +57,8 @@ if (isMain) {
     process.exit(1);
   }
   const d = result.decision;
+  // Human summary → stderr, machine key=value → stdout: CI captures stdout
+  // (`... >> "$GITHUB_OUTPUT"`), so the summary must stay off it.
   console.error(`guard: run=${d.run} reason=${d.reason} task=${d.taskId ?? '-'}`);
   process.stdout.write(`run=${d.run}\nreason=${d.reason}\ntask=${d.taskId ?? ''}\n`);
 }

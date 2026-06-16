@@ -1,17 +1,17 @@
 # Why This Way
 
 Optional reading. Design rationale for readers curious about the choices baked
-into agent-base. Skip this and go to [`conventions.md`](../reference/conventions.md) if
+into Agent Base. Skip this and go to [`conventions.md`](../reference/conventions.md) if
 you just want the rules.
 
 ## Why agent-base, not a fork
 
-The author of agent-base maintains a mature Copilot setup in a production
+The author of Agent Base maintains a mature Copilot setup in a production
 repo. Copying it wholesale would ship stack-specific and domain-specific
 content — layering rules, framework conventions, internal workflow names — that
 would require subtraction before addition in any other project.
 
-agent-base inverts that. You start with the structure and conventions, then add
+Agent Base inverts that. You start with the structure and conventions, then add
 your own content. No deleting before building.
 
 ## Why a shared `.claude/` home
@@ -92,7 +92,7 @@ Both Copilot and Claude Code support nested subagents (a subagent invoking
 subagents). Token cost compounds with depth, and recursive chains are easy to
 introduce by accident and hard to debug.
 
-agent-base prefers a **flat topology** as the default: one orchestrator
+Agent Base prefers a **flat topology** as the default: one orchestrator
 calls every specialist directly. Reasons:
 
 - Easier to debug — every call appears in the orchestrator's transcript.
@@ -101,7 +101,7 @@ calls every specialist directly. Reasons:
 - Harder to accidentally make recursive — flat agents can't chain into a
   five-deep loop.
 
-agent-base does not install an orchestration layer at setup — it is generated
+Agent Base does not install an orchestration layer at setup — it is generated
 on demand from a base checkout (`base-orchestrate`). In a generated (or
 hand-added) layer, review loops and human gates go in the orchestrator, not
 between specialists.
