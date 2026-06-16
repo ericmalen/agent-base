@@ -158,6 +158,71 @@ export function findUserEdits(priorManifest, readTargetFile) {
     .map((entry) => entry.path);
 }
 
+// ── always-loaded routing block (R-56) ──────────────────────────────────────
+//
+// The orchestration trigger the MAIN LOOP reads. Generated agents teach the
+// fleet how to act once invoked; nothing told the main loop WHEN to invoke it,
+// so multi-layer requests got built inline. This region lands in the target's
+// AGENTS.md (inherited by CLAUDE.md via @AGENTS.md). It is living instruction
+// state — upserted between markers, never manifest-tracked (same class as
+// tasks.md): a human may edit the prose around it without tripping drift.
+
+export const ROUTING_REGION_START = '<!-- agent-base:orchestration-routing:start -->';
+export const ROUTING_REGION_END = '<!-- agent-base:orchestration-routing:end -->';
+
+// Body for the routing region, derived purely from the blueprint. Returns null
+// when routing_policy is `manual` (or absent) — the main loop keeps deciding by
+// hand and no region is emitted.
+export function renderOrchestrationRouting(blueprint) {
+  const dr = blueprint?.dispatch_rules ?? {};
+  const policy = dr.routing_policy;
+  if (policy !== 'always' && policy !== 'threshold') return null;
+  const orchestrator = blueprint?.orchestrator?.name ?? 'feature-orchestrator';
+  const trigger = policy === 'always'
+    ? 'For any feature-shaped request — work that adds or changes product behavior —'
+    : `When a request spans ${dr.agent_team_min_scopes}+ layers (the agent-team threshold) or is otherwise discrete, trackable, multi-step work,`;
+  return [
+    '## Orchestration routing',
+    '',
+    `This repo has a generated orchestration fleet (R-56). ${trigger} do NOT`,
+    'implement it inline. Instead:',
+    '',
+    '1. Capture it as a Backlog item in `tasks.md` (canonical format:',
+    '   `docs/orchestration/tasks-format.md`) with its `scope:` layers and',
+    '   acceptance criteria.',
+    `2. Invoke the \`${orchestrator}\` agent on that item — it dispatches layer`,
+    '   specialists per `docs/orchestration/dispatch-rules.md`, verifies their',
+    '   reports, and gates at the PR.',
+    '',
+    'Smaller or single-layer changes proceed inline as usual.',
+  ].join('\n');
+}
+
+// Idempotent managed-region upsert. body===null removes the region; otherwise
+// replace-in-place when the markers exist, append a fresh block when they do
+// not. Re-running with the same body yields byte-identical text.
+export function upsertManagedRegion(text, startMarker, endMarker, body) {
+  const src = text ?? '';
+  const startIdx = src.indexOf(startMarker);
+  const endIdx = src.indexOf(endMarker);
+  const hasRegion = startIdx !== -1 && endIdx !== -1 && endIdx > startIdx;
+
+  if (body == null) {
+    if (!hasRegion) return src;
+    const before = src.slice(0, startIdx).replace(/\n*$/, '');
+    const after = src.slice(endIdx + endMarker.length).replace(/^\n*/, '');
+    const joined = after ? `${before}\n\n${after}` : `${before}\n`;
+    return joined.replace(/\n*$/, '\n');
+  }
+
+  const block = `${startMarker}\n${body}\n${endMarker}`;
+  if (hasRegion) {
+    return src.slice(0, startIdx) + block + src.slice(endIdx + endMarker.length);
+  }
+  const base = src.replace(/\n*$/, '');
+  return (base ? `${base}\n\n` : '') + block + '\n';
+}
+
 // Manifest for a plan — same entry order as files; validates against
 // validateGenerationManifest. The manifest itself is written alongside the
 // files but never lists itself.

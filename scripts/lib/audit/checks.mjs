@@ -9,6 +9,7 @@ import {
   isSetupTooling, isVendored, isPayloadSkeleton,
 } from './util.mjs';
 import { OPTIONAL_NAMES } from '../baseline.mjs';
+import { ROUTING_REGION_START } from '../orchestration/scaffold.mjs';
 
 // ── R-01..R-09: root instructions ───────────────────────────────────────────
 
@@ -621,5 +622,27 @@ export function checkHygiene(ctx) {
     out.push(F('R-50', 'warning', '.claude/skills/base-check', 'Permanent base-check skill is not installed (after setup drift surface).'));
   }
 
+  return out;
+}
+
+// ── R-56: orchestration routing trigger ─────────────────────────────────────
+
+// Inert unless the repo is orchestration-generated. The trigger must reach the
+// MAIN LOOP, so it lives in always-loaded AGENTS.md — generated agents alone
+// never tell the main loop WHEN to dispatch the fleet. A `manual` (or absent)
+// routing_policy emits no region by design, so the check skips it.
+export function checkOrchestrationRouting(ctx) {
+  const { root } = ctx;
+  const out = [];
+  if (!exists(join(root, 'docs', 'orchestration', 'generation-manifest.json'))) return out;
+  const bpText = readSafe(join(root, 'docs', 'orchestration', 'blueprint.json'));
+  if (bpText == null) return out;
+  let policy;
+  try { policy = parseJsonc(bpText)?.dispatch_rules?.routing_policy; } catch { return out; }
+  if (policy !== 'always' && policy !== 'threshold') return out;
+  const agents = readSafe(join(root, 'AGENTS.md'));
+  if (agents == null || !agents.includes(ROUTING_REGION_START)) {
+    out.push(F('R-56', 'info', 'AGENTS.md', 'Orchestration is generated but AGENTS.md has no main-loop routing region — re-run scaffolder (R-56).'));
+  }
   return out;
 }

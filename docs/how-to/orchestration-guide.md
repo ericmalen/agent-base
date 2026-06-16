@@ -130,11 +130,11 @@ hand-edit the Markdown.
 [`maxi-repo.decisions.json`](../../test/fixtures/orchestration/maxi-repo.decisions.json)):
 every question maps to one schema field with a finite enum — if you're asked
 something open-ended, the interviewer has drifted (see troubleshooting). All
-six fields populated; no field defaulted without you being asked.
+seven fields populated; no field defaulted without you being asked.
 
 **Gate 1 — approve when every answer is yes:**
 
-- [ ] Each of the six decisions fields reflects a choice you made, not a default
+- [ ] Each of the seven decisions fields reflects a choice you made, not a default
 - [ ] The enum values match how the team actually works (e.g. `every-merge`
       review only if that's real practice)
 - [ ] `decisions.md` says exactly what `decisions.json` says (it's rendered —
@@ -186,6 +186,15 @@ hand-edited generated files (conflict report instead — see troubleshooting).
 Open the **project**. Seed or extend `tasks.md` (see
 [`tasks-format`](../../templates/orchestration/docs/tasks-format.md)).
 Invoke `feature-orchestrator` on the next backlog item.
+
+**Routing (R-56).** Generation also writes a routing block into the project's
+`AGENTS.md` (inherited by `CLAUDE.md`), so the main loop knows to do the intake
+itself: when a request matches the policy, it captures a `tasks.md` item and
+hands off to `feature-orchestrator` instead of building inline. The
+`orchestrationRouting` decision sets the policy — `always`, `threshold` (the
+default, fires at the agent-team layer count below), or `manual` (no block;
+you invoke by hand). Re-run the scaffolder to refresh the block after changing
+the decision.
 
 Dispatch tier depends on `scope:` layer count (see
 [`dispatch-rules`](../../templates/orchestration/docs/dispatch-rules.md)):

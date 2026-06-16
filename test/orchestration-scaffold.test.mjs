@@ -4,7 +4,11 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 
-import { planGeneration, manifestFor, findUserEdits } from '../scripts/lib/orchestration/scaffold.mjs';
+import {
+  planGeneration, manifestFor, findUserEdits,
+  renderOrchestrationRouting, upsertManagedRegion,
+  ROUTING_REGION_START, ROUTING_REGION_END,
+} from '../scripts/lib/orchestration/scaffold.mjs';
 import { validateGenerationManifest } from '../scripts/lib/orchestration/schemas.mjs';
 
 const ROOT = join(import.meta.dirname, '..');
@@ -139,6 +143,60 @@ test('validateGenerationManifest: unknown keys rejected at both levels (determin
       'generated[0]: unknown key "writtenAt"',
     ],
   );
+});
+
+// ── R-56: always-loaded routing block ───────────────────────────────────────
+
+test('renderOrchestrationRouting: threshold cites the layer threshold and the orchestrator', () => {
+  const body = renderOrchestrationRouting(loadFixture('maxi-repo.synthesized.blueprint.json'));
+  assert.match(body, /## Orchestration routing/);
+  assert.match(body, /3\+ layers/);                       // agent_team_min_scopes
+  assert.match(body, /`feature-orchestrator`/);
+  assert.match(body, /tasks\.md/);
+  assert.match(body, /R-56/);
+});
+
+test('renderOrchestrationRouting: always omits the threshold wording', () => {
+  const bp = loadFixture('maxi-repo.synthesized.blueprint.json');
+  bp.dispatch_rules.routing_policy = 'always';
+  const body = renderOrchestrationRouting(bp);
+  assert.match(body, /any feature-shaped request/);
+  assert.doesNotMatch(body, /agent-team threshold/);
+});
+
+test('renderOrchestrationRouting: manual (or absent) policy emits no region', () => {
+  assert.equal(renderOrchestrationRouting(loadFixture('mini-repo.synthesized.blueprint.json')), null);
+  const bp = loadFixture('maxi-repo.synthesized.blueprint.json');
+  delete bp.dispatch_rules.routing_policy;
+  assert.equal(renderOrchestrationRouting(bp), null);
+});
+
+test('upsertManagedRegion: inserts when absent and is idempotent on re-run', () => {
+  const base = '# Project Instructions\n\nSome existing prose.\n';
+  const once = upsertManagedRegion(base, ROUTING_REGION_START, ROUTING_REGION_END, 'BODY');
+  assert.match(once, /Some existing prose\./);            // preserves surrounding text
+  assert.match(once, new RegExp(`${ROUTING_REGION_START}\\nBODY\\n${ROUTING_REGION_END}`));
+  assert.equal(upsertManagedRegion(once, ROUTING_REGION_START, ROUTING_REGION_END, 'BODY'), once);
+});
+
+test('upsertManagedRegion: replaces body in place without touching surrounding prose', () => {
+  const base = 'before\n\n' + `${ROUTING_REGION_START}\nOLD\n${ROUTING_REGION_END}` + '\n\nafter\n';
+  const next = upsertManagedRegion(base, ROUTING_REGION_START, ROUTING_REGION_END, 'NEW');
+  assert.match(next, /before/);
+  assert.match(next, /after/);
+  assert.match(next, /NEW/);
+  assert.doesNotMatch(next, /OLD/);
+});
+
+test('upsertManagedRegion: null body removes the region; round-trips to the original', () => {
+  const base = '# Title\n\nkeep me.\n';
+  const withRegion = upsertManagedRegion(base, ROUTING_REGION_START, ROUTING_REGION_END, 'BODY');
+  const removed = upsertManagedRegion(withRegion, ROUTING_REGION_START, ROUTING_REGION_END, null);
+  assert.doesNotMatch(removed, /orchestration-routing/);
+  assert.match(removed, /keep me\./);
+  assert.equal(removed, base);
+  // removing an absent region is a no-op
+  assert.equal(upsertManagedRegion(base, ROUTING_REGION_START, ROUTING_REGION_END, null), base);
 });
 
 // ── C5: update flow ─────────────────────────────────────────────────────────

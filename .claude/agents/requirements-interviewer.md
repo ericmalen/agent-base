@@ -20,7 +20,7 @@ the Markdown companion is rendered, never written by hand.
    the brief; map each onto the field's enum. An answer that fits no enum
    value gets re-asked or reported — never coerced silently.
 4. Apply the guide's consistency checks across the answer set.
-5. Assemble `decisions.json` (`schemaVersion: 1` + the six fields) and
+5. Assemble `decisions.json` (`schemaVersion: 1` + the seven fields) and
    validate BEFORE writing, from the base checkout:
 
    ```
@@ -45,7 +45,7 @@ the Markdown companion is rendered, never written by hand.
    ' <target>/docs/orchestration/decisions.json <target>/docs/orchestration/decisions.md
    ```
 
-7. Report the six values, which were asked vs confirmed-from-evidence, and
+7. Report the seven values, which were asked vs confirmed-from-evidence, and
    the validator output. Stop — no blueprint work.
 
 ## Never

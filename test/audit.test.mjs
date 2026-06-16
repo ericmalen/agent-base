@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
 import { audit } from '../scripts/audit.mjs';
+import { ROUTING_REGION_START, ROUTING_REGION_END } from '../scripts/lib/orchestration/scaffold.mjs';
 
 function makeRepo(files, { git = true } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'aikit-audit-'));
@@ -751,6 +752,60 @@ test('.claude/worktrees contents are not audited (no compat, no findings)', () =
   });
   try {
     assert.deepEqual(audit({ root: repo }).findings, []);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+// ── R-56 orchestration routing trigger ───────────────────────────────────────
+
+const ORCH = (policy) => ({
+  'docs/orchestration/generation-manifest.json': '{ "schemaVersion": 1, "generated": [] }\n',
+  'docs/orchestration/blueprint.json': `{ "dispatch_rules": { "routing_policy": "${policy}", "agent_team_min_scopes": 3 } }\n`,
+});
+const ROUTING_BLOCK = `${ROUTING_REGION_START}\n## Orchestration routing\nbody\n${ROUTING_REGION_END}`;
+
+test('R-56: generated orchestration without the AGENTS.md routing region fires', () => {
+  const repo = makeRepo({ ...CONFORMANT, ...ORCH('threshold') });
+  try {
+    const r56 = of(audit({ root: repo }), 'R-56');
+    assert.equal(r56.length, 1);
+    assert.equal(r56[0].file, 'AGENTS.md');
+    assert.equal(r56[0].severity, 'info');
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test('R-56: routing region present → no finding', () => {
+  const repo = makeRepo({
+    ...CONFORMANT,
+    'AGENTS.md': CONFORMANT['AGENTS.md'] + '\n' + ROUTING_BLOCK + '\n',
+    ...ORCH('threshold'),
+  });
+  try {
+    assert.equal(of(audit({ root: repo }), 'R-56').length, 0);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test('R-56: manual policy is exempt; non-orchestrated repos never fire', () => {
+  const manual = makeRepo({ ...CONFORMANT, ...ORCH('manual') });
+  const plain = makeRepo({ ...CONFORMANT }); // no generation manifest
+  try {
+    assert.equal(of(audit({ root: manual }), 'R-56').length, 0);
+    assert.equal(of(audit({ root: plain }), 'R-56').length, 0);
+  } finally {
+    rmSync(manual, { recursive: true, force: true });
+    rmSync(plain, { recursive: true, force: true });
+  }
+});
+
+test('R-56: escalates to warning under --strict', () => {
+  const repo = makeRepo({ ...CONFORMANT, ...ORCH('threshold') });
+  try {
+    assert.equal(of(audit({ root: repo, strict: true }), 'R-56')[0].severity, 'warning');
   } finally {
     rmSync(repo, { recursive: true, force: true });
   }

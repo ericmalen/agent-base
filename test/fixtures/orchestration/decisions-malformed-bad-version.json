@@ -4,5 +4,6 @@
   "reviewGates": "every-task",
   "securityRequirements": "review-all-changes",
   "qaDepth": "full-pyramid",
-  "definitionOfDone": "tests-review-docs"
+  "definitionOfDone": "tests-review-docs",
+  "orchestrationRouting": "threshold"
 }

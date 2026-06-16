@@ -27,6 +27,7 @@ test('renderDecisionsMd: covers every schema field', () => {
   const labels = [
     'TDD policy', 'Review gates', 'Security requirements',
     'QA depth', 'Definition of done', 'Human gate placement',
+    'Orchestration routing',
   ];
   assert.equal(labels.length, Object.keys(DECISION_ENUMS).length);
   for (const label of labels) assert.ok(out.includes(`| ${label} | `), `missing field row: ${label}`);

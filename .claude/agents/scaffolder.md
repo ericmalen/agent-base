@@ -53,13 +53,33 @@ manifest is the only state it owns.
    agent whose blueprint entry has a `checklist-path` slot, create that file
    containing `# Review checklist` + newline; create `<target>/tasks.md` in
    canonical empty form (title + three section headings) when missing.
-4. Verify reproducibility: run the step-2 script a second time — it must
+4. Routing region (R-56), also living state and never manifest-tracked:
+   upsert the main-loop routing block into the target's `AGENTS.md` (inherited
+   by `CLAUDE.md` via `@AGENTS.md`). Idempotent — re-running leaves it
+   byte-identical; a `manual` `routing_policy` removes/omits it.
+
+   ```
+   node --input-type=module -e '
+   import { readFileSync, writeFileSync, existsSync } from "node:fs";
+   import { join } from "node:path";
+   import { renderOrchestrationRouting, upsertManagedRegion, ROUTING_REGION_START, ROUTING_REGION_END } from "./scripts/lib/orchestration/scaffold.mjs";
+   const target = process.argv[1];
+   const bp = JSON.parse(readFileSync(join(target, "docs/orchestration/blueprint.json"), "utf8"));
+   const agentsPath = join(target, "AGENTS.md");
+   if (!existsSync(agentsPath)) { console.error("AGENTS.md missing — run base-setup first"); process.exit(1); }
+   const body = renderOrchestrationRouting(bp);
+   writeFileSync(agentsPath, upsertManagedRegion(readFileSync(agentsPath, "utf8"), ROUTING_REGION_START, ROUTING_REGION_END, body));
+   console.log(body ? "routing region upserted" : "routing region omitted (manual policy)");
+   ' <target>
+   ```
+5. Verify reproducibility: run the step-2 script a second time — it must
    report the same file count with zero conflicts; then confirm each
-   manifest entry's `sha256` matches the on-disk file. Any mismatch is a
-   defect to report, never to patch by hand.
-5. Run the Agent Base audit against the target (`node scripts/audit.mjs --root
-   <target>`) and report: file list with SHAs, stubs created, audit
-   findings, validator outputs. Then stop.
+   manifest entry's `sha256` matches the on-disk file. Re-run step 4 too — the
+   routing region must come out byte-identical. Any mismatch is a defect to
+   report, never to patch by hand.
+6. Run the Agent Base audit against the target (`node scripts/audit.mjs --root
+   <target>`) and report: file list with SHAs, stubs created, routing region
+   upserted/omitted, audit findings, validator outputs. Then stop.
 
 ## Never
 
@@ -71,8 +91,8 @@ manifest is the only state it owns.
   it records).
 - Never bump or invent template versions — pins come from Agent Base's
   template registry verbatim.
-- Never track living state (tasks.md, handoff log, checklists) in the
-  manifest.
+- Never track living state (tasks.md, handoff log, checklists, the AGENTS.md
+  routing region) in the manifest.
 
 ## Documents
 

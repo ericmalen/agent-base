@@ -22,6 +22,7 @@ fields are confirmed ("the repo suggests X — keep it?"), not re-asked.
 | `qaDepth` | test layout shows only one tier, or no tests | "How deep should verification go: unit only, unit + integration, or the full pyramid including end-to-end?" | unit / `unit-only` · +integration / `unit-and-integration` · full / `full-pyramid` |
 | `definitionOfDone` | always asked (policy, never inferable from code) | "When is a task Done: tests pass, tests + approved review, or tests + review + docs updated?" | tests / `tests-pass` · +review / `tests-and-review` · +docs / `tests-review-docs` |
 | `humanGatePlacement` | always asked (policy) | "Where do humans gate the loop: approve before merge only, or also approve each dispatch?" | merge only / `pre-merge` · both / `pre-dispatch-and-pre-merge` |
+| `orchestrationRouting` | always asked (policy, R-56) | "When a request fits the orchestrator, should the main loop route it automatically every time, only when scope hits the agent-team threshold, or never (invoke by hand)?" | always / `always` · at threshold / `threshold` · manual / `manual` |
 
 ## Consistency checks (apply after answers)
 
@@ -33,6 +34,7 @@ fields are confirmed ("the repo suggests X — keep it?"), not re-asked.
 ## Output
 
 Answers map directly onto a `decisions.json` candidate (`schemaVersion: 1`
-plus the six fields). The caller validates with `validateDecisionsDoc`
+plus the seven fields). The caller validates with `validateDecisionsDoc`
 before writing; the Markdown companion is always rendered with
-`renderDecisionsMd`, never authored.
+`renderDecisionsMd`, never authored. `orchestrationRouting` defaults to
+`threshold` when the team has no preference.

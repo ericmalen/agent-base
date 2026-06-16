@@ -110,6 +110,7 @@
     "agent_team_min_scopes": 3,
     "agent_team_on_cross_repo": true,
     "pipeline_when": ["scheduled", "multi_day"],
+    "routing_policy": "threshold",
     "dispatch_order": ["shared", "ui", "api", "db"]
   },
   "docs": [

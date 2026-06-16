@@ -35,6 +35,7 @@
     "agent_team_min_scopes": 3,
     "agent_team_on_cross_repo": true,
     "pipeline_when": [],
+    "routing_policy": "threshold",
     "dispatch_order": []
   },
   "docs": ["docs/orchestration/dispatch-rules.md"]

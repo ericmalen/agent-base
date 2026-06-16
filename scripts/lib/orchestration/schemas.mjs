@@ -15,6 +15,7 @@
 
 const REPO_TYPES = new Set(['monorepo', 'single-package']);
 const PIPELINE_WHEN = new Set(['scheduled', 'multi_day']);   // §9.3 / DD-4
+const ROUTING_POLICIES = new Set(['always', 'threshold', 'manual']); // R-56
 const SLOT_NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;             // kebab-case (DD-5)
 // Logical tiers, not concrete model ids — ids churn with releases; the
 // scaffolder (C4) owns the tier → concrete-model map.
@@ -137,6 +138,7 @@ export const DECISION_ENUMS = {
   qaDepth: ['unit-only', 'unit-and-integration', 'full-pyramid'],
   definitionOfDone: ['tests-pass', 'tests-and-review', 'tests-review-docs'],
   humanGatePlacement: ['pre-merge', 'pre-dispatch-and-pre-merge'],
+  orchestrationRouting: ['always', 'threshold', 'manual'],
 };
 
 export function validateDecisionsDoc(doc) {
@@ -282,6 +284,11 @@ export function validateBlueprint(blueprint) {
           e(`dispatch_rules.pipeline_when[${i}] must be one of scheduled | multi_day (got ${v})`);
         }
       });
+    }
+    // Drives the always-loaded routing block at generation (R-56); copied from
+    // decisions.orchestrationRouting by the synthesizer.
+    if (!ROUTING_POLICIES.has(dr.routing_policy)) {
+      e(`dispatch_rules.routing_policy must be one of always | threshold | manual (got ${dr.routing_policy})`);
     }
     // Derived by deriveDispatchOrder from profile internalEdges (§9.3):
     // provider-first total order of layer names, [] = no internal ordering

@@ -290,6 +290,18 @@ at setup (base-plan selection, materialized by apply), by `agent-base skills
 add`, or by base-orchestrate; sync-baseline upgrades only the selected set and
 never reports an unselected optional as removed.
 
+**R-56 · Orchestration routing trigger** · mechanical · audit, info → warning
+An orchestration-generated project (one with
+`docs/orchestration/generation-manifest.json`) carries a main-loop-facing
+routing block in its always-loaded instructions (`AGENTS.md`, inherited by
+`CLAUDE.md` via `@AGENTS.md`) — a delimited managed region telling the main loop
+to capture qualifying work as a `tasks.md` backlog item and defer to
+`feature-orchestrator` rather than implement inline. Generation upserts the
+region from the blueprint (threshold from `dispatch_rules.agent_team_min_scopes`;
+behavior from `dispatch_rules.routing_policy` ∈ `always | threshold | manual`).
+`manual` emits no region and is exempt. Living instruction state, not a generated
+asset — never manifest-tracked (same class as `tasks.md`).
+
 **R-51 · Rule-ID indirection** · mechanical · Agent Base CI
 Agent Base docs, templates, and check metadata reference rules by R-ID only — never by
 file line numbers. Thresholds are never restated without the R-ID alongside

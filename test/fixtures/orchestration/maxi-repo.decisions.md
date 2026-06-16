@@ -11,3 +11,4 @@ JSON and re-render.
 | QA depth | `unit-and-integration` | Unit plus integration tests. |
 | Definition of done | `tests-and-review` | Done when tests pass and review is approved. |
 | Human gate placement | `pre-merge` | A human approves before merge; agents never auto-merge. |
+| Orchestration routing | `threshold` | Main loop defers to the orchestrator when scope hits the agent-team threshold (R-56). |

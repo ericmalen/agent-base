@@ -147,6 +147,13 @@ test('validateDecisionsDoc: malformed fixture — wrong types', () => {
   ]);
 });
 
+test('validateDecisionsDoc: orchestrationRouting is enum-checked (R-56)', () => {
+  const doc = { ...loadFixture('maxi-repo.decisions.json'), orchestrationRouting: 'auto' };
+  assert.deepEqual(validateDecisionsDoc(doc), [
+    'orchestrationRouting must be one of always | threshold | manual (got auto)',
+  ]);
+});
+
 test('validateDecisionsDoc: missing top-level fields all report', () => {
   const errors = validateDecisionsDoc({});
   assert.equal(errors.length, 1 + Object.keys(DECISION_ENUMS).length);
@@ -194,8 +201,17 @@ test('validateBlueprint: malformed fixture — version pin tripwire, bad dispatc
     'dispatch_rules.subagent_max_scopes must be a positive integer',
     'dispatch_rules.agent_team_on_cross_repo must be a boolean',
     'dispatch_rules.pipeline_when[0] must be one of scheduled | multi_day (got nightly)',
+    'dispatch_rules.routing_policy must be one of always | threshold | manual (got undefined)',
     'dispatch_rules.dispatch_order: duplicate layer "api"',
     'docs must be an array',
+  ]);
+});
+
+test('validateBlueprint: routing_policy must be a known policy (R-56)', () => {
+  const bp = loadFixture('maxi-repo.blueprint.json');
+  bp.dispatch_rules.routing_policy = 'auto';
+  assert.deepEqual(validateBlueprint(bp), [
+    'dispatch_rules.routing_policy must be one of always | threshold | manual (got auto)',
   ]);
 });
 

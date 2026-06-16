@@ -15,6 +15,7 @@ const FIELD_LABELS = {
   qaDepth: 'QA depth',
   definitionOfDone: 'Definition of done',
   humanGatePlacement: 'Human gate placement',
+  orchestrationRouting: 'Orchestration routing',
 };
 
 // One-line meaning per enum value — the human-facing half of the contract.
@@ -48,6 +49,11 @@ const GLOSS = {
   humanGatePlacement: {
     'pre-merge': 'A human approves before merge; agents never auto-merge.',
     'pre-dispatch-and-pre-merge': 'A human approves both task dispatch and merge.',
+  },
+  orchestrationRouting: {
+    'always': 'Main loop routes all feature work through the orchestrator (R-56).',
+    'threshold': 'Main loop defers to the orchestrator when scope hits the agent-team threshold (R-56).',
+    'manual': 'No auto-routing; the orchestrator runs only when explicitly invoked (R-56).',
   },
 };
 

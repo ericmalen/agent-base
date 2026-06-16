@@ -63,7 +63,10 @@ Orchestrator: `tasks-path` (`tasks.md`), `handoff-log-path`
 `evalRequirements.minGoldens: 2` everywhere. `dispatch_rules` defaults:
 `{"subagent_max_scopes": 2, "agent_team_min_scopes": 3,
 "agent_team_on_cross_repo": true, "pipeline_when": ["scheduled",
-"multi_day"]}`. `dispatch_rules.dispatch_order` is DERIVED, never
+"multi_day"]}`. `dispatch_rules.routing_policy` copies
+`decisions.orchestrationRouting` (`always` | `threshold` | `manual`),
+defaulting to `threshold` when absent; it drives the always-loaded routing
+block at generation (R-56). `dispatch_rules.dispatch_order` is DERIVED, never
 hand-ordered: `deriveDispatchOrder(profile.layers, profile.internalEdges)`
 in [dispatch-order.mjs](../../../scripts/lib/orchestration/dispatch-order.mjs);
 `[]` when the profile

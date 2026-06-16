@@ -53,6 +53,17 @@ cap, not silent divergence. See
 - You do not want generated agents in `.claude/` — they are meant to be
   regenerated from the blueprint, not edited by hand.
 
+That is the *setup-time* decision (generate the fleet or not). The
+*runtime* decision — when the main conversation loop should hand a request to
+the fleet rather than build it inline — is governed by R-56: generation writes
+a routing block into the project's always-loaded instructions (`AGENTS.md`,
+inherited by `CLAUDE.md`). It tells the main loop to capture qualifying work as
+a `tasks.md` backlog item and invoke `feature-orchestrator`. The
+`orchestrationRouting` decision tunes it: `always` (route every feature-shaped
+request), `threshold` (route at the agent-team layer count — the default), or
+`manual` (no block; invoke by hand). Without this block the generated fleet is
+unreachable from an ad-hoc request — the trigger nothing fires.
+
 ## Quality flywheel
 
 The optional lifecycle skills `retro`, `log-report`, and `eval-runner` (R-55)
