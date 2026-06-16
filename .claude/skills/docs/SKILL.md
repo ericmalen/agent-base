@@ -57,6 +57,12 @@ doc into the README.
 - Never fabricate rationale. If the "why" of a decision is unrecoverable,
   state that, or ask the author.
 - Ambiguous intent → ask the human. Never guess.
+- Source-of-truth and live-config files are never docs to sort. Never
+  reclassify, move, reformat, or split `spec/` source-of-truth files (rule
+  catalogs, target layouts), `.claude/**`, or `AGENTS.md`/`CLAUDE.md` — a
+  restructure may only rewrite the links such files contain. Their structure
+  is load-bearing (parsed by audits/CI); treat them as fixed surfaces, not
+  quadrant candidates.
 
 ## docs setup (bootstrap — run at setup)
 
