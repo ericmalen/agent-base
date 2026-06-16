@@ -1,22 +1,34 @@
 # Agent Base
 
+**Set up any repo for AI-assisted coding with Claude Code and GitHub Copilot —
+one shared set of config files, kept to a common standard.**
+
 ## What this is
 
-Agent Base sets up repositories for AI-assisted coding, wired for **both GitHub
-Copilot and Claude Code** from one set of files. It ships a rule catalog
-([`spec/rules.md`](./spec/rules.md)), a four-phase setup pipeline
-(inventory → plan → apply → verify) that brings any repo — starter or
-existing project — to the standard layout, a set of baseline skills/agents
-installed into every project, and an optional orchestration layer (multi-agent
-dispatch) generated from a base checkout when a team needs it.
+Agent Base brings any repo — brand-new or existing — to a consistent AI-coding
+layout and keeps it there:
 
-No stack-specific or domain-specific content — you add those on top.
+- **One config, both tools.** Claude Code and Copilot read the same `AGENTS.md`,
+  skills, and agents — no duplicated setup.
+- **A four-phase setup pipeline** (inventory → plan → apply → verify) routes your
+  existing AI config into the [standard layout](./spec/target-layout.md) against a
+  shared [rule catalog](./spec/rules.md), with two human approval gates.
+- **A permanent baseline** of skills plus a docs agent installed into every
+  project — including `base-check`, a drift auditor you can run any time.
+- **No stack- or domain-specific content** — you add that on top.
 
 > **This repo is the setup tool, not your application repo.** Nobody starts a
-> project by cloning Agent Base. Setup runs *from your project* against a
-> base checkout — resolved via `npx`, or a shared clone — and installs
-> only what belongs in your project
-> (see [`spec/target-layout.md`](./spec/target-layout.md) for what you end up with).
+> project by cloning Agent Base. Setup runs *from your project* against a base
+> checkout — resolved via `npx`, or a shared clone — and installs only what
+> belongs in your project (see
+> [`spec/target-layout.md`](./spec/target-layout.md) for what you end up with).
+>
+> **New here?** Walk through [your first setup](./docs/tutorials/first-setup.md);
+> unfamiliar terms are defined in [terminology](./docs/reference/terminology.md).
+
+Need a multi-agent team and a task backlog on top? That's the optional
+[orchestration layer](./docs/how-to/orchestration-guide.md) — generated per
+project when you want it, ignored when you don't.
 
 ## Who it's for
 
