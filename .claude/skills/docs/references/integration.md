@@ -3,13 +3,13 @@
 This guide shows how to add the docs standard to a repository. It assumes
 the repo is in git.
 
-## Path A — repo already on agent-base (or adopting it now)
+## Path A — repo already on Agent Base (or being set up now)
 
 The docs package is **baseline** agent-base — it installs automatically when you
-adopt Agent Base (shipped path-for-path by `install-setup`, alongside the
-`adopt-*` skills). During setup, existing bespoke documentation rules in
+set up Agent Base (shipped path-for-path by `install-setup`, alongside the rest
+of the permanent baseline). During setup, existing bespoke documentation rules in
 your instruction files are `supersede`d by this package (your original text is
-preserved in the setup review report). To add it to an already-adopted repo
+preserved in the setup review report). To add it to an already-set-up repo
 that predates baseline status, copy from the base checkout:
 
 - `.claude/skills/docs/` → `.claude/skills/docs/`
