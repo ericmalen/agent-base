@@ -231,6 +231,26 @@ ${S(32, 'fence-guard-tern')} — after the fence.
     expect: { excluded: ['node_modules/somepkg/index.js'] },
   },
 
+  'optional-skills': {
+    // Exercises the R-55 optional-skill tier end-to-end: base-plan selects the
+    // skill in expect.optionalSkills, apply installs it, validate-assert checks
+    // the marker ⇒ installed invariant and the expected set. Minimal content —
+    // its job is the optional selection, not routing volume.
+    files: {
+      'CLAUDE.md': `# Reporting Service
+
+${S(50, 'opt-tier-merlin')} — emit one structured log line per request.
+
+## Testing
+
+Unit tests run on every commit; integration tests gated behind a flag.
+`,
+      'src/index.js': 'export const ok = 1;\n',
+    },
+    sentinels: [S(50, 'opt-tier-merlin')],
+    expect: { minSurfaces: 1, optionalSkills: ['retro'] },
+  },
+
   injection: {
     files: {
       'CLAUDE.md': `# Service notes

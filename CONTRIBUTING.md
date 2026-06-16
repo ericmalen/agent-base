@@ -32,6 +32,10 @@ d="$(mktemp -d)/repo"; node scripts/build-starter.mjs "$d" && node scripts/audit
   [`spec/rules.md`](./spec/rules.md); never restate a rule's text.
 - Behavior-changing edits to `scripts/`, `templates/`, or `test/` update the
   affected docs in the same change.
+- Setup-flow features that touch the marker or installed assets add/adjust a
+  fixture in [`test/fixtures/defs.mjs`](./test/fixtures/defs.mjs) and a matching
+  assertion in [`scripts/validate-assert.mjs`](./scripts/validate-assert.mjs),
+  so the manual `validate-setup` matrix covers them.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org)
   (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`), scoped where it
   helps (e.g. `fix(cli): …`).

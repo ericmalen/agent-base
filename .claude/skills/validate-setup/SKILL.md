@@ -28,13 +28,18 @@ when no recognizable fixture/flag is present.
    c. Run the four phases, EACH as a fresh-context subagent whose prompt is:
       "Read <fixtureDir>/.claude/skills/base-<phase>/SKILL.md and execute its
       procedure in <fixtureDir>. Setup answers: githubCodeReview=NO,
-      path-scoping=rules. VALIDATION MODE: at a human gate, do not wait —
+      path-scoping=rules, optional skills = <the fixture's
+      expect.optionalSkills in test/fixtures/defs.mjs, exactly those names; NONE
+      if unset> (R-55). VALIDATION MODE: at a human gate, do not wait —
       record the gate content verbatim-in-summary, proceed, and flag anything
       a human must still decide as ESCALATION in your final summary."
       You (orchestrator) record each subagent's summary, gate contents, any
       escalations, and the iteration counts it reports.
    d. Mechanical verdict:
       `node <agent-base>/scripts/validate-assert.mjs --fixture <name> --dir $WORK/fx-<name> --json`
+      (also enforces the R-55 invariant — every optional skill in the marker's
+      `optionalSkills` must be installed, and must match the fixture's
+      `expect.optionalSkills` when declared.)
    e. On assertion failure: capture details, continue with remaining fixtures
       (never abort the matrix for one failure).
 

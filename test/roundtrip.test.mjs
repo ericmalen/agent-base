@@ -254,6 +254,53 @@ test('starter end-to-end: installs + jsonMerges ⇒ gates pass AND audit clean',
   }
 });
 
+test('starter end-to-end + optional skill (R-55) ⇒ installed; gates incl. reproducibility + audit clean', async () => {
+  const { audit } = await import('../scripts/audit.mjs');
+  const { repo } = setup('starter-empty');
+  try {
+    mkdirSync(join(repo, '.setup', 'literals'), { recursive: true });
+    // Marker literal selects an optional skill (what base-plan authors).
+    writeFileSync(join(repo, '.setup', 'literals', 'marker.json'),
+      '{ "standard": "1.0.0", "toolRepo": "https://github.com/ericmalen/agent-base", "pin": "v1.0.0", "lastSyncedAt": "2026-06-10", "setupAt": "2026-06-10", "githubCodeReview": false, "optionalSkills": ["retro"] }\n');
+    writeManifest(repo, {
+      entries: [],
+      installs: [
+        { file: 'AGENTS.md', template: 'instructions/AGENTS.md' },
+        { file: 'CLAUDE.md', template: 'instructions/CLAUDE.md' },
+        { file: '.gitignore', template: 'gitignore' },
+        { file: '.claude/settings.json', template: 'settings/claude/settings.json' },
+        { file: '.claude/skills/README.md', template: 'readmes/skills/README.md' },
+        { file: '.claude/agent-base.json', literal: 'literals/marker.json' },
+      ],
+      jsonMerges: [{ file: '.vscode/settings.json', base: 'settings/vscode/settings.json' }],
+    });
+    // Stage the optional skill into the setup window, as install-setup does.
+    cpSync(join(process.cwd(), '.claude/skills/retro'),
+      join(repo, '.claude/agent-base-setup/optional-skills/retro'), { recursive: true });
+
+    const res = apply({ root: repo, templatesDir: KIT_TEMPLATES });
+
+    // base-check mirrored in (baseline skill, not manifest) so R-50 is satisfied.
+    cpSync(join(process.cwd(), '.claude/skills/base-check'),
+      join(repo, '.claude/skills/base-check'), { recursive: true });
+
+    // Selected optional materialized live, verbatim, and NOT recorded as generated.
+    assert.equal(
+      readFileSync(join(repo, '.claude/skills/retro/SKILL.md'), 'utf8'),
+      readFileSync(join(process.cwd(), '.claude/skills/retro/SKILL.md'), 'utf8'));
+    assert.ok(!Object.keys(res.generated).some((p) => p.startsWith('.claude/skills/retro')),
+      'optional skill is installed payload, absent from generated.json');
+
+    // Reproducibility gate (check() defaults skipRepro=false) passes WITH the
+    // optional present, and the strict-equivalent audit is clean.
+    assert.deepEqual(check({ root: repo, templatesDir: KIT_TEMPLATES }).violations, []);
+    const report = audit({ root: repo });
+    assert.deepEqual(report.findings, [], JSON.stringify(report.findings, null, 2));
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
 test('apply (R-55): marker optionalSkills installs the selected skill from the setup window', () => {
   const { repo } = setup('starter-empty');
   try {

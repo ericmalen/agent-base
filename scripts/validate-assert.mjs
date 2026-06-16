@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fixtures } from '../test/fixtures/defs.mjs';
+import { stripJsonComments } from './lib/extract.mjs';
 
 const baseRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -120,6 +121,35 @@ if (diff.status === 0) {
     && !Object.keys(def.files).includes(p)); // reassembled mixed files
   results.offScopeDiff = offScope;
   if (offScope.length) failures.push(`diff outside AI surfaces: ${offScope.join(', ')}`);
+}
+
+// 5. Optional skills (R-55): the marker's selection must be installed, and —
+//    when the fixture declares an expected set — must match it exactly. The
+//    invariant is needed because audit runs here NON-strict, so its R-55 `info`
+//    finding never flips auditExit; the equality check catches the inverse
+//    (a fixture requested optionals that the flow failed to install).
+{
+  const markerPath = join(dir, '.claude/agent-base.json');
+  let optionalSkills = null;
+  if (existsSync(markerPath)) {
+    try { optionalSkills = JSON.parse(stripJsonComments(readFileSync(markerPath, 'utf8'))).optionalSkills ?? []; }
+    catch { failures.push('R-55: .claude/agent-base.json is not valid JSON'); }
+  }
+  if (optionalSkills) {
+    for (const name of optionalSkills) {
+      if (!existsSync(join(dir, '.claude/skills', name, 'SKILL.md'))) {
+        failures.push(`R-55: marker lists optional skill "${name}" but it is not installed`);
+      }
+    }
+    if (def.expect?.optionalSkills) {
+      const got = [...optionalSkills].sort().join(',');
+      const want = [...def.expect.optionalSkills].sort().join(',');
+      if (got !== want) failures.push(`R-55: expected optionals [${want}] but marker has [${got}]`);
+    }
+    results.optionalSkills = optionalSkills;
+  } else if (def.expect?.optionalSkills) {
+    failures.push(`R-55: expected optionals [${def.expect.optionalSkills.join(',')}] but no marker found`);
+  }
 }
 
 results.pass = failures.length === 0;

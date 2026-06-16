@@ -78,6 +78,63 @@ test('F-2: report read survives the .setup deletion commit (no false SILENT-LOSS
   }
 });
 
+// ── R-55: optional-skill invariant + expectation ────────────────────────────
+// Built against the `optional-skills` fixture (expect.optionalSkills = ['retro']).
+// We assert on the R-55 failure strings specifically — the minimal hand-built
+// repo has unrelated failures (no .setup report, sentinel not in tree); those
+// are irrelevant to what B1 checks.
+function repoWithMarker(optionalSkills, { installRetro = false } = {}) {
+  const dir = mkdtempSync(join(tmpdir(), 'aikit-r55-'));
+  git(dir, 'init', '-q', '-b', 'main');
+  git(dir, 'config', 'user.email', 't@t');
+  git(dir, 'config', 'user.name', 't');
+  mkdirSync(join(dir, '.claude'), { recursive: true });
+  const marker = { standard: '1.0.0', toolRepo: 'x', setupAt: '2026-01-01', githubCodeReview: false };
+  if (optionalSkills !== null) marker.optionalSkills = optionalSkills;
+  writeFileSync(join(dir, '.claude/agent-base.json'), JSON.stringify(marker, null, 2) + '\n');
+  if (installRetro) {
+    mkdirSync(join(dir, '.claude/skills/retro'), { recursive: true });
+    writeFileSync(join(dir, '.claude/skills/retro/SKILL.md'), '---\nname: retro\n---\n');
+  }
+  git(dir, 'add', '-A');
+  git(dir, 'commit', '-qm', 'init');
+  return dir;
+}
+function runAssertFixture(dir, fixture) {
+  const r = spawnSync(process.execPath,
+    [VALIDATE_ASSERT, '--fixture', fixture, '--dir', dir, '--json'],
+    { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
+  return JSON.parse(r.stdout);
+}
+
+test('R-55: marker lists an optional skill that is not installed → failure', () => {
+  const dir = repoWithMarker(['retro']);
+  try {
+    const res = runAssertFixture(dir, 'optional-skills');
+    assert.ok(res.failures.some((f) => /R-55.*"retro".*not installed/.test(f)),
+      `expected listed-but-missing R-55 failure, got: ${res.failures.join(' | ')}`);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('R-55: marker lists an installed optional skill matching expect → no R-55 failure', () => {
+  const dir = repoWithMarker(['retro'], { installRetro: true });
+  try {
+    const res = runAssertFixture(dir, 'optional-skills');
+    assert.ok(!res.failures.some((f) => f.includes('R-55')),
+      `no R-55 failure expected, got: ${res.failures.join(' | ')}`);
+    assert.deepEqual(res.optionalSkills, ['retro']);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('R-55: fixture expects an optional the marker did not select → failure', () => {
+  const dir = repoWithMarker([]); // expect.optionalSkills=['retro'] but none selected
+  try {
+    const res = runAssertFixture(dir, 'optional-skills');
+    assert.ok(res.failures.some((f) => /R-55: expected optionals \[retro\]/.test(f)),
+      `expected requested-but-not-applied R-55 failure, got: ${res.failures.join(' | ')}`);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test('F-2: genuinely missing report is flagged inconclusive, not reported as silent loss', () => {
   // No .setup/ ever committed → the fallback finds no Add/Modify commit.
   const dir = mkdtempSync(join(tmpdir(), 'aikit-f2-noreport-'));
