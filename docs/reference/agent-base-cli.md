@@ -68,6 +68,23 @@ exit codes propagate.
 | `starter <dir> [--git]` | `scripts/build-starter.mjs` | emit a clean starter repo |
 | `headless-guard [--root --open-branches <json>]` | `scripts/headless-guard.mjs` | run/skip decision for scheduled orchestrator pipelines; prints `run=`/`reason=`/`task=` lines |
 
+## Optional skills (`skills`)
+
+Manage the opt-in lifecycle skills (`retro`, `log-report`, `eval-runner`,
+`tracker-sync`, R-55). They are not in the default baseline; each project's
+selection is tracked in the marker's `optionalSkills`. Runs against a set-up
+project (path defaults to cwd) and copies from this checkout.
+
+| Command | Effect |
+|---|---|
+| `skills list [path]` | list available optionals and whether each is installed |
+| `skills add <name> [path]` | install one (copy + record in the marker); idempotent |
+| `skills remove <name> [path]` | uninstall one (delete + drop from the marker) |
+
+Selected optionals are upgraded with the baseline by `sync`; unselected ones
+are never touched. `base-orchestrate` auto-installs all four as a generation
+prerequisite.
+
 ## Release store (`cache`)
 
 | Command | Effect |

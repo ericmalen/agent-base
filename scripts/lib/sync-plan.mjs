@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync, lstatSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { BASELINE_COPIES } from './baseline.mjs';
+import { BASELINE_COPIES, OPTIONAL_SKILLS } from './baseline.mjs';
 
 const sha = (buf) => createHash('sha256').update(buf).digest('hex');
 
@@ -40,11 +40,20 @@ function hashTree(root, rel) {
   return out;
 }
 
-/** Expand baseline copy pairs into per-file hashes for an Agent Base/project root. */
-export function baselineFileHashes(root) {
+/**
+ * Expand baseline copy pairs into per-file hashes for an Agent Base/project root.
+ * `optionalSkills` (the project's selected set) extends the baseline with the
+ * matching optional-skill trees so sync upgrades only what the project opted
+ * into — unselected optionals are absent from every root and never surface.
+ */
+export function baselineFileHashes(root, { optionalSkills = [] } = {}) {
   const out = new Map();
   for (const [, dst] of BASELINE_COPIES) {
     for (const [path, h] of hashTree(root, dst)) out.set(path, h);
+  }
+  for (const s of OPTIONAL_SKILLS) {
+    if (!optionalSkills.includes(s.name)) continue;
+    for (const [path, h] of hashTree(root, s.dst)) out.set(path, h);
   }
   return out;
 }
@@ -79,10 +88,10 @@ function pathObstruction(projectRoot, rel) {
  * - unchanged: already match newBase
  * - removed: still in the project but no longer shipped by newBase (never auto-deleted)
  */
-export function planBaselineSync(projectRoot, oldBaseRoot, newBaseRoot) {
-  const project = baselineFileHashes(projectRoot);
-  const oldBase = baselineFileHashes(oldBaseRoot);
-  const newBase = baselineFileHashes(newBaseRoot);
+export function planBaselineSync(projectRoot, oldBaseRoot, newBaseRoot, { optionalSkills = [] } = {}) {
+  const project = baselineFileHashes(projectRoot, { optionalSkills });
+  const oldBase = baselineFileHashes(oldBaseRoot, { optionalSkills });
+  const newBase = baselineFileHashes(newBaseRoot, { optionalSkills });
 
   const allPaths = new Set([...project.keys(), ...oldBase.keys(), ...newBase.keys()]);
   const updates = [];

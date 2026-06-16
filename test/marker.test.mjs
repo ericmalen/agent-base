@@ -61,3 +61,22 @@ test('validateMarker treats explicit null required fields as missing', () => {
   assert.equal(errors.length, 4);
   assert.ok(errors.every((e) => e.includes('missing required field')));
 });
+
+test('buildMarker emits optionalSkills only when non-empty, sorted', () => {
+  const none = buildMarker({ standard: '1.0.0', setupAt: '2026-01-01' });
+  assert.ok(!('optionalSkills' in none), 'omitted when empty (markers stay byte-stable)');
+  const some = buildMarker({
+    standard: '1.0.0', setupAt: '2026-01-01', optionalSkills: ['tracker-sync', 'retro'],
+  });
+  assert.deepEqual(some.optionalSkills, ['retro', 'tracker-sync']);
+});
+
+test('validateMarker checks optionalSkills shape and membership (R-55)', () => {
+  const base = { present: true, standard: '1.0.0', toolRepo: 'x', setupAt: '2026-01-01', githubCodeReview: false };
+  assert.equal(validateMarker({ ...base, optionalSkills: ['retro', 'eval-runner'] }).length, 0);
+  assert.equal(validateMarker({ ...base }).length, 0, 'absent optionalSkills is valid');
+  assert.ok(validateMarker({ ...base, optionalSkills: 'retro' })
+    .some((e) => /must be an array/.test(e)));
+  assert.ok(validateMarker({ ...base, optionalSkills: ['retro', 'made-up'] })
+    .some((e) => /unknown skill/.test(e)));
+});

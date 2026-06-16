@@ -73,10 +73,12 @@ What ships into set-up projects is decided by the installer allowlist in
 `scripts/lib/baseline.mjs` (consumed by `scripts/install-setup.mjs`) — there
 is no separate distribution step.
 Every setup installs the baseline skills (`base-check`, `docs`,
-`git-conventions`, `skill-creator`, `agent-creator`) plus the orchestration
-lifecycle skills (`retro`, `log-report`, `eval-runner`, `tracker-sync`) and
-the `docs-auditor` agent. The lifecycle skills are dormant until orchestration generation creates
-their surfaces (`docs/orchestration/`, generated agents). Orchestration
+`git-conventions`, `skill-creator`, `agent-creator`) and the `docs-auditor`
+agent. The orchestration lifecycle skills (`retro`, `log-report`,
+`eval-runner`, `tracker-sync`) are optional (R-55, `OPTIONAL_SKILLS`) — opt-in
+per project, dormant until orchestration generation creates their surfaces
+(`docs/orchestration/`, generated agents); `base-orchestrate` installs them as
+a prerequisite, or add them with `agent-base skills add`. Orchestration
 discovery/generation meta-assets stay Agent Base-side and run from a base checkout against
 a target path — see [`spec/target-layout.md`](../../spec/target-layout.md).
 

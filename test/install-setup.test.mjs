@@ -67,19 +67,24 @@ test('install-setup ships only the five setup scripts + lib, no Agent Base-dev t
   }
 });
 
-test('install-setup ships orchestration lifecycle skills, keeps discovery/generation Agent Base-only', () => {
+test('install-setup stages optional lifecycle skills (not live), keeps discovery/generation Agent Base-only', () => {
   const target = makeGitRepo();
   try {
     const r = spawnSync(process.execPath,
       [join(BASE, 'scripts/install-setup.mjs'), target], { encoding: 'utf8' });
     assert.equal(r.status, 0, `install-setup failed: ${r.stderr}`);
 
-    // Lifecycle skills ship verbatim (invoked in the target's life post-generation).
+    // Optional lifecycle skills are NOT installed to their live path by a plain
+    // setup (R-55: opt-in). They ARE staged in the setup window so base-apply
+    // can copy any the user selects; staged copies match the Agent Base source.
     for (const id of ['retro', 'log-report', 'eval-runner', 'tracker-sync']) {
-      const skill = `.claude/skills/${id}/SKILL.md`;
-      assert.ok(existsSync(join(target, skill)), `${id} SKILL.md installed`);
-      assert.equal(readFileSync(join(target, skill), 'utf8'),
-        readFileSync(join(BASE, skill), 'utf8'), `${id} matches Agent Base source`);
+      assert.ok(!existsSync(join(target, `.claude/skills/${id}`)),
+        `${id} must NOT be installed live by a plain setup`);
+      const staged = `.claude/agent-base-setup/optional-skills/${id}/SKILL.md`;
+      assert.ok(existsSync(join(target, staged)), `${id} staged in setup window`);
+      assert.equal(readFileSync(join(target, staged), 'utf8'),
+        readFileSync(join(BASE, `.claude/skills/${id}/SKILL.md`), 'utf8'),
+        `${id} staged copy matches Agent Base source`);
     }
     // Discovery/generation meta-skills run FROM the Agent Base clone and stay home.
     for (const id of ['structure-detector', 'dependency-mapper', 'convention-detector',

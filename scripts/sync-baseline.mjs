@@ -182,7 +182,8 @@ export function runSyncBaseline(opt) {
       return { ok: false, exitCode: 2, error: `baseline checkout failed: ${e.message}` };
     }
 
-    const plan = planBaselineSync(root, oldCo.path, newCo.path);
+    const optionalSkills = marker.optionalSkills ?? [];
+    const plan = planBaselineSync(root, oldCo.path, newCo.path, { optionalSkills });
     const payload = {
       pin,
       targetPin,
@@ -270,6 +271,7 @@ export function runSyncBaseline(opt) {
         setupAt: marker.setupAt,
         lastSyncedAt: today,
         githubCodeReview: marker.githubCodeReview,
+        optionalSkills,
       }),
     });
 

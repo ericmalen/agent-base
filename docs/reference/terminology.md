@@ -25,6 +25,7 @@ consistently; do not rotate synonyms.
 | **setup window** | Temporary skills and tooling removed before merge (`base-inventory` … `base-verify`). |
 | **standard layout** | Post-setup tree defined in [`spec/target-layout.md`](../../spec/target-layout.md). |
 | **baseline skills** | Permanent skills copied into every project (`base-check`, `docs`, …). |
+| **optional skills** | Opt-in lifecycle skills (`retro`, `log-report`, `eval-runner`, `tracker-sync`, R-55) — not in the default baseline; selected at setup, added via `agent-base skills add`, or installed by `base-orchestrate`. Tracked in the marker's `optionalSkills`. |
 | **orchestration** | Optional generated multi-agent layer (`base-orchestrate` entry). |
 | **`.setup/`** | Working directory during setup (`manifest.json`, `nodes/`, `literals/`, `merge-sources.json`). |
 | **`.claude/agent-base-setup/`** | Temporary tooling copied into a project during setup. |

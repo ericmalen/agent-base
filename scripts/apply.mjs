@@ -18,13 +18,15 @@
 //                                     [--dry-run <outDir>]
 // Writes .setup/generated.json: { generated: {path: sha256}, deleted: [...] }
 
-import { readFileSync, writeFileSync, mkdirSync, rmSync, rmdirSync, existsSync, readdirSync, lstatSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, rmSync, rmdirSync, existsSync, readdirSync, lstatSync, cpSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { loadManifest, loadInventory, validateShape, keepFiles, isSafeRelPath } from './lib/manifest.mjs';
 import { stripJsonComments, splitLinesKeepEnds } from './lib/extract.mjs';
 import { SLOT_RE, OPTIONAL_RE, stripEmptyOptionalSections } from './lib/template.mjs';
+import { OPTIONAL_NAMES, optionalStagingDst } from './lib/baseline.mjs';
+import { MARKER_PATH } from './lib/marker.mjs';
 
 const sha = (t) => createHash('sha256').update(t).digest('hex');
 
@@ -275,6 +277,29 @@ export function apply({ root, templatesDir, outRoot = null }) {
     }
   }
 
+  // ── 3c. Optional skills (opt-in lifecycle skills) ─────────────────────────
+  // Selected optionals are recorded in the marker's `optionalSkills` (authored
+  // during planning, written above as an install literal). Copy each selected
+  // skill from the setup-window staging dir to its live `.claude/skills/` path.
+  // Like baseline skills, these are opaque payload installed verbatim — NOT
+  // recorded in `generated` (the reproducibility gate compares assembled
+  // content, not installed baseline trees; R-55 audits their presence).
+  // Computed here; the copy happens in the write phase.
+  const optionalToInstall = [];
+  {
+    const markerText = outputs.get(MARKER_PATH)
+      ?? (existsSync(join(root, MARKER_PATH)) ? readFileSync(join(root, MARKER_PATH), 'utf8') : null);
+    if (markerText) {
+      let selected = [];
+      try { selected = JSON.parse(stripJsonComments(markerText)).optionalSkills ?? []; } catch { /* malformed: skip */ }
+      for (const name of selected) {
+        if (!OPTIONAL_NAMES.includes(name)) continue;
+        const from = join(root, optionalStagingDst(name));
+        if (existsSync(from)) optionalToInstall.push({ name, from });
+      }
+    }
+  }
+
   // ── 4. Source-file lifecycle ───────────────────────────────────────────────
   // Extracted source files that are not keep-file and not regenerated as a
   // target are deleted (their nodes were dispositioned elsewhere).
@@ -300,6 +325,21 @@ export function apply({ root, templatesDir, outRoot = null }) {
   }
   if (gitignoreNext != null) {
     writeNoFollow(join(writeRoot, '.gitignore'), gitignoreNext);
+  }
+  for (const { name, from } of optionalToInstall) {
+    const rel = `.claude/skills/${name}`;
+    // symlink guard on every destination component (cpSync would otherwise
+    // follow a committed link out of the tree, like writeNoFollow for files)
+    let cur = writeRoot;
+    for (const part of rel.split('/')) {
+      cur = join(cur, part);
+      let st = null;
+      try { st = lstatSync(cur); } catch { break; }
+      if (st?.isSymbolicLink()) throw new Error(`refusing to write through symlink: ${rel}`);
+    }
+    const to = join(writeRoot, rel);
+    mkdirSync(dirname(to), { recursive: true });
+    cpSync(from, to, { recursive: true });
   }
   if (mergeSourcesDirty) {
     writeNoFollow(snapPath, JSON.stringify(mergeSources, null, 2) + '\n');

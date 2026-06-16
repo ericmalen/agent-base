@@ -50,7 +50,15 @@ Agent Base-side only — `install-setup.mjs` never ships this skill.
    STOP until the user explicitly approves policy answers.
 5. **Gate 2 (after phase 3):** present the specialist roster and dispatch
    rules from `blueprint.json`. STOP until the user explicitly approves.
-6. After phase 4: remind the user to review the diff, commit if not already
+6. **Install lifecycle skills (R-55):** the orchestration lifecycle skills
+   are optional and absent from the plain-setup baseline, so generated
+   orchestration needs them installed. From the base checkout, for each of
+   `retro`, `log-report`, `eval-runner`, `tracker-sync`:
+   `node <agent-base>/bin/agent-base.mjs skills add <name> <target>`
+   (idempotent — skips any already present; records each in the target marker's
+   `optionalSkills`). These back `/retro`, `/log-report`, `/eval-runner`,
+   `/tracker-sync` on the generated surfaces.
+7. After phase 4: remind the user to review the diff, commit if not already
    committed by the scaffolder session, and merge. Point them to
    `docs/how-to/orchestration-guide.md` § Session 5 for execution (`tasks.md` +
    `feature-orchestrator`). Never merge for them.

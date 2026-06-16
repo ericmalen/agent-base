@@ -23,7 +23,7 @@ Run from an open base checkout. Entry skill: `base-orchestrate`.
 | --- | --- |
 | Discovery | `structure-detector`, `dependency-mapper`, `convention-detector`, `interview-guide`, `blueprint-generator`, `handoff-validator` |
 | Generation | `agent-instantiator`, `skill-instantiator` |
-| Quality | `drift-checker` (`eval-runner` is installed at setup — see below) |
+| Quality | `drift-checker` (`eval-runner` is an optional lifecycle skill — see below) |
 
 ### Entry skills (Agent Base-only)
 
@@ -53,7 +53,7 @@ Shipped per the allowlist in `scripts/lib/baseline.mjs` (consumed by
 | `base-check` | Permanent maintenance |
 | `base-inventory`, `base-plan`, `base-apply`, `base-verify` | Setup window |
 | `docs`, `git-conventions`, `agent-creator`, `skill-creator` | Permanent baseline |
-| `retro`, `log-report`, `eval-runner`, `tracker-sync` | Lifecycle — operate on orchestration surfaces when present |
+| `retro`, `log-report`, `eval-runner`, `tracker-sync` | Optional lifecycle (R-55) — opt-in, not in the default baseline; selected at setup, added via `agent-base skills add`, or installed by `base-orchestrate`. Operate on orchestration surfaces. |
 
 ## Generated per target (orchestration only)
 

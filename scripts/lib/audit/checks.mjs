@@ -8,6 +8,7 @@ import {
   nonBlankLines, stripFences, stripInlineCode, lineOf, parseJsonc, finding as F,
   isSetupTooling, isVendored, isPayloadSkeleton,
 } from './util.mjs';
+import { OPTIONAL_NAMES } from '../baseline.mjs';
 
 // ── R-01..R-09: root instructions ───────────────────────────────────────────
 
@@ -603,6 +604,16 @@ export function checkHygiene(ctx) {
     for (const k of ['pin', 'lastSyncedAt']) {
       if (marker[k] === undefined) {
         out.push(F('R-50', 'info', '.claude/agent-base.json', `Release pin field "${k}" missing — add for baseline sync (sync-baseline).`));
+      }
+    }
+    // R-55: optional lifecycle skills listed in the marker must be installed.
+    if (Array.isArray(marker.optionalSkills)) {
+      for (const name of marker.optionalSkills) {
+        if (!OPTIONAL_NAMES.includes(name)) {
+          out.push(F('R-55', 'info', '.claude/agent-base.json', `optionalSkills lists unknown skill "${name}" — must be one of: ${OPTIONAL_NAMES.join(', ')}.`));
+        } else if (!exists(join(root, '.claude', 'skills', name, 'SKILL.md'))) {
+          out.push(F('R-55', 'info', `.claude/skills/${name}`, `optionalSkills lists "${name}" but the skill is not installed — run \`agent-base skills add ${name}\` or remove it from the marker.`));
+        }
       }
     }
   }

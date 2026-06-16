@@ -277,8 +277,18 @@ Set-up projects contain the `base-check` skill and the Agent Base marker
 `standard` (semver), `toolRepo`, `setupAt`, `githubCodeReview`. Recommended
 release-pin fields (info when missing): `pin`, `lastSyncedAt` — used by
 baseline sync and the pin-resolved CI templates (npx at pin; clone fallback).
-Candidate for promotion to warning once tagged pins are the norm across
-set-up projects.
+Optional marker field `optionalSkills` (R-55). Candidate for promotion to
+warning once tagged pins are the norm across set-up projects.
+
+**R-55 · Optional skill tier** · mechanical · audit, info → warning
+The opt-in lifecycle skills `retro`, `log-report`, `eval-runner`,
+`tracker-sync` are not installed by default (they are dormant until
+orchestration is generated). A project records its chosen set in the marker's
+`optionalSkills` array; every listed name must be present at
+`.claude/skills/<name>/` (finding when listed-but-missing). Optionals are added
+at setup (base-plan selection, materialized by apply), by `agent-base skills
+add`, or by base-orchestrate; sync-baseline upgrades only the selected set and
+never reports an unselected optional as removed.
 
 **R-51 · Rule-ID indirection** · mechanical · Agent Base CI
 Agent Base docs, templates, and check metadata reference rules by R-ID only — never by
@@ -328,3 +338,5 @@ hash-manifest update flow. (Two narrow exemptions DID survive into v2 — see
 - `githubCodeReview: true|false` — asked during setup (D-3); drives R-09/R-49.
 - Path-scoping choice: rules (default) or nested-compat — drives R-52/R-53 vs
   R-13..R-16 and the R-45 nested key.
+- `optionalSkills: string[]` — opt-in lifecycle skills selected at setup (R-55);
+  omitted when none.

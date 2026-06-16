@@ -25,6 +25,8 @@ import { stageRelease, listStaged, pruneStaged } from './lib/staging.mjs';
 import { bootstrapPrompt, stagedNotice, launchNotice, fallbackInstructions } from './lib/prompts.mjs';
 import { findClaude, launchClaude } from './lib/launch.mjs';
 import { writeBootstrapSkill } from './lib/bootstrap-skill.mjs';
+import { listSkills, addSkill, removeSkill } from './lib/skills.mjs';
+import { OPTIONAL_NAMES } from '../scripts/lib/baseline.mjs';
 
 const pkgRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -60,6 +62,11 @@ Deterministic (delegates to the matching scripts/ entry point):
   tracker-sync [--target --apply ...]
   starter <dir> [--git]   emit a clean starter repo (build-starter.mjs)
   headless-guard [--root --open-branches <json>]
+
+Optional skills (opt-in lifecycle skills, tracked in the project marker):
+  skills list [path]            show available optional skills + install state
+  skills add <name> [path]      install one into the project (default: cwd)
+  skills remove <name> [path]   uninstall one from the project
 
 Release store (~/.agent-base/versions/):
   cache list              staged releases, newest first
@@ -164,6 +171,47 @@ if (LLM_ENTRIES.has(command)) {
   }
   console.log(fallbackInstructions({ command, checkoutPath: path, targetPath, dev, skillDropped }));
   process.exit(0);
+}
+
+if (command === 'skills') {
+  const [sub, ...skillArgs] = rest;
+  // baseRoot = this checkout (staged release or clone); copies come from here.
+  const baseRoot = pkgRoot;
+  if (sub === 'list' || sub === undefined) {
+    const projectRoot = skillArgs[0] ? resolve(skillArgs[0]) : process.cwd();
+    const { available, installed } = listSkills(projectRoot);
+    console.log('Optional skills:');
+    for (const s of available) {
+      console.log(`  ${installed.includes(s.name) ? '[installed]' : '[available]'}  ${s.name}`);
+    }
+    process.exit(0);
+  }
+  if (sub === 'add' || sub === 'remove') {
+    const name = skillArgs[0];
+    if (!name) {
+      console.error(`agent-base skills ${sub}: expected a skill name (one of: ${OPTIONAL_NAMES.join(', ')})`);
+      process.exit(2);
+    }
+    const projectRoot = skillArgs[1] ? resolve(skillArgs[1]) : process.cwd();
+    try {
+      const r = sub === 'add'
+        ? addSkill({ name, projectRoot, baseRoot })
+        : removeSkill({ name, projectRoot });
+      const msg = {
+        added: `installed optional skill: ${name}`,
+        already: `optional skill already installed: ${name}`,
+        removed: `removed optional skill: ${name}`,
+        absent: `optional skill not installed: ${name}`,
+      }[r.action];
+      console.log(`agent-base skills ${sub}: ${msg}`);
+      process.exit(0);
+    } catch (e) {
+      console.error(`agent-base skills ${sub}: ${e.message}`);
+      process.exit(2);
+    }
+  }
+  console.error(`agent-base skills: unknown subcommand ${sub} (try: list, add, remove)`);
+  process.exit(2);
 }
 
 if (command === 'cache') {

@@ -26,6 +26,7 @@ const STRICT_ESCALATION = {
   'R-44': 'error',
   'R-47': 'warning',
   'R-48': 'warning',
+  'R-55': 'warning',
 };
 
 export function audit({ root, strict = false }) {

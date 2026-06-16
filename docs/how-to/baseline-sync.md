@@ -62,10 +62,15 @@ node ~/tools/agent-base/scripts/sync-baseline.mjs --check --base-root ~/tools/ag
 
 ## What gets synced
 
-Only **permanent baseline** assets (same set as post-merge install):
+**Permanent baseline** assets (same set as post-merge install):
 
 - `base-check`, `docs`, `git-conventions`, `skill-creator`, `agent-creator`
-- `docs-auditor`, `retro`, `log-report`, `eval-runner`, `tracker-sync`
+- `docs-auditor`
+
+Plus any **optional lifecycle skills** the project selected — `retro`,
+`log-report`, `eval-runner`, `tracker-sync` — but only those listed in the
+marker's `optionalSkills` (R-55). Unselected optionals are never synced and
+never reported as removed.
 
 Setup-window skills (`.claude/agent-base-setup/`, `base-inventory` …) are
 never touched.

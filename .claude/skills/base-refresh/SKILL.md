@@ -49,6 +49,9 @@ files by hand.
      compatible release, baseline complete" (noting any drift) and stop.
    - If pin current with `updates` non-empty: these are missing baseline
      files; proceed as a repair.
+   - Optional skills (R-55) the project selected (`marker.optionalSkills`) are
+     upgraded and repaired alongside the baseline; optionals the project never
+     opted into are not synced and never reported as `removed`.
    - If `removed` is non-empty: list them as no-longer-shipped files left on
      disk — deleting is the user's call, never yours.
 5. Apply on a branch in the project:

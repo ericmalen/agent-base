@@ -19,7 +19,7 @@ const run = (args, opts = {}) =>
 test('cli: --help prints command surface, exit 0', () => {
   const r = run(['--help']);
   assert.equal(r.status, 0);
-  for (const cmd of ['setup', 'orchestrate', 'refresh', 'install', 'audit', 'sync', 'tracker-sync', 'starter', 'headless-guard', 'cache']) {
+  for (const cmd of ['setup', 'orchestrate', 'refresh', 'install', 'audit', 'sync', 'tracker-sync', 'starter', 'headless-guard', 'cache', 'skills']) {
     assert.match(r.stdout, new RegExp(`\\b${cmd}\\b`), `help mentions ${cmd}`);
   }
 });

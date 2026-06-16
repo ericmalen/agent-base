@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, existsSync, lstatSync } from 'node:fs';
 import { join } from 'node:path';
 import { stripJsonComments } from './extract.mjs';
 import { parseSemver, tagToSemver } from './release.mjs';
+import { OPTIONAL_NAMES } from './baseline.mjs';
 
 export const MARKER_PATH = '.claude/agent-base.json';
 
@@ -66,6 +67,14 @@ export function validateMarker(marker) {
   if (marker.toolRepo != null && typeof marker.toolRepo !== 'string') {
     errors.push('toolRepo must be a string URL');
   }
+  if (marker.optionalSkills != null) {
+    if (!Array.isArray(marker.optionalSkills) || marker.optionalSkills.some((s) => typeof s !== 'string')) {
+      errors.push('optionalSkills must be an array of strings');
+    } else {
+      const unknown = marker.optionalSkills.filter((s) => !OPTIONAL_NAMES.includes(s));
+      if (unknown.length) errors.push(`optionalSkills has unknown skill(s): ${unknown.join(', ')}`);
+    }
+  }
   return errors;
 }
 
@@ -77,6 +86,7 @@ export function buildMarker({
   setupAt,
   lastSyncedAt,
   githubCodeReview = false,
+  optionalSkills = [],
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const semver = parseSemver(String(standard).replace(/^v/, ''));
@@ -88,5 +98,7 @@ export function buildMarker({
     lastSyncedAt: lastSyncedAt ?? setupAt ?? today,
     setupAt: setupAt ?? today,
     githubCodeReview,
+    // Emit only when non-empty so markers without optionals stay byte-stable.
+    ...(optionalSkills.length ? { optionalSkills: [...optionalSkills].sort() } : {}),
   };
 }

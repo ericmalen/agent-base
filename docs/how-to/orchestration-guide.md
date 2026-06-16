@@ -202,8 +202,9 @@ Nothing merges automatically: the orchestrator stops at PR / diff presentation.
 
 ## Lifecycle skills (installed at setup)
 
-Every set-up project already has these; they activate once orchestration surfaces
-exist:
+These optional lifecycle skills (R-55) are installed by `base-orchestrate` as a
+generation prerequisite (or earlier via `agent-base skills add`); they activate
+once orchestration surfaces exist:
 
 | Skill | Role |
 |---|---|

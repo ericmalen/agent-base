@@ -62,11 +62,13 @@ teardown it uses a base checkout resolved from the
 of `toolRepo`).
 
 Marker fields (R-50): required — `standard` (semver), `toolRepo`, `setupAt`,
-`githubCodeReview`; recommended — `pin` (release tag), `lastSyncedAt`.
-Baseline copies (the permanent skills/agents above) are owned by
+`githubCodeReview`; recommended — `pin` (release tag), `lastSyncedAt`; optional
+— `optionalSkills` (R-55, the selected opt-in lifecycle skills; omitted when
+none). Baseline copies (the permanent skills/agents above) are owned by
 `sync-baseline`: upgrades replace them wholesale from the pinned release and
 bump `pin`/`lastSyncedAt` — local edits to baseline files surface as
-conflicts, never silently overwritten.
+conflicts, never silently overwritten. Selected optional skills are synced the
+same way; unselected ones are never touched (R-55).
 
 ## Compat variant (nested AGENTS.md instead of rules/)
 
@@ -116,10 +118,12 @@ substitution — never hand-authored; every generated file is recorded
 ```
 
 Generated agents and skills land in the standard `.claude/` homes and obey the
-same rules as authored ones. The lifecycle skills every setup installs
-(`retro`, `log-report`, `eval-runner`, `tracker-sync`) operate on these
-surfaces; the discovery/generation meta-assets stay Agent Base-side and are never
-part of the target layout.
+same rules as authored ones. The optional lifecycle skills (`retro`,
+`log-report`, `eval-runner`, `tracker-sync`, R-55) operate on these surfaces;
+they are not in the plain-setup baseline — they are opt-in at setup, added via
+`agent-base skills add`, or installed by `base-orchestrate` as a generation
+prerequisite. The discovery/generation meta-assets stay Agent Base-side and are
+never part of the target layout.
 
 Tracker bridge surfaces (optional, DD-14): tasks linked to a work tracker
 carry one indented `ref:` line (`AB#123` ADO / `#45` GitHub) in `tasks.md`;

@@ -55,10 +55,12 @@ cap, not silent divergence. See
 
 ## Quality flywheel
 
-Every set-up project gets `retro`, `log-report`, and `eval-runner` — lifecycle
-skills that activate once orchestration surfaces exist. Bugs and review
-findings become checklist items; handoff logs surface failing agents; golden
-evals gate template changes.
+The optional lifecycle skills `retro`, `log-report`, and `eval-runner` (R-55)
+activate once orchestration surfaces exist. They are opt-in — not in the
+default baseline — and `base-orchestrate` installs them as a generation
+prerequisite (or add them earlier with `agent-base skills add`). Bugs and
+review findings become checklist items; handoff logs surface failing agents;
+golden evals gate template changes.
 
 ## Further reading
 

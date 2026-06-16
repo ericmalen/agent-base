@@ -22,6 +22,10 @@ Preconditions: `.setup/manifest.json` parses, and
    the snapshot, never the live file). Apply is all-or-nothing on validation
    errors: if it throws (e.g. an existing settings file is invalid JSON(C)),
    nothing was written — fix the named file or route it through the manifest.
+   Apply also copies any optional skills named in the marker literal's
+   `optionalSkills` (R-55) from the setup window to `.claude/skills/<name>/` —
+   these are installed payload, not generated output, so they are absent from
+   `generated.json` (the audit confirms their presence instead).
 2. Read the generated files end to end. Judge coherence: section order,
    seams between verbatim blocks, orphaned references. Fix by reordering
    manifest entries, adjusting slots, or (sparingly, justified) a merge

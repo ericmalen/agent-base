@@ -86,7 +86,7 @@ yourself — that is the point of it.
 | Session | Invoke | What happens | You decide |
 |---|---|---|---|
 | 1 | `base-inventory` | mechanical extraction of every AI surface + a sweep for buried AI instructions; setup branch created | — |
-| 2 | `base-plan` | AI routes every piece of content (manifest); two setup questions | **Gate 1:** approve the plan + risk report |
+| 2 | `base-plan` | AI routes every piece of content (manifest); setup questions (Copilot review, path-scoping, optional lifecycle skills — default none) | **Gate 1:** approve the plan + risk report |
 | 3 | `base-apply` | deterministic assembly; mechanical gates converge (check + audit) | — |
 | 4 | `base-verify` | independent fresh-context verification (rubric + loss-hunt) | **Gate 2:** review report + diff, merge |
 
@@ -110,9 +110,13 @@ your repo is untouched until YOU merge.
 
 - `base-check` (installed skill) is your drift checker — run it any time.
   It stays after merge alongside the rest of the permanent baseline: the
-  `docs`, `git-conventions`, `skill-creator`, and `agent-creator` skills;
-  the orchestration lifecycle skills `retro`, `log-report`, `eval-runner`,
-  and `tracker-sync`; and the `docs-auditor` agent.
+  `docs`, `git-conventions`, `skill-creator`, and `agent-creator` skills and
+  the `docs-auditor` agent.
+- The orchestration lifecycle skills `retro`, `log-report`, `eval-runner`,
+  and `tracker-sync` are optional (R-55) — not installed by default. Add any
+  with `agent-base skills add <name>` (list with `agent-base skills list`);
+  `base-orchestrate` installs all four automatically when you generate
+  orchestration.
 - Updating to a newer Agent Base release: use baseline sync, not a re-setup.
   `sync-baseline --check` flags a stale pin; `--report` shows the plan;
   `--upgrade` applies it — see [baseline-sync](./baseline-sync.md). The

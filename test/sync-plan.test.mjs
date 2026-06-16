@@ -67,11 +67,12 @@ test('planBaselineSync: type mismatches and symlinked paths are conflicts, not u
     write(project, '.claude/skills/docs', 'i am a file\n');
     // Directory where the baseline ships a file.
     mkdirSync(join(project, '.claude/agents/docs-auditor.md'), { recursive: true });
-    // Symlink in the path of a missing file.
+    // Symlink in the path of a missing file. retro is an optional skill (R-55),
+    // so it only participates when the project selected it.
     mkdirSync(join(project, '.claude/skills'), { recursive: true });
     symlinkSync(outside, join(project, '.claude/skills/retro'));
 
-    const plan = planBaselineSync(project, base, base);
+    const plan = planBaselineSync(project, base, base, { optionalSkills: ['retro'] });
     assert.deepEqual(plan.updates, []);
     const reasons = new Map(plan.conflicts.map((c) => [c.path, c.reason]));
     assert.match(reasons.get('.claude/skills/docs/SKILL.md'), /file where the baseline needs a directory/);

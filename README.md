@@ -115,10 +115,12 @@ bin/             the agent-base npx entry point (never ships into projects;
                  see docs/reference/agent-base-cli.md)
 .claude/         this repo's own live config; the base-* setup skills, baseline
                  skills (base-check, docs, git-conventions, skill-creator,
-                 agent-creator, retro, log-report, eval-runner, tracker-sync)
-                 and agents are dual-role (used here AND installed into
-                 projects — see the allowlist in scripts/lib/baseline.mjs,
-                 consumed by scripts/install-setup.mjs). Orchestration
+                 agent-creator) and docs-auditor agent are dual-role (used here
+                 AND installed into every project). The lifecycle skills (retro,
+                 log-report, eval-runner, tracker-sync) are optional (R-55):
+                 opt-in via `agent-base skills add` or base-orchestrate. See the
+                 allowlist in scripts/lib/baseline.mjs, consumed by
+                 scripts/install-setup.mjs. Orchestration
                  discovery/generation meta-assets stay Agent Base-side only.
                  base-setup is the setup entry point: run from a
                  checkout (clone or npx-staged release, or followed directly

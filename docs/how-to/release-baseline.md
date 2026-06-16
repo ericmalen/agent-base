@@ -9,8 +9,10 @@ Tag when consumers should be able to pull the change:
 
 - Permanent-baseline asset changes (`BASELINE_COPIES` in
   `scripts/lib/baseline.mjs`: `base-check`, `docs`, `git-conventions`,
-  `skill-creator`, `agent-creator`, `docs-auditor`, `retro`, `log-report`,
-  `eval-runner`, `tracker-sync`).
+  `skill-creator`, `agent-creator`, `docs-auditor`).
+- Optional lifecycle skill changes (`OPTIONAL_SKILLS`: `retro`, `log-report`,
+  `eval-runner`, `tracker-sync`) — `sync` upgrades them only in projects that
+  selected them (R-55).
 - Audit rule changes (`spec/rules.md` + `scripts/audit.mjs`).
 - CI template changes (`templates/ci/`).
 

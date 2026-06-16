@@ -15,13 +15,21 @@ for schema and worked examples before authoring.
 
 ## Procedure
 
-1. **Obtain the two setup answers** (they go in the marker literal). If
+1. **Obtain the setup answers** (they go in the marker literal). If
    the orchestrator already supplied them in this phase's prompt, record
    them and skip asking; otherwise ask the user:
    - Does the team use GitHub.com Copilot code review? (drives
      copilot-instructions.md handling, rule R-09)
    - Path-scoping: `.claude/rules/` (default) or nested AGENTS.md compat
      (only if they need other AGENTS.md-ecosystem tools)?
+   - Optional skills (R-55): the opt-in lifecycle skills `retro`,
+     `log-report`, `eval-runner`, `tracker-sync` are dormant until
+     orchestration is generated. Install any now? Default **none** — a plain
+     project does not need them; `base-orchestrate` auto-installs them, and
+     `agent-base skills add <name>` adds them later. Record the chosen names
+     in the marker literal's `optionalSkills` array (omit the field if none);
+     `apply` copies each selected skill from the setup window to
+     `.claude/skills/<name>/`.
    For the marker literal's `standard`, `toolRepo`, and `pin`: copy them from
    the seeded `.claude/agent-base.json` (written by install-setup) — never
    from an example.

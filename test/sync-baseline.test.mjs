@@ -156,7 +156,7 @@ test('sync-baseline --upgrade at current pin: restores missing, leaves local edi
       cpSync(join(BASE_ROOT, src), join(root, dst), { recursive: true });
     }
     writeFileSync(join(root, '.claude/skills/docs/SKILL.md'), 'deliberate local edit\n');
-    rmSync(join(root, '.claude/skills/retro'), { recursive: true });
+    rmSync(join(root, '.claude/skills/git-conventions'), { recursive: true });
 
     const res = runSyncBaseline({ root, baseRoot: BASE_ROOT, upgrade: true, json: true });
     assert.equal(res.exitCode, 0);
@@ -165,8 +165,8 @@ test('sync-baseline --upgrade at current pin: restores missing, leaves local edi
     assert.match(res.message, /left untouched/);
 
     assert.equal(
-      readFileSync(join(root, '.claude/skills/retro/SKILL.md'), 'utf8'),
-      readFileSync(join(BASE_ROOT, '.claude/skills/retro/SKILL.md'), 'utf8'));
+      readFileSync(join(root, '.claude/skills/git-conventions/SKILL.md'), 'utf8'),
+      readFileSync(join(BASE_ROOT, '.claude/skills/git-conventions/SKILL.md'), 'utf8'));
     assert.equal(
       readFileSync(join(root, '.claude/skills/docs/SKILL.md'), 'utf8'),
       'deliberate local edit\n');
@@ -236,7 +236,7 @@ test('sync-baseline --upgrade: symlinked baseline path is a conflict, never writ
 
     // Nothing crosses the link; sibling skills restored normally.
     assert.ok(!existsSync(join(victim, 'SKILL.md')));
-    assert.ok(existsSync(join(root, '.claude/skills/retro/SKILL.md')));
+    assert.ok(existsSync(join(root, '.claude/skills/git-conventions/SKILL.md')));
   } finally {
     for (const d of [root, victim]) rmSync(d, { recursive: true, force: true });
   }
@@ -299,7 +299,44 @@ test('sync-baseline --upgrade at current pin: file-where-dir-expected is drift, 
 
     // Squatting file untouched; the rest of the baseline restored around it.
     assert.equal(readFileSync(join(root, '.claude/skills/docs'), 'utf8'), 'i am a file\n');
-    assert.ok(existsSync(join(root, '.claude/skills/retro/SKILL.md')));
+    assert.ok(existsSync(join(root, '.claude/skills/git-conventions/SKILL.md')));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('sync-baseline (R-55): unselected optional skill is never synced or reported removed', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sync-opt-none-'));
+  try {
+    seedProject(root); // no optionalSkills in marker
+    // A leftover optional skill on disk is invisible to a project that did not
+    // select it — sync neither upgrades it nor flags it as removed.
+    cpSync(join(BASE_ROOT, '.claude/skills/retro'), join(root, '.claude/skills/retro'), { recursive: true });
+    writeFileSync(join(root, '.claude/skills/retro/SKILL.md'), 'stale local copy\n');
+
+    const res = runSyncBaseline({ root, baseRoot: BASE_ROOT, report: true, json: true });
+    assert.equal(res.exitCode, 0);
+    assert.ok(!res.payload.updates.some((p) => p.startsWith('.claude/skills/retro')));
+    assert.ok(!res.payload.removed.some((p) => p.startsWith('.claude/skills/retro')));
+    // Left exactly as-is — not touched.
+    assert.equal(readFileSync(join(root, '.claude/skills/retro/SKILL.md'), 'utf8'), 'stale local copy\n');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('sync-baseline (R-55): a selected optional skill is repaired like the baseline', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sync-opt-sel-'));
+  try {
+    seedProject(root, { optionalSkills: ['retro'] });
+    // Selected but missing on disk → restored from the pinned release.
+    const res = runSyncBaseline({ root, baseRoot: BASE_ROOT, upgrade: true, json: true });
+    assert.equal(res.exitCode, 0, res.error ?? res.message);
+    assert.equal(
+      readFileSync(join(root, '.claude/skills/retro/SKILL.md'), 'utf8'),
+      readFileSync(join(BASE_ROOT, '.claude/skills/retro/SKILL.md'), 'utf8'));
+    // Selection survives the marker rewrite.
+    assert.deepEqual(readMarker(root).optionalSkills, ['retro']);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

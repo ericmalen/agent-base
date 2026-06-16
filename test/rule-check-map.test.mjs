@@ -21,17 +21,17 @@ test('live rule/emission totals match the spec (parse-regression tripwire)', () 
     readFileSync(join(BASE_ROOT, 'spec', 'rules.md'), 'utf8'));
   const emitted = parseEmitted(
     readFileSync(join(BASE_ROOT, 'scripts', 'lib', 'audit', 'checks.mjs'), 'utf8'));
-  assert.equal(defined.size, 50);
-  assert.equal(mechanicalAudit.size, 39);
-  assert.equal(emitted.size, 40);
+  assert.equal(defined.size, 51);
+  assert.equal(mechanicalAudit.size, 40);
+  assert.equal(emitted.size, 41);
 });
 
-test('live strict-escalation arrows match audit.mjs (9 arrows, in sync)', () => {
+test('live strict-escalation arrows match audit.mjs (10 arrows, in sync)', () => {
   const { strictArrows } = parseRules(
     readFileSync(join(BASE_ROOT, 'spec', 'rules.md'), 'utf8'));
   const escalation = parseEscalation(
     readFileSync(join(BASE_ROOT, 'scripts', 'audit.mjs'), 'utf8'));
-  assert.equal(strictArrows.size, 9);
+  assert.equal(strictArrows.size, 10);
   assert.deepEqual([...strictArrows.entries()].sort(), [...escalation.entries()].sort());
 });
 

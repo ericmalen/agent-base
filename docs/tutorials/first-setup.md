@@ -87,8 +87,9 @@ Merge when you're satisfied. Want to bail instead? Delete the
 A repo on the **standard layout**: `AGENTS.md` plus a `CLAUDE.md` shim, a
 `.claude/` home shared by both tools, and the **permanent baseline** — the
 `base-check`, `docs`, `git-conventions`, `skill-creator`, and `agent-creator`
-skills, the dormant orchestration-lifecycle skills, and the `docs-auditor`
-agent. The setup-time tooling has removed itself.
+skills and the `docs-auditor` agent. (The orchestration-lifecycle skills are
+optional, R-55 — opt in with `agent-base skills add` or let `base-orchestrate`
+install them.) The setup-time tooling has removed itself.
 
 Run `base-check` any time to audit for **drift**, and `sync` to pull a newer
 baseline release — see [baseline sync](../how-to/baseline-sync.md).

@@ -254,6 +254,36 @@ test('starter end-to-end: installs + jsonMerges ⇒ gates pass AND audit clean',
   }
 });
 
+test('apply (R-55): marker optionalSkills installs the selected skill from the setup window', () => {
+  const { repo } = setup('starter-empty');
+  try {
+    mkdirSync(join(repo, '.setup', 'literals'), { recursive: true });
+    // Marker literal carries the selection authored during planning.
+    writeFileSync(join(repo, '.setup', 'literals', 'marker.json'),
+      '{ "standard": "1.0.0", "toolRepo": "https://github.com/ericmalen/agent-base", "pin": "v1.0.0", "lastSyncedAt": "2026-06-10", "setupAt": "2026-06-10", "githubCodeReview": false, "optionalSkills": ["retro"] }\n');
+    // Optional skill staged into the setup window (install-setup does this).
+    cpSync(join(process.cwd(), '.claude/skills/retro'),
+      join(repo, '.claude/agent-base-setup/optional-skills/retro'), { recursive: true });
+    writeManifest(repo, {
+      entries: [],
+      installs: [{ file: '.claude/agent-base.json', literal: 'literals/marker.json' }],
+      jsonMerges: [],
+    });
+
+    const res = apply({ root: repo, templatesDir: KIT_TEMPLATES });
+    // Selected skill landed at its live path, copied verbatim from staging.
+    assert.equal(
+      readFileSync(join(repo, '.claude/skills/retro/SKILL.md'), 'utf8'),
+      readFileSync(join(process.cwd(), '.claude/skills/retro/SKILL.md'), 'utf8'));
+    // Installed payload, not generated output — absent from generated.json.
+    assert.ok(!Object.keys(res.generated).some((p) => p.startsWith('.claude/skills/retro')));
+    // An unselected optional is never installed.
+    assert.ok(!existsSync(join(repo, '.claude/skills/tracker-sync')));
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
 // ── report generator ────────────────────────────────────────────────────────
 
 test('report: risk-ordered, drops carry full text, merge side-by-side, merged-bytes %', () => {
