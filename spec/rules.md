@@ -99,7 +99,7 @@ PASS: `rules/tests.md`, `paths: ["**/*.test.ts"]`, 20 lines of testing conventio
 FAIL: `rules/misc.md` mixing test rules, deploy rules, and frontend rules.
 
 **R-53 · One scoping mechanism** · mechanical · audit, warning
-A repo uses `.claude/rules/` XOR nested AGENTS.md pairs — never both. Adoption
+A repo uses `.claude/rules/` XOR nested AGENTS.md pairs — never both. Setup
 defaults to rules; nested is chosen when the team needs other AGENTS.md-ecosystem
 tools (Cursor, Codex, Gemini CLI, …).
 

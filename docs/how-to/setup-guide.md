@@ -1,4 +1,4 @@
-# Adopting agent-base in a repository
+# Setting up a repository with Agent Base
 
 How to set up a repo (new or existing) for AI-assisted coding with both
 Claude Code and GitHub Copilot (VS Code), using the setup tooling.

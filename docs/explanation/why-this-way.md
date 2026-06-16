@@ -42,7 +42,7 @@ just imports it) would double-load the content.
 
 ## Why meta-skills
 
-The headline feature of agent-base is **skills-as-tooling**. Two meta-skills
+One of Agent Base's defining design choices is **skills-as-tooling**. Two meta-skills
 — `skill-creator` and `agent-creator` — walk you through
 producing new assets that conform to the conventions. (`skill-creator` is
 Anthropic's official skill-authoring tool, shipped here as a baseline skill.)

@@ -8,7 +8,7 @@ project. You learn the five-session flow without touching a real codebase.
 - This base checkout open in Claude Code or Copilot agent mode (a clone, or the release `npx github:ericmalen/agent-base#v1.2.0 orchestrate` stages — it opens the session for you when the `claude` CLI is on PATH)
 - Node ≥ 20
 - Familiarity with [setup](../how-to/setup-guide.md) (target must be
-  adopted first — fixtures below are pre-built for orchestration tests)
+  set up first — fixtures below are pre-built for orchestration tests)
 
 ## Fixture repos
 
@@ -62,7 +62,7 @@ You should see paths under `.claude/agents/`, `.claude/skills/`, and
 
 On a **throwaway copy** of a fixture (never the golden tree itself):
 
-1. Adopt the copy if needed (`/base-setup`).
+1. Set up the copy if needed (`/base-setup`).
 2. Run `/base-orchestrate /path/to/copy`.
 3. Stop at Gate 1 and Gate 2 to read `decisions.md` and the blueprint roster.
 4. After generation, seed `tasks.md` using the grammar in

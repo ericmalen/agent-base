@@ -29,6 +29,10 @@ consistently; do not rotate synonyms.
 | **`.setup/`** | Working directory during setup (`manifest.json`, `nodes/`, `literals/`, `merge-sources.json`). |
 | **`.claude/agent-base-setup/`** | Temporary tooling copied into a project during setup. |
 | **`.claude/agent-base.json`** | Marker: `standard`, `toolRepo`, `pin`, `lastSyncedAt`, `setupAt`, `githubCodeReview`. |
+| **marker** | The `.claude/agent-base.json` file (above): records that a repo is set up and at which `pin`. Its presence is how tooling recognizes a set-up project. |
+| **payload** | Files under `templates/` copied into projects (instructions, settings, readmes, ci, gitignore). Cargo, not config — kept out of `.claude/` so it does not auto-load while developing Agent Base. |
+| **slot** | Named insertion point in an instruction template (`<!-- agent-base:slot:<name> -->`), filled during `apply` by path-routed content. |
+| **drift** | Divergence of a set-up project from the current baseline/standard; surfaced by `base-check`/`audit`, repaired by `sync`. |
 
 ## Skill prefix convention
 

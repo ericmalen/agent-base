@@ -60,7 +60,7 @@ approval behavior use VS Code settings. Setup wires the shared subset; see
 
 ## Practical guidance for Copilot users
 
-1. Adopt the project first (`/base-setup`).
+1. Set up the project first (`/base-setup`).
 2. Run `/base-orchestrate` from the base checkout; allowlist `node` on Agent Base
    scripts when prompted.
 3. After generation, open the **target** and invoke `feature-orchestrator` on
