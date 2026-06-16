@@ -137,8 +137,9 @@ When asked to refactor/reorganize existing docs to the standard:
 5. Update the docs index (the README listing, or `docs/README.md` if one
    exists) to the new paths.
 6. Verify links resolve — run `node .claude/skills/docs/scripts/check-links.mjs`
-   (ships with this skill; resolves every relative Markdown link under the repo
-   and exits non-zero on a break). Fix any break before finishing.
+   (ships with this skill; resolves every relative Markdown link under the repo —
+   including each link's `#heading` anchor against the target file — and exits
+   non-zero on a break). Fix any break before finishing.
 
 ## docs catch-up (human changed code without AI)
 

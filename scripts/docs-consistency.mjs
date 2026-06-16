@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // docs-consistency.mjs — relative Markdown links in Agent Base docs must
 // resolve to existing files (Agent Base's own docs are not covered by the
-// R-07 audit, which checks set-up-repo surfaces).
+// R-07 audit, which checks set-up-repo surfaces). A link's `#fragment` is also
+// resolved: when the target is a Markdown file, the fragment must match a
+// heading slug (GitHub algorithm) or an explicit HTML `id`/`name` anchor in it.
 //
 // A banned-vocabulary check lived here until June 2026; it was removed after
 // review showed its only catch was a false positive (half the list was
@@ -53,8 +55,51 @@ export function collectFiles(root) {
 
 const LINK_RE = /\[[^\]]*\]\(([^)\s]+)\)/g;
 
+// The set of `#fragment` targets a Markdown file exposes: a heading slug per ATX
+// heading (GitHub/GFM algorithm, with -1/-2 suffixes for duplicates) plus every
+// explicit HTML `id`/`name` anchor. Headings inside code fences are ignored.
+export function anchorsOf(text) {
+  const anchors = new Set();
+  const counts = new Map();
+  let inFence = false;
+  for (const line of text.split('\n')) {
+    if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; continue; }
+    if (inFence) continue;
+    const h = line.match(/^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$/);
+    if (h) {
+      const slug = h[1]
+        .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1') // [t](u) / ![t](u) → t
+        .replace(/`([^`]*)`/g, '$1')               // `code` → code
+        .replace(/[*_~]/g, '')                     // emphasis markers
+        .trim().toLowerCase()
+        .replace(/[^a-z0-9 _-]/g, '')              // drop punctuation/unicode
+        .replace(/ /g, '-');
+      if (slug) {
+        const n = counts.get(slug) ?? 0;
+        anchors.add(n ? `${slug}-${n}` : slug);
+        counts.set(slug, n + 1);
+      }
+    }
+    for (const m of line.matchAll(/\b(?:id|name)\s*=\s*["']([^"']+)["']/g)) {
+      anchors.add(m[1].toLowerCase());
+    }
+  }
+  return anchors;
+}
+
 export function checkLinks(root, files) {
   const findings = [];
+  const anchorCache = new Map(); // absFile → Set<anchor>; only .md files are cached
+  const anchorsFor = (abs, knownText) => {
+    let set = anchorCache.get(abs);
+    if (!set) {
+      let txt = knownText;
+      if (txt == null) { try { txt = readFileSync(abs, 'utf8'); } catch { return null; } }
+      set = anchorsOf(txt);
+      anchorCache.set(abs, set);
+    }
+    return set;
+  };
   for (const rel of files) {
     if (!rel.endsWith('.md')) continue;
     const text = readFileSync(join(root, rel), 'utf8');
@@ -65,13 +110,27 @@ export function checkLinks(root, files) {
       if (inFence) return;
       const prose = line.replace(/`[^`]*`/g, ''); // ignore inline-code examples
       for (const m of prose.matchAll(LINK_RE)) {
-        let target = m[1];
-        if (/^(https?:|mailto:|#)/.test(target)) continue;
-        target = target.split('#')[0];
-        if (!target) continue;
-        const abs = resolve(root, dirname(rel), decodeURIComponent(target));
-        if (!existsSync(abs)) {
-          findings.push({ check: 'broken-link', file: rel, line: i + 1, term: m[1] });
+        const target = m[1];
+        if (/^(https?:|mailto:)/.test(target)) continue;
+        const hash = target.indexOf('#');
+        const pathPart = hash === -1 ? target : target.slice(0, hash);
+        const frag = hash === -1 ? '' : decodeURIComponent(target.slice(hash + 1)).toLowerCase();
+        let abs, knownText;
+        if (pathPart === '') {
+          abs = join(root, rel); knownText = text; // same-file anchor
+        } else {
+          abs = resolve(root, dirname(rel), decodeURIComponent(pathPart));
+          if (!existsSync(abs)) {
+            findings.push({ check: 'broken-link', file: rel, line: i + 1, term: target });
+            continue;
+          }
+        }
+        // line-range fragments (#L10, #L10-L20) target code, not headings — skip.
+        if (frag && !/^l\d/.test(frag) && abs.endsWith('.md')) {
+          const anchors = anchorsFor(abs, knownText);
+          if (anchors && !anchors.has(frag)) {
+            findings.push({ check: 'broken-anchor', file: rel, line: i + 1, term: target });
+          }
         }
       }
     });
