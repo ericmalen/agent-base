@@ -13,7 +13,7 @@ interventions**.
 - **Inputs the pilot gets, and nothing else:** a base checkout at a tagged
   release, a real repo of their choice (already through `/base-setup`), and
   the docs — starting at the
-  [orchestration guide](./orchestration-guide.md).
+  [orchestration guide](../docs/how-to/orchestration-guide.md).
 
 Scope: Sessions 1–4 plus both gates are **mandatory**; Session 5 (execute one
 small task end-to-end) is an optional stretch goal — record which was run.
@@ -33,7 +33,7 @@ A **friction note** (does not count, must be logged) is any of:
 - Pilot recovers alone but reports confusion, a wrong first attempt, or a
   doc passage they had to read more than twice
 - Any session exceeding 2× its
-  [time budget](./orchestration-guide.md#the-flow--five-sessions-two-gates)
+  [time budget](../docs/how-to/orchestration-guide.md#the-flow--five-sessions-two-gates)
 
 Judgment calls: if the observer is unsure whether an answer was "in the
 docs", it's an intervention. Count honestly — the pilot exists to find doc
@@ -43,17 +43,17 @@ gaps, not to pass.
 
 File the completed report as `reports/orchestration-pilot-<repo>-<date>.md`
 (`reports/` is gitignored Agent Base output). Then route **every** friction row per
-[`triage-rules`](../../templates/orchestration/docs/triage-rules.md):
+[`triage-rules`](../templates/orchestration/docs/triage-rules.md):
 
 | Friction kind | Route |
 |---|---|
-| Doc gap / unclear passage | Patch the guide or [troubleshooting doc](./orchestration-troubleshooting.md) before the next pilot |
+| Doc gap / unclear passage | Patch the guide or [troubleshooting doc](../docs/how-to/orchestration-troubleshooting.md) before the next pilot |
 | Template defect | Fix Agent Base template, re-scaffold affected targets |
 | Skill gap | Edit the meta-skill |
 | One-off in the generated repo | `retro` checklist item in that repo |
 
 Phase F exits when **two** pilots have passed and one scheduled
-[headless run](./headless-orchestration.md) has shipped a PR.
+[headless run](../docs/how-to/headless-orchestration.md) has shipped a PR.
 
 ## Report template
 

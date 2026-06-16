@@ -79,4 +79,4 @@ health.
 
 - [Orchestration guide](./orchestration-guide.md) — the five-session flow
 - [Troubleshooting](./orchestration-troubleshooting.md) — session failures
-- [Pilot protocol](./orchestration-pilot.md) — Phase F exit criteria
+- [Pilot protocol](../../notes/orchestration-pilot.md) — Phase F exit criteria

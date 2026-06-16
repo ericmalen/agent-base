@@ -79,4 +79,4 @@ team tier is Claude Code-only) — see
 Route per [`triage-rules`](../../templates/orchestration/docs/triage-rules.md):
 template defect → Agent Base fix + re-scaffold; blueprint defect → re-synthesize;
 skill gap → Agent Base skill edit; one-off → `retro` checklist item. During a pilot,
-also log it as friction in the [pilot report](./orchestration-pilot.md).
+also log it as friction in the [pilot report](../../notes/orchestration-pilot.md).
