@@ -52,7 +52,9 @@ export function validateMarker(marker) {
     return errors;
   }
   for (const k of REQUIRED_MARKER_FIELDS) {
-    if (marker[k] === undefined) errors.push(`missing required field "${k}"`);
+    // == null: an explicit null is as missing as an absent key — letting it
+    // through yields a "vnull" pin and skips the cross-major guard downstream
+    if (marker[k] == null) errors.push(`missing required field "${k}"`);
   }
   if (marker.standard != null && parseSemver(String(marker.standard)) == null) {
     errors.push('standard must be semver (e.g. 1.4.0)');

@@ -39,10 +39,10 @@ From a project root (or pass `--root`), via npx at your pin — no clone needed:
 # CI / weekly nudge — exit 1 when pin is behind
 npx github:ericmalen/agent-base#v1.2.0 sync --check
 
-# Bot-friendly JSON plan (files to update, conflicts)
+# Bot-friendly JSON plan (files to update, conflicts, removed)
 npx github:ericmalen/agent-base#v1.2.0 sync --report --json
 
-# Apply safe updates (skips files with local edits vs the old release).
+# Apply updates — any local edit vs the old release blocks the whole upgrade.
 # Also works at a current pin: restores missing baseline files (repair).
 npx github:ericmalen/agent-base#v1.2.0 sync --upgrade
 
@@ -77,6 +77,12 @@ For each baseline file:
 - Matches the old release, differs on the new release → **auto-update**
 - Matches the new release already → **unchanged**
 - Differs from both old and new release → **conflict** (human resolves, then re-run)
+- Dropped by the new release → **removed** in the report; left on disk
+  (deleting is the user's call)
+
+A path whose project state can't be written safely — a symlink anywhere in it,
+a file where the baseline needs a directory, or a directory where it ships a
+file — is reported as a conflict too, never written.
 
 This is the polished version of “pull from source” — not silent auto-sync.
 
@@ -86,8 +92,9 @@ repair mainly serves older starters and deletions), and locally edited files
 are left untouched and reported as drift —
 they never block, and `--upgrade` exits 0 (policing content drift is
 `base-check`'s job, not sync's). A pin **ahead** of the target — stale
-`--base-root` checkout, deleted remote tags — is refused with exit 2, never a
-silent downgrade.
+`--base-root` checkout, deleted remote tags — is refused by
+`--report`/`--upgrade` with exit 2, never a silent downgrade (`--check` only
+detects *behind*, so an ahead pin still reads as "current" there).
 
 ## CI templates
 

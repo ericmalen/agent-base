@@ -49,3 +49,15 @@ test('writeMarker refuses to write through a symlink at the marker path', () => 
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('validateMarker treats explicit null required fields as missing', () => {
+  const errors = validateMarker({
+    present: true,
+    standard: null,
+    toolRepo: null,
+    setupAt: null,
+    githubCodeReview: null,
+  });
+  assert.equal(errors.length, 4);
+  assert.ok(errors.every((e) => e.includes('missing required field')));
+});

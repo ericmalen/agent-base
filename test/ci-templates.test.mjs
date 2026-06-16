@@ -44,6 +44,7 @@ test('the snippet agrees with npxSpecFromToolRepo on sample markers', () => {
     { toolRepo: 'https://github.com/ericmalen/agent-base', pin: 'v1.4.0' },
     { toolRepo: 'https://github.com/ericmalen/agent-base.git', pin: 'v2.0.0' },
     { toolRepo: 'https://dev.azure.com/org/proj/_git/agent-base', pin: 'v1.4.0' },
+    { toolRepo: 'git@github.com:ericmalen/agent-base.git', pin: 'v1.4.0' }, // scp-style ssh
     { toolRepo: 'https://github.com/ericmalen/agent-base', standard: '1.2.3' }, // pin fallback
   ];
   for (const c of cases) {

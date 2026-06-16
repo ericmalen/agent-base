@@ -45,7 +45,7 @@ steps:
   - bash: |
       set -euo pipefail
       test -f .claude/agent-base.json
-      NPX_SPEC="$(node -e 'const m=require("./.claude/agent-base.json");const pin=m.pin||("v"+m.standard);const url=String(m.toolRepo).trim().replace(/\/+$/,"");const gh=url.match(/^(?:git\+)?https:\/\/github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?$/);process.stdout.write((gh?"github:"+gh[1]+"/"+gh[2]:(url.startsWith("git+")?url:"git+"+url))+"#"+pin)')"
+      NPX_SPEC="$(node -e 'const m=require("./.claude/agent-base.json");const pin=m.pin||("v"+m.standard);const url=String(m.toolRepo).trim().replace(/\/+$/,"");const gh=url.match(/^(?:git\+)?https:\/\/github\.com\/([^\/]+)\/([^\/]+?)(?:\.git)?$/);process.stdout.write((gh?"github:"+gh[1]+"/"+gh[2]:url.startsWith("git+")?url:url.startsWith("git@")?"git+ssh://"+url.replace(":","/"):"git+"+url)+"#"+pin)')"
       echo "##vso[task.setvariable variable=npxSpec]$NPX_SPEC"
       # Private Agent Base repo? npm fetches git deps through git — route credentials from a secret variable, e.g.:
       # git config --global url."https://x-token:${AGENT_BASE_TOKEN}@dev.azure.com/".insteadOf "https://dev.azure.com/"

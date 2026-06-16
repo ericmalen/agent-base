@@ -1,7 +1,7 @@
 // sync-plan.mjs — conflict-aware baseline upgrade planning (pure, testable).
 
 import { createHash } from 'node:crypto';
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, lstatSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { BASELINE_COPIES } from './baseline.mjs';
 
@@ -50,10 +50,34 @@ export function baselineFileHashes(root) {
 }
 
 /**
- * Plan a baseline sync. Returns { updates, conflicts, unchanged, summary }.
+ * A candidate update is only writable when every component of its project
+ * path is a plain directory (and the leaf, if present, a plain file).
+ * Symlinks, a file where a directory is needed, or a directory where the
+ * baseline ships a file would make apply write out-of-tree or crash mid-copy
+ * — classify them as conflicts up front so the plan, not the apply, says no.
+ */
+function pathObstruction(projectRoot, rel) {
+  const segs = rel.split('/');
+  let cur = projectRoot;
+  for (let i = 0; i < segs.length; i++) {
+    cur = join(cur, segs[i]);
+    let st = null;
+    try { st = lstatSync(cur); } catch { return null; } // rest missing: clear to create
+    if (st.isSymbolicLink()) return 'symlink in project path — sync never writes through links';
+    const leaf = i === segs.length - 1;
+    if (leaf && st.isDirectory()) return 'directory where the baseline ships a file';
+    if (!leaf && !st.isDirectory()) return 'file where the baseline needs a directory';
+  }
+  return null;
+}
+
+/**
+ * Plan a baseline sync. Returns { updates, conflicts, unchanged, removed, summary }.
  * - updates: files that match oldBase (or missing) and differ on newBase
- * - conflicts: files that differ from both oldBase and newBase (local edits)
+ * - conflicts: files that differ from both oldBase and newBase (local edits),
+ *   plus paths whose project state can't be written safely (see pathObstruction)
  * - unchanged: already match newBase
+ * - removed: still in the project but no longer shipped by newBase (never auto-deleted)
  */
 export function planBaselineSync(projectRoot, oldBaseRoot, newBaseRoot) {
   const project = baselineFileHashes(projectRoot);
@@ -64,19 +88,26 @@ export function planBaselineSync(projectRoot, oldBaseRoot, newBaseRoot) {
   const updates = [];
   const conflicts = [];
   const unchanged = [];
+  const removed = [];
 
   for (const path of [...allPaths].sort()) {
     const p = project.get(path) ?? null;
     const o = oldBase.get(path) ?? null;
     const n = newBase.get(path) ?? null;
-    if (n == null) continue; // removed from Agent Base — out of scope for auto-sync
+    if (n == null) {
+      // No longer shipped — surfaced for the human, never auto-deleted.
+      if (p != null) removed.push(path);
+      continue;
+    }
 
     if (p === n) {
       unchanged.push(path);
       continue;
     }
     if (p === o || p == null) {
-      updates.push(path);
+      const obstruction = pathObstruction(projectRoot, path);
+      if (obstruction) conflicts.push({ path, reason: obstruction });
+      else updates.push(path);
       continue;
     }
     conflicts.push({ path, reason: 'local edit differs from Agent Base baseline' });
@@ -86,10 +117,12 @@ export function planBaselineSync(projectRoot, oldBaseRoot, newBaseRoot) {
     updates,
     conflicts,
     unchanged,
+    removed,
     summary: {
       updateCount: updates.length,
       conflictCount: conflicts.length,
       unchangedCount: unchanged.length,
+      removedCount: removed.length,
     },
   };
 }
