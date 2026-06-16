@@ -3,6 +3,9 @@
 # generated outputs
 reports/
 
+# skill-creator eval workspaces — disposable benchmark output, regenerable
+notes/skill-workspaces/
+
 # python bytecode (skill-creator scripts)
 __pycache__/
 
