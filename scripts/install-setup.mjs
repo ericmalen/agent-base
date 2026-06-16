@@ -17,27 +17,27 @@ const target = process.argv[2] ? resolve(process.argv[2]) : null;
 
 if (!target) {
   console.error('usage: node scripts/install-setup.mjs /path/to/project');
-  process.exit(1);
+  process.exit(2);
 }
 if (!existsSync(target)) {
   console.error(`install-setup: target does not exist: ${target}`);
-  process.exit(1);
+  process.exit(2);
 }
 // Refuse to copy the base checkout onto itself (or into/over a nested path) —
 // cpSync onto itself errors mid-copy with files already written.
 if (target === baseRoot || target.startsWith(baseRoot + sep) || baseRoot.startsWith(target + sep)) {
   console.error(`install-setup: target overlaps the Agent Base checkout (${baseRoot}); refusing.`);
-  process.exit(1);
+  process.exit(2);
 }
 const inTree = spawnSync('git', ['rev-parse', '--is-inside-work-tree'], { cwd: target, encoding: 'utf8' });
 if (inTree.status !== 0 || inTree.stdout.trim() !== 'true') {
   console.error('install-setup: target is not a git repository.');
-  process.exit(1);
+  process.exit(2);
 }
 const major = Number(process.versions.node.split('.')[0]);
 if (major < 20) {
   console.error(`install-setup: node >= 20 required (found ${process.versions.node}).`);
-  process.exit(1);
+  process.exit(2);
 }
 
 const baseVersion = JSON.parse(readFileSync(join(baseRoot, 'package.json'), 'utf8')).version ?? '1.0.0';

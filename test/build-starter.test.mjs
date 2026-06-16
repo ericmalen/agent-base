@@ -40,12 +40,12 @@ test('starter build: empty dir → exit 0, files written, version printed', () =
   }
 });
 
-test('starter build: non-empty dir → exit 1, refusing message, untouched', () => {
+test('starter build: non-empty dir → exit 2, refusing message, untouched', () => {
   const target = mkdtempSync(join(tmpdir(), 'ab-starter-'));
   try {
     writeFileSync(join(target, 'precious.txt'), 'keep me\n');
     const r = run([target]);
-    assert.equal(r.status, 1);
+    assert.equal(r.status, 2);
     assert.match(r.stderr, /refusing/);
     assert.ok(!existsSync(join(target, 'AGENTS.md')), 'nothing written');
   } finally {
@@ -53,13 +53,13 @@ test('starter build: non-empty dir → exit 1, refusing message, untouched', () 
   }
 });
 
-test('starter build: file as target → exit 1, refusing message, no stack trace', () => {
+test('starter build: file as target → exit 2, refusing message, no stack trace', () => {
   const parent = mkdtempSync(join(tmpdir(), 'ab-starter-'));
   try {
     const file = join(parent, 'somefile');
     writeFileSync(file, 'x\n');
     const r = run([file]);
-    assert.equal(r.status, 1);
+    assert.equal(r.status, 2);
     assert.match(r.stderr, /refusing/);
     assert.doesNotMatch(r.stderr, /ENOTDIR|at .*node:/, 'friendly refusal, not a crash');
     assert.equal(readFileSync(file, 'utf8'), 'x\n', 'target file untouched');
@@ -82,9 +82,9 @@ test('starter build: --git with git unavailable → exit 1, loud failure', () =>
   }
 });
 
-test('starter build: no dir argument → exit 1, usage', () => {
+test('starter build: no dir argument → exit 2, usage', () => {
   const r = run([]);
-  assert.equal(r.status, 1);
+  assert.equal(r.status, 2);
   assert.match(r.stderr, /usage:/);
 });
 

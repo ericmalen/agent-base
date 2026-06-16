@@ -17,17 +17,17 @@ const baseVersion = JSON.parse(readFileSync(join(baseRoot, 'package.json'), 'utf
 const [dir, ...flags] = process.argv.slice(2);
 if (!dir) {
   console.error('usage: node scripts/build-starter.mjs <dir> [--git]');
-  process.exit(1);
+  process.exit(2);
 }
 const target = resolve(dir);
 if (existsSync(target)) {
   if (!statSync(target).isDirectory()) {
     console.error(`refusing to write: target exists and is not a directory: ${target}`);
-    process.exit(1);
+    process.exit(2);
   }
   if (readdirSync(target).length > 0) {
     console.error(`refusing to write into non-empty directory: ${target}`);
-    process.exit(1);
+    process.exit(2);
   }
 }
 

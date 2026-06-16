@@ -11,17 +11,17 @@ const [name, dir] = process.argv.slice(2);
 if (!name || !dir) {
   console.error('usage: node scripts/build-fixture.mjs <name> <dir>');
   console.error(`names: ${Object.keys(fixtures).join(' ')}`);
-  process.exit(1);
+  process.exit(2);
 }
 const def = fixtures[name];
 if (!def) {
   console.error(`unknown fixture "${name}". names: ${Object.keys(fixtures).join(' ')}`);
-  process.exit(1);
+  process.exit(2);
 }
 const target = resolve(dir);
 if (existsSync(target) && readdirSync(target).length > 0) {
   console.error(`refusing to write into non-empty directory: ${target}`);
-  process.exit(1);
+  process.exit(2);
 }
 mkdirSync(target, { recursive: true });
 for (const [rel, content] of Object.entries(def.files)) {
